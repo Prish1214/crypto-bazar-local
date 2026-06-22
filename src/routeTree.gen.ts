@@ -9,12 +9,47 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WalletRouteImport } from './routes/wallet'
+import { Route as TransactionsRouteImport } from './routes/transactions'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as MarketplaceRouteImport } from './routes/marketplace'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ListingsIndexRouteImport } from './routes/listings.index'
+import { Route as MerchantUserIdRouteImport } from './routes/merchant.$userId'
+import { Route as ListingsNewRouteImport } from './routes/listings.new'
+import { Route as DealsDealIdRouteImport } from './routes/deals.$dealId'
+import { Route as DealsNewListingIdRouteImport } from './routes/deals.new.$listingId'
 
+const WalletRoute = WalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TransactionsRoute = TransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketplaceRoute = MarketplaceRouteImport.update({
+  id: '/marketplace',
+  path: '/marketplace',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -22,40 +57,177 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ListingsIndexRoute = ListingsIndexRouteImport.update({
+  id: '/listings/',
+  path: '/listings/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MerchantUserIdRoute = MerchantUserIdRouteImport.update({
+  id: '/merchant/$userId',
+  path: '/merchant/$userId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ListingsNewRoute = ListingsNewRouteImport.update({
+  id: '/listings/new',
+  path: '/listings/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DealsDealIdRoute = DealsDealIdRouteImport.update({
+  id: '/deals/$dealId',
+  path: '/deals/$dealId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DealsNewListingIdRoute = DealsNewListingIdRouteImport.update({
+  id: '/deals/new/$listingId',
+  path: '/deals/new/$listingId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/settings': typeof SettingsRoute
+  '/transactions': typeof TransactionsRoute
+  '/wallet': typeof WalletRoute
+  '/deals/$dealId': typeof DealsDealIdRoute
+  '/listings/new': typeof ListingsNewRoute
+  '/merchant/$userId': typeof MerchantUserIdRoute
+  '/listings/': typeof ListingsIndexRoute
+  '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/settings': typeof SettingsRoute
+  '/transactions': typeof TransactionsRoute
+  '/wallet': typeof WalletRoute
+  '/deals/$dealId': typeof DealsDealIdRoute
+  '/listings/new': typeof ListingsNewRoute
+  '/merchant/$userId': typeof MerchantUserIdRoute
+  '/listings': typeof ListingsIndexRoute
+  '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/settings': typeof SettingsRoute
+  '/transactions': typeof TransactionsRoute
+  '/wallet': typeof WalletRoute
+  '/deals/$dealId': typeof DealsDealIdRoute
+  '/listings/new': typeof ListingsNewRoute
+  '/merchant/$userId': typeof MerchantUserIdRoute
+  '/listings/': typeof ListingsIndexRoute
+  '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/marketplace'
+    | '/settings'
+    | '/transactions'
+    | '/wallet'
+    | '/deals/$dealId'
+    | '/listings/new'
+    | '/merchant/$userId'
+    | '/listings/'
+    | '/deals/new/$listingId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth'
-  id: '__root__' | '/' | '/auth'
+  to:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/marketplace'
+    | '/settings'
+    | '/transactions'
+    | '/wallet'
+    | '/deals/$dealId'
+    | '/listings/new'
+    | '/merchant/$userId'
+    | '/listings'
+    | '/deals/new/$listingId'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/marketplace'
+    | '/settings'
+    | '/transactions'
+    | '/wallet'
+    | '/deals/$dealId'
+    | '/listings/new'
+    | '/merchant/$userId'
+    | '/listings/'
+    | '/deals/new/$listingId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
+  MarketplaceRoute: typeof MarketplaceRoute
+  SettingsRoute: typeof SettingsRoute
+  TransactionsRoute: typeof TransactionsRoute
+  WalletRoute: typeof WalletRoute
+  DealsDealIdRoute: typeof DealsDealIdRoute
+  ListingsNewRoute: typeof ListingsNewRoute
+  MerchantUserIdRoute: typeof MerchantUserIdRoute
+  ListingsIndexRoute: typeof ListingsIndexRoute
+  DealsNewListingIdRoute: typeof DealsNewListingIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wallet': {
+      id: '/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof WalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/transactions': {
+      id: '/transactions'
+      path: '/transactions'
+      fullPath: '/transactions'
+      preLoaderRoute: typeof TransactionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketplace': {
+      id: '/marketplace'
+      path: '/marketplace'
+      fullPath: '/marketplace'
+      preLoaderRoute: typeof MarketplaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -65,12 +237,57 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/listings/': {
+      id: '/listings/'
+      path: '/listings'
+      fullPath: '/listings/'
+      preLoaderRoute: typeof ListingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/merchant/$userId': {
+      id: '/merchant/$userId'
+      path: '/merchant/$userId'
+      fullPath: '/merchant/$userId'
+      preLoaderRoute: typeof MerchantUserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/listings/new': {
+      id: '/listings/new'
+      path: '/listings/new'
+      fullPath: '/listings/new'
+      preLoaderRoute: typeof ListingsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deals/$dealId': {
+      id: '/deals/$dealId'
+      path: '/deals/$dealId'
+      fullPath: '/deals/$dealId'
+      preLoaderRoute: typeof DealsDealIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deals/new/$listingId': {
+      id: '/deals/new/$listingId'
+      path: '/deals/new/$listingId'
+      fullPath: '/deals/new/$listingId'
+      preLoaderRoute: typeof DealsNewListingIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
+  MarketplaceRoute: MarketplaceRoute,
+  SettingsRoute: SettingsRoute,
+  TransactionsRoute: TransactionsRoute,
+  WalletRoute: WalletRoute,
+  DealsDealIdRoute: DealsDealIdRoute,
+  ListingsNewRoute: ListingsNewRoute,
+  MerchantUserIdRoute: MerchantUserIdRoute,
+  ListingsIndexRoute: ListingsIndexRoute,
+  DealsNewListingIdRoute: DealsNewListingIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
