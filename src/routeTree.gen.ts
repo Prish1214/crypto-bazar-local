@@ -9,9 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WalletRouteImport } from './routes/wallet'
+import { Route as MarketplaceRouteImport } from './routes/marketplace'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ListingsIndexRouteImport } from './routes/listings.index'
+import { Route as ListingsNewRouteImport } from './routes/listings.new'
+import { Route as DealsNewListingIdRouteImport } from './routes/deals.new.$listingId'
 
+const WalletRoute = WalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketplaceRoute = MarketplaceRouteImport.update({
+  id: '/marketplace',
+  path: '/marketplace',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -22,35 +37,106 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ListingsIndexRoute = ListingsIndexRouteImport.update({
+  id: '/listings/',
+  path: '/listings/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ListingsNewRoute = ListingsNewRouteImport.update({
+  id: '/listings/new',
+  path: '/listings/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DealsNewListingIdRoute = DealsNewListingIdRouteImport.update({
+  id: '/deals/new/$listingId',
+  path: '/deals/new/$listingId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/wallet': typeof WalletRoute
+  '/listings/new': typeof ListingsNewRoute
+  '/listings/': typeof ListingsIndexRoute
+  '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/wallet': typeof WalletRoute
+  '/listings/new': typeof ListingsNewRoute
+  '/listings': typeof ListingsIndexRoute
+  '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/wallet': typeof WalletRoute
+  '/listings/new': typeof ListingsNewRoute
+  '/listings/': typeof ListingsIndexRoute
+  '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/marketplace'
+    | '/wallet'
+    | '/listings/new'
+    | '/listings/'
+    | '/deals/new/$listingId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth'
-  id: '__root__' | '/' | '/auth'
+  to:
+    | '/'
+    | '/auth'
+    | '/marketplace'
+    | '/wallet'
+    | '/listings/new'
+    | '/listings'
+    | '/deals/new/$listingId'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/marketplace'
+    | '/wallet'
+    | '/listings/new'
+    | '/listings/'
+    | '/deals/new/$listingId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  MarketplaceRoute: typeof MarketplaceRoute
+  WalletRoute: typeof WalletRoute
+  ListingsNewRoute: typeof ListingsNewRoute
+  ListingsIndexRoute: typeof ListingsIndexRoute
+  DealsNewListingIdRoute: typeof DealsNewListingIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wallet': {
+      id: '/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof WalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketplace': {
+      id: '/marketplace'
+      path: '/marketplace'
+      fullPath: '/marketplace'
+      preLoaderRoute: typeof MarketplaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -65,12 +151,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/listings/': {
+      id: '/listings/'
+      path: '/listings'
+      fullPath: '/listings/'
+      preLoaderRoute: typeof ListingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/listings/new': {
+      id: '/listings/new'
+      path: '/listings/new'
+      fullPath: '/listings/new'
+      preLoaderRoute: typeof ListingsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deals/new/$listingId': {
+      id: '/deals/new/$listingId'
+      path: '/deals/new/$listingId'
+      fullPath: '/deals/new/$listingId'
+      preLoaderRoute: typeof DealsNewListingIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  MarketplaceRoute: MarketplaceRoute,
+  WalletRoute: WalletRoute,
+  ListingsNewRoute: ListingsNewRoute,
+  ListingsIndexRoute: ListingsIndexRoute,
+  DealsNewListingIdRoute: DealsNewListingIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
