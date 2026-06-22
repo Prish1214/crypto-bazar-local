@@ -1,10 +1,23 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Shield, Coins, Users } from "lucide-react";
+import {
+  Shield, Coins, Users, Store, Wallet, ListOrdered,
+  ReceiptText, Settings as SettingsIcon, LayoutDashboard,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const navItems = [
+  { to: "/marketplace", label: "Market", icon: Store },
+  { to: "/listings", label: "My Listings", icon: ListOrdered },
+  { to: "/wallet", label: "Wallet", icon: Wallet },
+  { to: "/transactions", label: "History", icon: ReceiptText },
+] as const;
 
 export function SiteHeader() {
   const { user, signOut } = useAuth();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
   return (
     <header className="sticky top-0 z-50 w-full">
       <div className="glass-panel mx-auto mt-4 flex max-w-7xl items-center justify-between rounded-2xl px-5 py-3">
@@ -17,24 +30,42 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
-          <Link to="/" className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground">
-            Home
-          </Link>
-          <a href="#how" className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground">
-            How it works
-          </a>
-          <a href="#features" className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground">
-            Features
-          </a>
-        </nav>
+        {user && (
+          <nav className="hidden items-center gap-1 md:flex">
+            {navItems.map((n) => {
+              const active = pathname.startsWith(n.to);
+              return (
+                <Link
+                  key={n.to}
+                  to={n.to}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors",
+                    active
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <n.icon className="h-4 w-4" />
+                  {n.label}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
 
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              <span className="hidden text-xs text-muted-foreground sm:inline">
-                {user.email}
-              </span>
+              <Link to="/settings">
+                <Button size="icon" variant="ghost" title="Settings">
+                  <SettingsIcon className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Link to="/admin">
+                <Button size="icon" variant="ghost" title="Admin">
+                  <LayoutDashboard className="h-4 w-4" />
+                </Button>
+              </Link>
               <Button size="sm" variant="ghost" onClick={signOut}>
                 Sign out
               </Button>
@@ -51,6 +82,27 @@ export function SiteHeader() {
           )}
         </div>
       </div>
+
+      {user && (
+        <nav className="mx-auto mt-2 flex max-w-7xl items-center gap-1 overflow-x-auto px-2 md:hidden">
+          {navItems.map((n) => {
+            const active = pathname.startsWith(n.to);
+            return (
+              <Link
+                key={n.to}
+                to={n.to}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs",
+                  active ? "bg-primary/10 text-primary" : "text-muted-foreground",
+                )}
+              >
+                <n.icon className="h-3.5 w-3.5" />
+                {n.label}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
     </header>
   );
 }
@@ -80,4 +132,45 @@ export function SiteFooter() {
       </div>
     </footer>
   );
+}
+
+export function PageShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen px-4 pb-12">
+      <SiteHeader />
+      <main className="mx-auto mt-8 max-w-7xl">{children}</main>
+      <SiteFooter />
+    </div>
+  );
+}
+
+export function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <PageShell>
+        <div className="glass-panel rounded-2xl p-12 text-center text-muted-foreground">
+          Loading…
+        </div>
+      </PageShell>
+    );
+  }
+  if (!user) {
+    return (
+      <PageShell>
+        <div className="glass-panel rounded-2xl p-12 text-center">
+          <h2 className="font-display text-xl font-semibold">Sign in required</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            You need an account to access this page.
+          </p>
+          <div className="mt-5">
+            <Link to="/auth">
+              <Button variant="hero">Sign in / Sign up</Button>
+            </Link>
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
+  return <>{children}</>;
 }
