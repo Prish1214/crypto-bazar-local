@@ -87,6 +87,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Buy and sell USDT face-to-face in your city. Escrow protected. Instant settlement." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "CryptoBazar — Local USDT marketplace" },
+      { name: "twitter:description", content: "Buy and sell USDT face-to-face in your city. Escrow protected. Instant settlement." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a64f2634-11f6-4855-9f90-1017d40ac845/id-preview-5cd6c69e--f66550ad-7ecc-4ada-b4a0-a237cc48ca75.lovable.app-1782143052390.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a64f2634-11f6-4855-9f90-1017d40ac845/id-preview-5cd6c69e--f66550ad-7ecc-4ada-b4a0-a237cc48ca75.lovable.app-1782143052390.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
