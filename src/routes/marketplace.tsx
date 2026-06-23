@@ -24,15 +24,28 @@ function Marketplace() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const { data } = await db
+      const { data: listings, error } = await db
         .from("listings")
-        .select("*, profiles!listings_user_id_fkey(*)")
+        .select("*")
         .eq("status", "active")
         .eq("type", tab)
         .order("featured", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(100);
-      setItems((data ?? []) as any);
+      if (error) {
+        console.error("[marketplace] listings error:", error);
+        setItems([]);
+        setLoading(false);
+        return;
+      }
+      const list = (listings ?? []) as Listing[];
+      const ids = Array.from(new Set(list.map((l) => l.user_id)));
+      let profilesById: Record<string, any> = {};
+      if (ids.length) {
+        const { data: profiles } = await db.from("profiles").select("*").in("id", ids);
+        profilesById = Object.fromEntries((profiles ?? []).map((p: any) => [p.id, p]));
+      }
+      setItems(list.map((l) => ({ ...l, profiles: profilesById[l.user_id] ?? null })));
       setLoading(false);
     })();
   }, [tab]);

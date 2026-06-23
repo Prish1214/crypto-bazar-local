@@ -82,7 +82,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "CryptoBazar — Local USDT marketplace" },
       { name: "description", content: "Buy and sell USDT face-to-face in your city. Escrow protected. Instant settlement." },
       { name: "author", content: "CryptoBazar" },
-      { name: "theme-color", content: "#0a1118" },
+      { name: "theme-color", content: "#ffffff" },
       { property: "og:title", content: "CryptoBazar — Local USDT marketplace" },
       { property: "og:description", content: "Buy and sell USDT face-to-face in your city. Escrow protected. Instant settlement." },
       { property: "og:type", content: "website" },

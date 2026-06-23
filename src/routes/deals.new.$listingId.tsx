@@ -26,10 +26,12 @@ function StartDeal() {
     (async () => {
       const { data } = await db
         .from("listings")
-        .select("*, profiles!listings_user_id_fkey(*)")
+        .select("*")
         .eq("id", listingId)
         .maybeSingle();
-      setListing((data as any) ?? null);
+      if (!data) return setListing(null);
+      const { data: profile } = await db.from("profiles").select("*").eq("id", (data as any).user_id).maybeSingle();
+      setListing({ ...(data as any), profiles: profile ?? null });
     })();
   }, [listingId]);
 
