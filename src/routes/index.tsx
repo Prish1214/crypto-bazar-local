@@ -100,7 +100,7 @@ function Landing() {
 
         <div className="mx-auto mt-14 grid max-w-3xl grid-cols-2 gap-3 md:grid-cols-4">
           <Stat value="0.1%" label="Trade fee" />
-          <Stat value="< 2 min" label="Avg. settlement" />
+          <Stat value="< 2 sec." label="Avg. settlement" />
           <Stat value="100%" label="Escrow protected" />
           <Stat value="24/7" label="In-app chat" />
         </div>
