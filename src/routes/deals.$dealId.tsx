@@ -268,7 +268,19 @@ function DealRoom() {
           {showArrival && <ArrivalCheckIn deal={deal} isBuyer={isBuyer} onArrive={checkIn} />}
           {showVerify && <PresenceVerification deal={deal} isBuyer={isBuyer} onUploadSelfie={uploadSelfie} />}
           {showCash && <CashHandoverPanel deal={deal} onSubmit={submitCashHandover} />}
-          {showConfirm && <SellerConfirmPanel deal={deal} onConfirm={releaseEscrow} onDispute={dispute} />}
+          {showConfirm && (
+            <SellerConfirmPanel
+              deal={deal}
+              onConfirm={releaseEscrow}
+              onDispute={() => { /* handled by DisputeButton in header */ }}
+            />
+          )}
+          {(isBuyer || isSeller) && !["pending", "completed", "cancelled", "disputed"].includes(deal.status) && (
+            <div className="rounded-2xl border border-border bg-card p-4 text-xs text-muted-foreground shadow-sm">
+              Something off? Use <b>Report issue</b> in the header to freeze
+              escrow and request an admin review.
+            </div>
+          )}
 
           {deal.status === "completed" && !hasReview && (
             <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
