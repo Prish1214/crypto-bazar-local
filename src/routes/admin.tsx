@@ -5,7 +5,7 @@ import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import { db, type Deal, type Profile } from "@/lib/db";
+import { db, type Dispute, type Profile } from "@/lib/db";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
@@ -18,28 +18,31 @@ function Admin() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [stats, setStats] = useState({ users: 0, listings: 0, deals: 0, disputes: 0 });
   const [users, setUsers] = useState<Profile[]>([]);
-  const [disputes, setDisputes] = useState<Deal[]>([]);
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
 
-  useEffect(() => {
-    (async () => {
-      if (!user) return;
-      const { data: role } = await db.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
-      const admin = !!role;
-      setIsAdmin(admin);
-      if (!admin) return;
-      const [{ count: u }, { count: l }, { count: d }, { count: dp }, { data: usr }, { data: dis }] = await Promise.all([
-        db.from("profiles").select("*", { count: "exact", head: true }),
-        db.from("listings").select("*", { count: "exact", head: true }),
-        db.from("deals").select("*", { count: "exact", head: true }),
-        db.from("deals").select("*", { count: "exact", head: true }).eq("status", "disputed"),
-        db.from("profiles").select("*").order("created_at", { ascending: false }).limit(20),
-        db.from("deals").select("*, buyer:profiles!deals_buyer_id_fkey(full_name), seller:profiles!deals_seller_id_fkey(full_name)").eq("status", "disputed").order("created_at", { ascending: false }),
-      ]);
-      setStats({ users: u ?? 0, listings: l ?? 0, deals: d ?? 0, disputes: dp ?? 0 });
-      setUsers((usr ?? []) as Profile[]);
-      setDisputes((dis ?? []) as any);
-    })();
-  }, [user?.id]);
+  const refresh = async () => {
+    if (!user) return;
+    const { data: role } = await db.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
+    const admin = !!role;
+    setIsAdmin(admin);
+    if (!admin) return;
+    const [{ count: u }, { count: l }, { count: d }, { count: dp }, { data: usr }, { data: dis }] = await Promise.all([
+      db.from("profiles").select("*", { count: "exact", head: true }),
+      db.from("listings").select("*", { count: "exact", head: true }),
+      db.from("deals").select("*", { count: "exact", head: true }),
+      db.from("disputes").select("*", { count: "exact", head: true }).eq("status", "open"),
+      db.from("profiles").select("*").order("created_at", { ascending: false }).limit(20),
+      db.from("disputes")
+        .select("*, deal:deals(*, buyer:profiles!deals_buyer_id_fkey(full_name, username), seller:profiles!deals_seller_id_fkey(full_name, username))")
+        .in("status", ["open", "reviewing"])
+        .order("created_at", { ascending: false }),
+    ]);
+    setStats({ users: u ?? 0, listings: l ?? 0, deals: d ?? 0, disputes: dp ?? 0 });
+    setUsers((usr ?? []) as Profile[]);
+    setDisputes((dis ?? []) as any);
+  };
+
+  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [user?.id]);
 
   const toggleVerify = async (p: Profile) => {
     const { error } = await db.from("profiles").update({ verified: !p.verified }).eq("id", p.id);
@@ -47,11 +50,16 @@ function Admin() {
     setUsers(users.map(u => u.id === p.id ? { ...u, verified: !p.verified } : u));
   };
 
-  const resolve = async (d: Deal, outcome: "completed" | "cancelled") => {
-    const { error } = await db.from("deals").update({ status: outcome }).eq("id", d.id);
-    if (error) return toast.error(error.message);
-    setDisputes(disputes.filter(x => x.id !== d.id));
-    toast.success(`Resolved as ${outcome}`);
+  const resolve = async (dp: Dispute, outcome: "resolved_buyer" | "resolved_seller" | "cancelled") => {
+    const dealStatus = outcome === "resolved_buyer" ? "completed" : "cancelled";
+    const { error: e1 } = await db.from("disputes").update({
+      status: outcome, resolved_by: user!.id, resolved_at: new Date().toISOString(),
+    }).eq("id", dp.id);
+    if (e1) return toast.error(e1.message);
+    const { error: e2 } = await db.from("deals").update({ status: dealStatus }).eq("id", dp.deal_id);
+    if (e2) return toast.error(e2.message);
+    toast.success(`Dispute resolved (${outcome.replace("resolved_", "favor of ")})`);
+    refresh();
   };
 
   if (isAdmin === null) return <PageShell><div className="glass-panel grid place-items-center rounded-2xl p-16"><Loader2 className="h-6 w-6 animate-spin" /></div></PageShell>;
@@ -81,22 +89,37 @@ function Admin() {
         <div>
           <h2 className="mb-3 font-display text-lg font-semibold">Disputes</h2>
           <div className="space-y-2">
-            {disputes.length === 0 && <div className="glass-panel rounded-xl p-8 text-center text-sm text-muted-foreground">No open disputes</div>}
-            {disputes.map((d) => (
-              <div key={d.id} className="glass-panel rounded-xl p-4">
-                <div className="flex items-center justify-between">
-                  <span className="font-display font-semibold">{Number(d.amount_usdt).toFixed(2)} USDT</span>
-                  <Badge variant="destructive">DISPUTED</Badge>
+            {disputes.length === 0 && <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">No open disputes</div>}
+            {disputes.map((dp) => {
+              const dl: any = dp.deal;
+              return (
+                <div key={dp.id} className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="font-display font-semibold">
+                      {dl ? `${Number(dl.amount_usdt).toFixed(2)} USDT` : "—"}
+                    </span>
+                    <Badge variant="destructive">{dp.status.toUpperCase()}</Badge>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {dl?.buyer?.full_name ?? dl?.buyer?.username} ↔ {dl?.seller?.full_name ?? dl?.seller?.username}
+                  </div>
+                  <div className="mt-2 rounded-md bg-muted/40 p-2 text-xs">
+                    <b>Reason:</b> {dp.reason}
+                  </div>
+                  {dp.evidence_url && (
+                    <a href={dp.evidence_url} target="_blank" rel="noreferrer"
+                       className="mt-1 inline-block text-xs text-primary hover:underline">
+                      View evidence →
+                    </a>
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button size="sm" variant="hero" onClick={() => resolve(dp, "resolved_buyer")}>Release to buyer</Button>
+                    <Button size="sm" variant="glass" onClick={() => resolve(dp, "resolved_seller")}>Refund seller</Button>
+                    <Button size="sm" variant="ghost" onClick={() => resolve(dp, "cancelled")}>Dismiss</Button>
+                  </div>
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {(d as any).buyer?.full_name} ↔ {(d as any).seller?.full_name}
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <Button size="sm" variant="hero" onClick={() => resolve(d, "completed")}>Release to buyer</Button>
-                  <Button size="sm" variant="glass" onClick={() => resolve(d, "cancelled")}>Refund seller</Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
