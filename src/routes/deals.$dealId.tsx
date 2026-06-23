@@ -1,6 +1,6 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Check, X, Lock, ShieldCheck, Star } from "lucide-react";
+import { Loader2, Check, X, Lock, Star, AlertOctagon } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import {
   CashHandoverPanel, SellerConfirmPanel,
 } from "@/components/deal/panels";
 import { ChatPanel } from "@/components/deal/chat-panel";
+import { DisputeButton } from "@/components/deal/dispute-button";
 
 export const Route = createFileRoute("/deals/$dealId")({
   head: () => ({ meta: [{ title: "Deal Room — CryptoBazar" }] }),
@@ -77,7 +78,6 @@ function DealRoom() {
 
   const accept = () => patch({ status: "accepted" }, "Seller accepted the deal.");
   const cancel = () => patch({ status: "cancelled" }, "Deal cancelled.");
-  const dispute = () => patch({ status: "disputed" }, "Dispute opened — admin review required.");
 
   const fundEscrow = async () => {
     const { data: w } = await db.from("wallets").select("*").eq("user_id", user.id).maybeSingle();
@@ -229,6 +229,15 @@ function DealRoom() {
           {["pending", "accepted", "escrow_funded", "meeting_proposed", "meeting_scheduled"].includes(deal.status) && (
             <Button variant="ghost" size="sm" onClick={cancel}>Cancel</Button>
           )}
+          {(isBuyer || isSeller) &&
+            !["pending", "completed", "cancelled", "disputed"].includes(deal.status) && (
+              <DisputeButton dealId={dealId} userId={user.id} />
+          )}
+          {deal.status === "disputed" && (
+            <Badge variant="destructive" className="gap-1">
+              <AlertOctagon className="h-3 w-3" /> Under admin review
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -259,7 +268,19 @@ function DealRoom() {
           {showArrival && <ArrivalCheckIn deal={deal} isBuyer={isBuyer} onArrive={checkIn} />}
           {showVerify && <PresenceVerification deal={deal} isBuyer={isBuyer} onUploadSelfie={uploadSelfie} />}
           {showCash && <CashHandoverPanel deal={deal} onSubmit={submitCashHandover} />}
-          {showConfirm && <SellerConfirmPanel deal={deal} onConfirm={releaseEscrow} onDispute={dispute} />}
+          {showConfirm && (
+            <SellerConfirmPanel
+              deal={deal}
+              onConfirm={releaseEscrow}
+              onDispute={() => { /* handled by DisputeButton in header */ }}
+            />
+          )}
+          {(isBuyer || isSeller) && !["pending", "completed", "cancelled", "disputed"].includes(deal.status) && (
+            <div className="rounded-2xl border border-border bg-card p-4 text-xs text-muted-foreground shadow-sm">
+              Something off? Use <b>Report issue</b> in the header to freeze
+              escrow and request an admin review.
+            </div>
+          )}
 
           {deal.status === "completed" && !hasReview && (
             <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">

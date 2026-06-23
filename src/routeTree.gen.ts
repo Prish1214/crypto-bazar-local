@@ -17,6 +17,9 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ListingsIndexRouteImport } from './routes/listings.index'
+import { Route as WalletWithdrawRouteImport } from './routes/wallet.withdraw'
+import { Route as WalletTransferRouteImport } from './routes/wallet.transfer'
+import { Route as WalletDepositRouteImport } from './routes/wallet.deposit'
 import { Route as MerchantUserIdRouteImport } from './routes/merchant.$userId'
 import { Route as ListingsNewRouteImport } from './routes/listings.new'
 import { Route as DealsDealIdRouteImport } from './routes/deals.$dealId'
@@ -62,6 +65,21 @@ const ListingsIndexRoute = ListingsIndexRouteImport.update({
   path: '/listings/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WalletWithdrawRoute = WalletWithdrawRouteImport.update({
+  id: '/withdraw',
+  path: '/withdraw',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletTransferRoute = WalletTransferRouteImport.update({
+  id: '/transfer',
+  path: '/transfer',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletDepositRoute = WalletDepositRouteImport.update({
+  id: '/deposit',
+  path: '/deposit',
+  getParentRoute: () => WalletRoute,
+} as any)
 const MerchantUserIdRoute = MerchantUserIdRouteImport.update({
   id: '/merchant/$userId',
   path: '/merchant/$userId',
@@ -90,10 +108,13 @@ export interface FileRoutesByFullPath {
   '/marketplace': typeof MarketplaceRoute
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
-  '/wallet': typeof WalletRoute
+  '/wallet': typeof WalletRouteWithChildren
   '/deals/$dealId': typeof DealsDealIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/merchant/$userId': typeof MerchantUserIdRoute
+  '/wallet/deposit': typeof WalletDepositRoute
+  '/wallet/transfer': typeof WalletTransferRoute
+  '/wallet/withdraw': typeof WalletWithdrawRoute
   '/listings/': typeof ListingsIndexRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
@@ -104,10 +125,13 @@ export interface FileRoutesByTo {
   '/marketplace': typeof MarketplaceRoute
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
-  '/wallet': typeof WalletRoute
+  '/wallet': typeof WalletRouteWithChildren
   '/deals/$dealId': typeof DealsDealIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/merchant/$userId': typeof MerchantUserIdRoute
+  '/wallet/deposit': typeof WalletDepositRoute
+  '/wallet/transfer': typeof WalletTransferRoute
+  '/wallet/withdraw': typeof WalletWithdrawRoute
   '/listings': typeof ListingsIndexRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
@@ -119,10 +143,13 @@ export interface FileRoutesById {
   '/marketplace': typeof MarketplaceRoute
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
-  '/wallet': typeof WalletRoute
+  '/wallet': typeof WalletRouteWithChildren
   '/deals/$dealId': typeof DealsDealIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/merchant/$userId': typeof MerchantUserIdRoute
+  '/wallet/deposit': typeof WalletDepositRoute
+  '/wallet/transfer': typeof WalletTransferRoute
+  '/wallet/withdraw': typeof WalletWithdrawRoute
   '/listings/': typeof ListingsIndexRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
@@ -139,6 +166,9 @@ export interface FileRouteTypes {
     | '/deals/$dealId'
     | '/listings/new'
     | '/merchant/$userId'
+    | '/wallet/deposit'
+    | '/wallet/transfer'
+    | '/wallet/withdraw'
     | '/listings/'
     | '/deals/new/$listingId'
   fileRoutesByTo: FileRoutesByTo
@@ -153,6 +183,9 @@ export interface FileRouteTypes {
     | '/deals/$dealId'
     | '/listings/new'
     | '/merchant/$userId'
+    | '/wallet/deposit'
+    | '/wallet/transfer'
+    | '/wallet/withdraw'
     | '/listings'
     | '/deals/new/$listingId'
   id:
@@ -167,6 +200,9 @@ export interface FileRouteTypes {
     | '/deals/$dealId'
     | '/listings/new'
     | '/merchant/$userId'
+    | '/wallet/deposit'
+    | '/wallet/transfer'
+    | '/wallet/withdraw'
     | '/listings/'
     | '/deals/new/$listingId'
   fileRoutesById: FileRoutesById
@@ -178,7 +214,7 @@ export interface RootRouteChildren {
   MarketplaceRoute: typeof MarketplaceRoute
   SettingsRoute: typeof SettingsRoute
   TransactionsRoute: typeof TransactionsRoute
-  WalletRoute: typeof WalletRoute
+  WalletRoute: typeof WalletRouteWithChildren
   DealsDealIdRoute: typeof DealsDealIdRoute
   ListingsNewRoute: typeof ListingsNewRoute
   MerchantUserIdRoute: typeof MerchantUserIdRoute
@@ -244,6 +280,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListingsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wallet/withdraw': {
+      id: '/wallet/withdraw'
+      path: '/withdraw'
+      fullPath: '/wallet/withdraw'
+      preLoaderRoute: typeof WalletWithdrawRouteImport
+      parentRoute: typeof WalletRoute
+    }
+    '/wallet/transfer': {
+      id: '/wallet/transfer'
+      path: '/transfer'
+      fullPath: '/wallet/transfer'
+      preLoaderRoute: typeof WalletTransferRouteImport
+      parentRoute: typeof WalletRoute
+    }
+    '/wallet/deposit': {
+      id: '/wallet/deposit'
+      path: '/deposit'
+      fullPath: '/wallet/deposit'
+      preLoaderRoute: typeof WalletDepositRouteImport
+      parentRoute: typeof WalletRoute
+    }
     '/merchant/$userId': {
       id: '/merchant/$userId'
       path: '/merchant/$userId'
@@ -275,6 +332,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface WalletRouteChildren {
+  WalletDepositRoute: typeof WalletDepositRoute
+  WalletTransferRoute: typeof WalletTransferRoute
+  WalletWithdrawRoute: typeof WalletWithdrawRoute
+}
+
+const WalletRouteChildren: WalletRouteChildren = {
+  WalletDepositRoute: WalletDepositRoute,
+  WalletTransferRoute: WalletTransferRoute,
+  WalletWithdrawRoute: WalletWithdrawRoute,
+}
+
+const WalletRouteWithChildren =
+  WalletRoute._addFileChildren(WalletRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
@@ -282,7 +354,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketplaceRoute: MarketplaceRoute,
   SettingsRoute: SettingsRoute,
   TransactionsRoute: TransactionsRoute,
-  WalletRoute: WalletRoute,
+  WalletRoute: WalletRouteWithChildren,
   DealsDealIdRoute: DealsDealIdRoute,
   ListingsNewRoute: ListingsNewRoute,
   MerchantUserIdRoute: MerchantUserIdRoute,
