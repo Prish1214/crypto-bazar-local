@@ -119,10 +119,38 @@ export interface Transaction {
   id: string;
   user_id: string;
   deal_id: string | null;
-  type: "deposit" | "withdraw" | "escrow_lock" | "escrow_release" | "fee" | "trade";
+  type: "deposit" | "withdraw" | "transfer" | "escrow_lock" | "escrow_release" | "fee" | "trade";
   amount: number;
   description: string | null;
   created_at: string;
+}
+
+export type DisputeStatus = "open" | "reviewing" | "resolved_buyer" | "resolved_seller" | "cancelled";
+export interface Dispute {
+  id: string;
+  deal_id: string;
+  opened_by: string;
+  reason: string;
+  evidence_url: string | null;
+  status: DisputeStatus;
+  admin_notes: string | null;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  deal?: Deal | null;
+}
+
+/** Ensure the signed-in user has a wallet row (idempotent). */
+export async function ensureWallet(userId: string): Promise<Wallet> {
+  const { data } = await supabase.from("wallets").select("*").eq("user_id", userId).maybeSingle();
+  if (data) return data as Wallet;
+  const { data: created, error } = await supabase
+    .from("wallets")
+    .insert({ user_id: userId } as any)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return created as Wallet;
 }
 
 export const db = supabase as ReturnType<typeof getTyped>;
