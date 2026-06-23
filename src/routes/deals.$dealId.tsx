@@ -147,7 +147,7 @@ function DealRoom() {
       db.from("wallets").select("*").eq("user_id", deal.seller_id).maybeSingle(),
       db.from("wallets").select("*").eq("user_id", deal.buyer_id).maybeSingle(),
     ]);
-    if (!sw || !bw) return toast.error("Wallets missing");
+    if (!sw || !bw) { toast.error("Wallets missing"); return; }
     await db.from("wallets").update({ escrow_balance: Number(sw.escrow_balance) - amt, updated_at: new Date().toISOString() }).eq("user_id", deal.seller_id);
     await db.from("wallets").update({ balance: Number(bw.balance) + net, updated_at: new Date().toISOString() }).eq("user_id", deal.buyer_id);
     await db.from("transactions").insert([
