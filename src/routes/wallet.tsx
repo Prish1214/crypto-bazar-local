@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine,
@@ -12,8 +12,14 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/wallet")({
   head: () => ({ meta: [{ title: "Wallet — CryptoBazar" }] }),
-  component: () => <RequireAuth><WalletPage /></RequireAuth>,
+  component: WalletRoute,
 });
+
+function WalletRoute() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/wallet") return <Outlet />;
+  return <RequireAuth><WalletPage /></RequireAuth>;
+}
 
 function WalletPage() {
   const { user } = useAuth();
