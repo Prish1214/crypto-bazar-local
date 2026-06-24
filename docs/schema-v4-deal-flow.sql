@@ -17,12 +17,12 @@ with check (
   and exists (
     select 1
     from public.listings l
-    where l.id = deals.listing_id
+    where l.id = listing_id
       and l.status = 'active'
       and (
-        (l.type = 'sell' and l.user_id = deals.seller_id and auth.uid() = deals.buyer_id)
+        (l.type = 'sell' and l.user_id = seller_id and auth.uid() = buyer_id)
         or
-        (l.type = 'buy' and l.user_id = deals.buyer_id and auth.uid() = deals.seller_id)
+        (l.type = 'buy' and l.user_id = buyer_id and auth.uid() = seller_id)
       )
   )
 );
