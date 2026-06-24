@@ -214,6 +214,7 @@ function DealRoom() {
   const showMeeting = ["escrow_funded", "meeting_proposed", "meeting_scheduled"].includes(deal.status);
   const showLockBtn = deal.status === "meeting_scheduled" && deal.meeting_status === "confirmed";
   const showArrival = ["locked", "arrived"].includes(deal.status);
+  const showQR = ["arrived", "verified"].includes(deal.status) && (!deal.buyer_qr_verified_at || !deal.seller_qr_verified_at);
   const showVerify  = ["arrived", "verified"].includes(deal.status) && (!deal.buyer_selfie_url || !deal.seller_selfie_url || deal.status !== "verified");
   const showCash    = deal.status === "verified" && isBuyer;
   const showConfirm = deal.status === "cash_sent" && isSeller;
