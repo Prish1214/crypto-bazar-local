@@ -39,8 +39,30 @@ function normalizeSupabaseUrl(value: string | undefined): string | null {
   return null;
 }
 
-function supabaseUrl() {
+function projectRefFromJwt(jwt: string): string | null {
+  try {
+    const payload = jwt.split(".")[1];
+    if (!payload) return null;
+    const padded = payload.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(payload.length / 4) * 4, "=");
+    const ref = JSON.parse(atob(padded))?.ref;
+    return typeof ref === "string" && /^[a-z0-9-]+$/i.test(ref) ? ref : null;
+  } catch {
+    return null;
+  }
+}
+
+function serviceRoleKey() {
+  const key = cleanEnv(
+    process.env.CB_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
+  );
+  if (!key) throw new Error("CB_SUPABASE_SERVICE_ROLE_KEY missing");
+  return key;
+}
+
+function adminSupabaseUrl(serviceKey: string) {
+  const ref = projectRefFromJwt(serviceKey);
   return (
+    normalizeSupabaseUrl(ref) ??
     normalizeSupabaseUrl(process.env.CB_SUPABASE_URL) ??
     normalizeSupabaseUrl(process.env.SUPABASE_URL) ??
     DEFAULT_SUPABASE_URL
@@ -49,11 +71,8 @@ function supabaseUrl() {
 
 /** Admin client (bypasses RLS) — webhook + credit_deposit only. */
 export function admin() {
-  const key = cleanEnv(
-    process.env.CB_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
-  );
-  if (!key) throw new Error("CB_SUPABASE_SERVICE_ROLE_KEY missing");
-  return createClient(supabaseUrl(), key, {
+  const key = serviceRoleKey();
+  return createClient(adminSupabaseUrl(key), key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
@@ -66,7 +85,7 @@ export async function userFromRequest(request: Request) {
     console.warn("[userFromRequest] missing bearer token", { hasHeader: !!auth });
     return null;
   }
-  const client = createClient(supabaseUrl(), SUPABASE_ANON_KEY, {
+  const client = createClient(DEFAULT_SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
