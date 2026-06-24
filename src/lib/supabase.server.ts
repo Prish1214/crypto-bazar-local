@@ -19,13 +19,19 @@ export function admin() {
 /** Verify a bearer token from the Authorization header → returns user. */
 export async function userFromRequest(request: Request) {
   const auth = request.headers.get("authorization") ?? "";
-  const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7) : null;
-  if (!token) return null;
+  const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
+  if (!token || token === "undefined" || token === "null") {
+    console.warn("[userFromRequest] missing bearer token", { hasHeader: !!auth });
+    return null;
+  }
   const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data } = await client.auth.getUser(token);
-  if (!data?.user) return null;
+  const { data, error } = await client.auth.getUser(token);
+  if (error || !data?.user) {
+    console.warn("[userFromRequest] getUser failed", { msg: error?.message, status: (error as any)?.status });
+    return null;
+  }
   return { user: data.user, client, token };
 }
