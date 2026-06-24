@@ -12,6 +12,7 @@ export function ChatPanel({
 }: { dealId: string; userId: string; messages: Message[] }) {
   const [text, setText] = useState("");
   const [recording, setRecording] = useState(false);
+  const [decrypted, setDecrypted] = useState<Record<string, string>>({});
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -21,6 +22,23 @@ export function ChatPanel({
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
+
+  // Decrypt incoming text/note messages once per id.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const updates: Record<string, string> = {};
+      for (const m of messages) {
+        if ((m.kind === "text" || m.kind === "note") && !(m.id in decrypted)) {
+          updates[m.id] = await decryptForDeal(dealId, m.content);
+        }
+      }
+      if (!cancelled && Object.keys(updates).length) {
+        setDecrypted((prev) => ({ ...prev, ...updates }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [messages, dealId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const send = async () => {
     if (!text.trim()) return;
