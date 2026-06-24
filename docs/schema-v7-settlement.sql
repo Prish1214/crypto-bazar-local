@@ -63,8 +63,8 @@ begin
     (d.buyer_id,  d.id, 'fee',            fee, 'Platform fee 0.1%');
 
   -- Platform fee ledger (v5).
-  insert into public.platform_fees (deal_id, payer_user_id, currency, amount, fee_bps)
-  values (d.id, d.buyer_id, 'USDT', fee, 10);
+  insert into public.platform_fees (deal_id, source_user_id, amount)
+  values (d.id, d.buyer_id, fee);
 
   -- Reputation update.
   update public.profiles
