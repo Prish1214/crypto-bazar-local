@@ -57,3 +57,10 @@ published / custom domain.
 All sensitive tables use RLS scoped to participating users; admin
 overrides go through the `has_role(auth.uid(), 'admin')` security
 definer.
+
+## If Start Deal opens nothing
+
+Run **`docs/schema-v4-deal-flow.sql`** in the SQL Editor. That is the
+file that fixes the common issue where SELL listings worked but BUY
+listing deals were blocked by the old insert policy, and it enables the
+realtime Deal Room notifications/tracking surfaces.
