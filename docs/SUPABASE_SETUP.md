@@ -64,3 +64,32 @@ Run **`docs/schema-v4-deal-flow.sql`** in the SQL Editor. That is the
 file that fixes the common issue where SELL listings worked but BUY
 listing deals were blocked by the old insert policy, and it enables the
 realtime Deal Room notifications/tracking surfaces.
+
+## v5 — Wallet custody, NOWPayments deposits/withdrawals, internal transfers
+
+Run **`docs/schema-v5-custody.sql`** in the SQL Editor (Supabase Dashboard → SQL Editor → New query → paste the entire file → Run). It is idempotent.
+
+After running v5 you ALSO need these secrets configured in Lovable
+(Project → Secrets):
+
+- `NOWPAYMENTS_API_KEY` — Store Settings → API keys
+- `NOWPAYMENTS_IPN_SECRET` — Store Settings → IPN
+- `NOWPAYMENTS_EMAIL` / `NOWPAYMENTS_PASSWORD` — used for the JWT that
+  authorizes Custody payouts
+- `CB_SUPABASE_URL` — `https://<project>.supabase.co`
+- `CB_SUPABASE_SERVICE_ROLE_KEY` — Supabase → Settings → API → service_role
+
+Then in your NOWPayments dashboard, set the IPN callback URL to:
+
+```
+https://<your-published-domain>/api/public/webhooks/nowpayments
+```
+
+What v5 adds:
+
+- `deposit_addresses` — one permanent address per (user × network).
+- `deposits` / `withdrawals` ledgers with NOWPayments IDs for idempotency.
+- `platform_fees` ledger.
+- `internal_transfer(...)` RPC — atomic @user → @user transfer.
+- `credit_deposit(...)` and `update_withdrawal_status(...)` RPCs called
+  by the IPN webhook (service_role only).

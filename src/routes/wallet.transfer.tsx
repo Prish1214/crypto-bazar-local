@@ -52,31 +52,15 @@ function TransferPage() {
 
     setBusy(true);
     try {
-      // Fetch recipient wallet (ensure it exists — they may not have one yet)
-      let rw = (await db.from("wallets").select("*").eq("user_id", recipient.id).maybeSingle()).data as Wallet | null;
-      if (!rw) {
-        const { data: created } = await db.from("wallets").insert({ user_id: recipient.id } as any).select("*").single();
-        rw = created as Wallet;
-      }
-      if (!rw) throw new Error("Recipient wallet missing");
-
-      // Debit sender
-      const { error: e1 } = await db.from("wallets")
-        .update({ balance: Number(wallet.balance) - v, updated_at: new Date().toISOString() })
-        .eq("user_id", user.id);
-      if (e1) throw e1;
-
-      // Credit recipient
-      const { error: e2 } = await db.from("wallets")
-        .update({ balance: Number(rw.balance) + v, updated_at: new Date().toISOString() })
-        .eq("user_id", recipient.id);
-      if (e2) throw e2;
-
-      const desc = note.trim() || `Transfer ${user.id === recipient.id ? "" : ""}`.trim();
-      await db.from("transactions").insert([
-        { user_id: user.id, type: "transfer", amount: v, description: `Sent to @${recipient.username} ${note ? "· " + note : ""}`.trim() },
-        { user_id: recipient.id, type: "transfer", amount: v, description: `Received from @${(user.user_metadata as any)?.username ?? "user"} ${note ? "· " + note : ""}`.trim() },
-      ]);
+      const { data: session } = await db.auth.getSession();
+      const token = session.session?.access_token;
+      const r = await fetch("/api/wallet/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ recipient_username: recipient.username, amount: v, note }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Transfer failed");
 
       toast.success(`Sent ${fmtUSDT(v)} to @${recipient.username}`);
       setAmount(""); setNote("");

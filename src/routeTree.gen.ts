@@ -25,6 +25,10 @@ import { Route as MerchantUserIdRouteImport } from './routes/merchant.$userId'
 import { Route as ListingsNewRouteImport } from './routes/listings.new'
 import { Route as DealsDealIdRouteImport } from './routes/deals.$dealId'
 import { Route as DealsNewListingIdRouteImport } from './routes/deals.new.$listingId'
+import { Route as ApiWalletWithdrawRouteImport } from './routes/api/wallet/withdraw'
+import { Route as ApiWalletTransferRouteImport } from './routes/api/wallet/transfer'
+import { Route as ApiWalletDepositAddressRouteImport } from './routes/api/wallet/deposit-address'
+import { Route as ApiPublicWebhooksNowpaymentsRouteImport } from './routes/api/public/webhooks/nowpayments'
 
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
@@ -106,6 +110,27 @@ const DealsNewListingIdRoute = DealsNewListingIdRouteImport.update({
   path: '/deals/new/$listingId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWalletWithdrawRoute = ApiWalletWithdrawRouteImport.update({
+  id: '/api/wallet/withdraw',
+  path: '/api/wallet/withdraw',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWalletTransferRoute = ApiWalletTransferRouteImport.update({
+  id: '/api/wallet/transfer',
+  path: '/api/wallet/transfer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWalletDepositAddressRoute = ApiWalletDepositAddressRouteImport.update({
+  id: '/api/wallet/deposit-address',
+  path: '/api/wallet/deposit-address',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicWebhooksNowpaymentsRoute =
+  ApiPublicWebhooksNowpaymentsRouteImport.update({
+    id: '/api/public/webhooks/nowpayments',
+    path: '/api/public/webhooks/nowpayments',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -123,7 +148,11 @@ export interface FileRoutesByFullPath {
   '/wallet/withdraw': typeof WalletWithdrawRoute
   '/deals/': typeof DealsIndexRoute
   '/listings/': typeof ListingsIndexRoute
+  '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
+  '/api/wallet/transfer': typeof ApiWalletTransferRoute
+  '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
+  '/api/public/webhooks/nowpayments': typeof ApiPublicWebhooksNowpaymentsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -141,7 +170,11 @@ export interface FileRoutesByTo {
   '/wallet/withdraw': typeof WalletWithdrawRoute
   '/deals': typeof DealsIndexRoute
   '/listings': typeof ListingsIndexRoute
+  '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
+  '/api/wallet/transfer': typeof ApiWalletTransferRoute
+  '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
+  '/api/public/webhooks/nowpayments': typeof ApiPublicWebhooksNowpaymentsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -160,7 +193,11 @@ export interface FileRoutesById {
   '/wallet/withdraw': typeof WalletWithdrawRoute
   '/deals/': typeof DealsIndexRoute
   '/listings/': typeof ListingsIndexRoute
+  '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
+  '/api/wallet/transfer': typeof ApiWalletTransferRoute
+  '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
+  '/api/public/webhooks/nowpayments': typeof ApiPublicWebhooksNowpaymentsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -180,7 +217,11 @@ export interface FileRouteTypes {
     | '/wallet/withdraw'
     | '/deals/'
     | '/listings/'
+    | '/api/wallet/deposit-address'
+    | '/api/wallet/transfer'
+    | '/api/wallet/withdraw'
     | '/deals/new/$listingId'
+    | '/api/public/webhooks/nowpayments'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -198,7 +239,11 @@ export interface FileRouteTypes {
     | '/wallet/withdraw'
     | '/deals'
     | '/listings'
+    | '/api/wallet/deposit-address'
+    | '/api/wallet/transfer'
+    | '/api/wallet/withdraw'
     | '/deals/new/$listingId'
+    | '/api/public/webhooks/nowpayments'
   id:
     | '__root__'
     | '/'
@@ -216,7 +261,11 @@ export interface FileRouteTypes {
     | '/wallet/withdraw'
     | '/deals/'
     | '/listings/'
+    | '/api/wallet/deposit-address'
+    | '/api/wallet/transfer'
+    | '/api/wallet/withdraw'
     | '/deals/new/$listingId'
+    | '/api/public/webhooks/nowpayments'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -232,7 +281,11 @@ export interface RootRouteChildren {
   MerchantUserIdRoute: typeof MerchantUserIdRoute
   DealsIndexRoute: typeof DealsIndexRoute
   ListingsIndexRoute: typeof ListingsIndexRoute
+  ApiWalletDepositAddressRoute: typeof ApiWalletDepositAddressRoute
+  ApiWalletTransferRoute: typeof ApiWalletTransferRoute
+  ApiWalletWithdrawRoute: typeof ApiWalletWithdrawRoute
   DealsNewListingIdRoute: typeof DealsNewListingIdRoute
+  ApiPublicWebhooksNowpaymentsRoute: typeof ApiPublicWebhooksNowpaymentsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -349,6 +402,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DealsNewListingIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/wallet/withdraw': {
+      id: '/api/wallet/withdraw'
+      path: '/api/wallet/withdraw'
+      fullPath: '/api/wallet/withdraw'
+      preLoaderRoute: typeof ApiWalletWithdrawRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/wallet/transfer': {
+      id: '/api/wallet/transfer'
+      path: '/api/wallet/transfer'
+      fullPath: '/api/wallet/transfer'
+      preLoaderRoute: typeof ApiWalletTransferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/wallet/deposit-address': {
+      id: '/api/wallet/deposit-address'
+      path: '/api/wallet/deposit-address'
+      fullPath: '/api/wallet/deposit-address'
+      preLoaderRoute: typeof ApiWalletDepositAddressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/webhooks/nowpayments': {
+      id: '/api/public/webhooks/nowpayments'
+      path: '/api/public/webhooks/nowpayments'
+      fullPath: '/api/public/webhooks/nowpayments'
+      preLoaderRoute: typeof ApiPublicWebhooksNowpaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -380,18 +461,12 @@ const rootRouteChildren: RootRouteChildren = {
   MerchantUserIdRoute: MerchantUserIdRoute,
   DealsIndexRoute: DealsIndexRoute,
   ListingsIndexRoute: ListingsIndexRoute,
+  ApiWalletDepositAddressRoute: ApiWalletDepositAddressRoute,
+  ApiWalletTransferRoute: ApiWalletTransferRoute,
+  ApiWalletWithdrawRoute: ApiWalletWithdrawRoute,
   DealsNewListingIdRoute: DealsNewListingIdRoute,
+  ApiPublicWebhooksNowpaymentsRoute: ApiPublicWebhooksNowpaymentsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
