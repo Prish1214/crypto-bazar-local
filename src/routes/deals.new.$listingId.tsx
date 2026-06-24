@@ -66,7 +66,11 @@ function StartDeal() {
       }).select("id").single();
       if (error) throw error;
       if (!deal?.id) throw new Error("Deal was created but could not be opened — check permissions.");
-      await sendSystemMessage((deal as any).id, user.id, "Deal started. Both parties can now track this trade in the Deal Room.");
+      try {
+        await sendSystemMessage((deal as any).id, user.id, "Deal started. Both parties can now track this trade in the Deal Room.");
+      } catch {
+        // Do not block the room from opening if the optional message log migration is not available yet.
+      }
       toast.success("Deal started", {
         description: "The deal room is open and the other party will see it in Deals.",
         action: { label: "Open", onClick: () => navigate({ to: "/deals/$dealId", params: { dealId: (deal as any).id } }) },
