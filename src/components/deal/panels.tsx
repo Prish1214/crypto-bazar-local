@@ -16,6 +16,7 @@ export const TIMELINE: { key: string; label: string; match: (d: Deal) => boolean
   { key: "meeting",     label: "Meeting Scheduled", match: (d) => !!d.meeting_at && d.meeting_status === "confirmed" },
   { key: "locked",      label: "Deal Locked",       match: (d) => ["locked","arrived","verified","cash_sent","confirmed","completed"].includes(d.status) },
   { key: "arrived",     label: "Both Arrived",      match: (d) => !!d.buyer_arrived_at && !!d.seller_arrived_at },
+  { key: "qr",          label: "QR Verified",       match: (d) => !!d.buyer_qr_verified_at && !!d.seller_qr_verified_at },
   { key: "verified",    label: "Identity Verified", match: (d) => !!d.buyer_selfie_url && !!d.seller_selfie_url },
   { key: "cash",        label: "Cash Handed Over",  match: (d) => !!d.cash_handover_at },
   { key: "confirmed",   label: "Seller Confirmed",  match: (d) => !!d.seller_confirmed_at },

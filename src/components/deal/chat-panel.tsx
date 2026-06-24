@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Send, Paperclip, Mic, MapPin, Lock, Image as ImageIcon, StopCircle } from "lucide-react";
+import { Send, Mic, MapPin, Lock, Image as ImageIcon, StopCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { db, uploadDealFile, type Message } from "@/lib/db";
 import { sanitizeMessage } from "@/lib/chat-sanitize";
+import { encryptForDeal, decryptForDeal } from "@/lib/deal-crypto";
 import { toast } from "sonner";
 
 export function ChatPanel({
@@ -11,6 +12,7 @@ export function ChatPanel({
 }: { dealId: string; userId: string; messages: Message[] }) {
   const [text, setText] = useState("");
   const [recording, setRecording] = useState(false);
+  const [decrypted, setDecrypted] = useState<Record<string, string>>({});
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -21,12 +23,30 @@ export function ChatPanel({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
 
+  // Decrypt incoming text/note messages once per id.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const updates: Record<string, string> = {};
+      for (const m of messages) {
+        if ((m.kind === "text" || m.kind === "note") && !(m.id in decrypted)) {
+          updates[m.id] = await decryptForDeal(dealId, m.content);
+        }
+      }
+      if (!cancelled && Object.keys(updates).length) {
+        setDecrypted((prev) => ({ ...prev, ...updates }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [messages, dealId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const send = async () => {
     if (!text.trim()) return;
     const { clean, blocked } = sanitizeMessage(text.trim());
     if (blocked) toast.warning("Personal contact details are blocked — keep chat in CryptoBazar.");
+    const ciphertext = await encryptForDeal(dealId, clean);
     const { error } = await db.from("messages").insert({
-      deal_id: dealId, sender_id: userId, content: clean, kind: "text",
+      deal_id: dealId, sender_id: userId, content: ciphertext, kind: "text",
     } as any);
     if (error) return toast.error(error.message);
     setText("");
@@ -102,7 +122,18 @@ export function ChatPanel({
             Say hello — all communication stays inside CryptoBazar.
           </p>
         )}
-        {messages.map((m) => <MessageBubble key={m.id} m={m} mine={m.sender_id === userId} />)}
+        {messages.map((m) => (
+          <MessageBubble
+            key={m.id}
+            m={m}
+            mine={m.sender_id === userId}
+            displayText={
+              m.kind === "text" || m.kind === "note"
+                ? decrypted[m.id] ?? (m.content?.startsWith("enc:v1:") ? "…" : m.content)
+                : m.content
+            }
+          />
+        ))}
       </div>
 
       <div className="border-t border-border bg-background px-3 py-2.5">
@@ -135,7 +166,7 @@ export function ChatPanel({
   );
 }
 
-function MessageBubble({ m, mine }: { m: Message; mine: boolean }) {
+function MessageBubble({ m, mine, displayText }: { m: Message; mine: boolean; displayText: string }) {
   if (m.kind === "system") {
     return (
       <div className="flex justify-center">
@@ -159,7 +190,7 @@ function MessageBubble({ m, mine }: { m: Message; mine: boolean }) {
             <MapPin className="h-3.5 w-3.5" /> View on map
           </a>
         )}
-        {(m.kind === "text" || m.kind === "note") && <div className="whitespace-pre-wrap break-words">{m.content}</div>}
+        {(m.kind === "text" || m.kind === "note") && <div className="whitespace-pre-wrap break-words">{displayText}</div>}
         <div className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
           {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </div>

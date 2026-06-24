@@ -17,6 +17,7 @@ import {
   CashHandoverPanel, SellerConfirmPanel,
 } from "@/components/deal/panels";
 import { ChatPanel } from "@/components/deal/chat-panel";
+import { MutualQRVerification } from "@/components/deal/qr-verification";
 import { DisputeButton } from "@/components/deal/dispute-button";
 import { DealDetailsDialog } from "@/components/deal/deal-details-dialog";
 
@@ -163,6 +164,12 @@ function DealRoom() {
     await patch(update, `${isBuyer ? "Buyer" : "Seller"} verified presence with a selfie.`);
   };
 
+  const markQRVerified = async () => {
+    const key = isBuyer ? "buyer_qr_verified_at" : "seller_qr_verified_at";
+    const update: any = { [key]: new Date().toISOString() };
+    await patch(update, `${isBuyer ? "Buyer" : "Seller"} verified counterparty via QR.`);
+  };
+
   const submitCashHandover = async (photo: File | null, notes: string) => {
     let cash_photo_url: string | null = null;
     if (photo) {
@@ -207,6 +214,7 @@ function DealRoom() {
   const showMeeting = ["escrow_funded", "meeting_proposed", "meeting_scheduled"].includes(deal.status);
   const showLockBtn = deal.status === "meeting_scheduled" && deal.meeting_status === "confirmed";
   const showArrival = ["locked", "arrived"].includes(deal.status);
+  const showQR = ["arrived", "verified"].includes(deal.status) && (!deal.buyer_qr_verified_at || !deal.seller_qr_verified_at);
   const showVerify  = ["arrived", "verified"].includes(deal.status) && (!deal.buyer_selfie_url || !deal.seller_selfie_url || deal.status !== "verified");
   const showCash    = deal.status === "verified" && isBuyer;
   const showConfirm = deal.status === "cash_sent" && isSeller;
@@ -284,6 +292,7 @@ function DealRoom() {
           )}
 
           {showArrival && <ArrivalCheckIn deal={deal} isBuyer={isBuyer} onArrive={checkIn} />}
+          {showQR && <MutualQRVerification deal={deal} isBuyer={isBuyer} onVerified={markQRVerified} />}
           {showVerify && <PresenceVerification deal={deal} isBuyer={isBuyer} onUploadSelfie={uploadSelfie} />}
           {showCash && <CashHandoverPanel deal={deal} onSubmit={submitCashHandover} />}
           {showConfirm && (
