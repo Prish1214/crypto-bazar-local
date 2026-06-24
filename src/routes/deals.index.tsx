@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { db, fmtFiat, fmtUSDT, type Deal, type DealStatus } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { DealDetailsDialog } from "@/components/deal/deal-details-dialog";
 
 export const Route = createFileRoute("/deals/")({
   head: () => ({ meta: [{ title: "My Deals — CryptoBazar" }] }),
@@ -126,10 +127,8 @@ function DealsIndex() {
             const isBuyer = d.buyer_id === user.id;
             const counter = isBuyer ? d.seller : d.buyer;
             return (
-              <Link
+              <div
                 key={d.id}
-                to="/deals/$dealId"
-                params={{ dealId: d.id }}
                 className="group rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -168,9 +167,16 @@ function DealsIndex() {
                     </div>
                   </div>
 
-                  <ArrowRight className="mt-1 h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+                  <div className="flex items-center gap-2">
+                    <DealDetailsDialog deal={d} />
+                    <Link to="/deals/$dealId" params={{ dealId: d.id }}>
+                      <Button variant="hero" size="sm">
+                        Open Room <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-              </Link>
+              </div>
             );
           })}
         </div>
