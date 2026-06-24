@@ -2,16 +2,19 @@
 import { createClient } from "@supabase/supabase-js";
 
 // IMPORTANT: must match the project the client uses (src/integrations/supabase/client.ts)
-const SUPABASE_URL = "https://jponeelmwvkufvsuxyes.supabase.co";
+const DEFAULT_SUPABASE_URL = "https://jponeelmwvkufvsuxyes.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwb25lZWxtd3ZrdWZ2c3V4eWVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMzQ0MjQsImV4cCI6MjA5NzcxMDQyNH0.OLXdG3A2Q-qjBaUSCHXG0NywOaLt_2HE_EijSV3Se1o";
+
+function supabaseUrl() {
+  return process.env.CB_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+}
 
 /** Admin client (bypasses RLS) — webhook + credit_deposit only. */
 export function admin() {
   const key = process.env.CB_SUPABASE_SERVICE_ROLE_KEY;
   if (!key) throw new Error("CB_SUPABASE_SERVICE_ROLE_KEY missing");
-  // Always use the canonical project URL — service-role key must be from this project.
-  return createClient(SUPABASE_URL, key, {
+  return createClient(supabaseUrl(), key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
