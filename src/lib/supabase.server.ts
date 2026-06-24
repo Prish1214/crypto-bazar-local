@@ -10,8 +10,8 @@ const SUPABASE_ANON_KEY =
 export function admin() {
   const key = process.env.CB_SUPABASE_SERVICE_ROLE_KEY;
   if (!key) throw new Error("CB_SUPABASE_SERVICE_ROLE_KEY missing");
-  const url = process.env.CB_SUPABASE_URL || SUPABASE_URL;
-  return createClient(url, key, {
+  // Always use the canonical project URL — service-role key must be from this project.
+  return createClient(SUPABASE_URL, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
