@@ -6,13 +6,52 @@ const DEFAULT_SUPABASE_URL = "https://jponeelmwvkufvsuxyes.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwb25lZWxtd3ZrdWZ2c3V4eWVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMzQ0MjQsImV4cCI6MjA5NzcxMDQyNH0.OLXdG3A2Q-qjBaUSCHXG0NywOaLt_2HE_EijSV3Se1o";
 
+function cleanEnv(value: string | undefined): string | undefined {
+  const trimmed = value?.trim().replace(/^['\"]|['\"]$/g, "");
+  return trimmed || undefined;
+}
+
+function normalizeSupabaseUrl(value: string | undefined): string | null {
+  const raw = cleanEnv(value);
+  if (!raw) return null;
+
+  const candidate = raw.startsWith("http://") || raw.startsWith("https://")
+    ? raw
+    : /^[a-z0-9-]+$/i.test(raw)
+      ? `https://${raw}.supabase.co`
+      : `https://${raw}`;
+
+  try {
+    const url = new URL(candidate);
+    const isAllowedHost =
+      url.hostname.endsWith(".supabase.co") ||
+      url.hostname === "supabase.co" ||
+      url.hostname === "localhost" ||
+      /^127\.\d+\.\d+\.\d+$/.test(url.hostname);
+
+    if ((url.protocol === "http:" || url.protocol === "https:") && isAllowedHost) {
+      return url.origin;
+    }
+  } catch {
+    // Ignore malformed env values and use the app's configured URL below.
+  }
+
+  return null;
+}
+
 function supabaseUrl() {
-  return process.env.CB_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+  return (
+    normalizeSupabaseUrl(process.env.CB_SUPABASE_URL) ??
+    normalizeSupabaseUrl(process.env.SUPABASE_URL) ??
+    DEFAULT_SUPABASE_URL
+  );
 }
 
 /** Admin client (bypasses RLS) — webhook + credit_deposit only. */
 export function admin() {
-  const key = process.env.CB_SUPABASE_SERVICE_ROLE_KEY;
+  const key = cleanEnv(
+    process.env.CB_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
+  );
   if (!key) throw new Error("CB_SUPABASE_SERVICE_ROLE_KEY missing");
   return createClient(supabaseUrl(), key, {
     auth: { persistSession: false, autoRefreshToken: false },
