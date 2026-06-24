@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import { Send, Paperclip, Mic, MapPin, Lock, Image as ImageIcon, StopCircle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Send, Mic, MapPin, Lock, Image as ImageIcon, StopCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { db, uploadDealFile, type Message } from "@/lib/db";
 import { sanitizeMessage } from "@/lib/chat-sanitize";
+import { encryptForDeal, decryptForDeal } from "@/lib/deal-crypto";
 import { toast } from "sonner";
 
 export function ChatPanel({
