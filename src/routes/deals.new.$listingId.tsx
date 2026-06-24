@@ -1,12 +1,12 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, ShieldCheck, Star, MapPin } from "lucide-react";
+import { Loader2, ShieldCheck, Star, MapPin, BellRing } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { db, fmtFiat, fmtUSDT, type Listing } from "@/lib/db";
+import { db, fmtFiat, fmtUSDT, sendSystemMessage, type Listing } from "@/lib/db";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/deals/new/$listingId")({
@@ -66,11 +66,17 @@ function StartDeal() {
       }).select("id").single();
       if (error) throw error;
       if (!deal?.id) throw new Error("Deal was created but could not be opened — check permissions.");
-      toast.success("Deal created — opening deal room");
-      navigate({ to: "/deals/$dealId", params: { dealId: (deal as any).id } });
+      await sendSystemMessage((deal as any).id, user.id, "Deal started. Both parties can now track this trade in the Deal Room.");
+      toast.success("Deal started", {
+        description: "The deal room is open and the other party will see it in Deals.",
+        action: { label: "Open", onClick: () => navigate({ to: "/deals/$dealId", params: { dealId: (deal as any).id } }) },
+      });
+      await navigate({ to: "/deals/$dealId", params: { dealId: (deal as any).id } });
     } catch (e: any) {
       console.error("start deal failed", e);
-      toast.error(e.message ?? "Failed to start deal");
+      toast.error("Deal could not be started", {
+        description: e.message ?? "Please check the database setup and try again.",
+      });
     } finally {
       setBusy(false);
     }
@@ -109,7 +115,7 @@ function StartDeal() {
             </div>
 
             <Button variant="hero" className="w-full" size="lg" onClick={start} disabled={busy || !amount}>
-              {busy ? "Creating deal…" : "Start deal"}
+              {busy ? <><Loader2 className="h-4 w-4 animate-spin" /> Creating deal…</> : <><BellRing className="h-4 w-4" /> Start deal & open room</>}
             </Button>
           </div>
         </div>
