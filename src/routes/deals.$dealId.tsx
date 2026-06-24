@@ -17,6 +17,7 @@ import {
   CashHandoverPanel, SellerConfirmPanel,
 } from "@/components/deal/panels";
 import { ChatPanel } from "@/components/deal/chat-panel";
+import { MutualQRVerification } from "@/components/deal/qr-verification";
 import { DisputeButton } from "@/components/deal/dispute-button";
 import { DealDetailsDialog } from "@/components/deal/deal-details-dialog";
 
@@ -161,6 +162,12 @@ function DealRoom() {
     const otherUrl = isBuyer ? deal.seller_selfie_url : deal.buyer_selfie_url;
     if (otherUrl) update.status = "verified";
     await patch(update, `${isBuyer ? "Buyer" : "Seller"} verified presence with a selfie.`);
+  };
+
+  const markQRVerified = async () => {
+    const key = isBuyer ? "buyer_qr_verified_at" : "seller_qr_verified_at";
+    const update: any = { [key]: new Date().toISOString() };
+    await patch(update, `${isBuyer ? "Buyer" : "Seller"} verified counterparty via QR.`);
   };
 
   const submitCashHandover = async (photo: File | null, notes: string) => {
