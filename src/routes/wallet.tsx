@@ -5,7 +5,7 @@ import {
   ArrowLeftRight, Lock, Loader2,
 } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { db, ensureWallet, fmtUSDT, type Transaction, type Wallet } from "@/lib/db";
 import { toast } from "sonner";
