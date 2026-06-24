@@ -153,7 +153,7 @@ function DealRoom() {
       toast.error(error.message ?? "Escrow release failed");
       return;
     }
-    if (data) setDeal(data as Deal);
+    if (data) await load();
     await sendSystemMessage(dealId, user.id, `Escrow released — ${fmtUSDT(net)} sent to buyer. Trade completed.`);
     toast.success("Escrow released and deal completed");
   };
