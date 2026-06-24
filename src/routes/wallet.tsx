@@ -1,19 +1,25 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine,
   ArrowLeftRight, Lock, Loader2,
 } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { db, ensureWallet, fmtUSDT, type Transaction, type Wallet } from "@/lib/db";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/wallet")({
   head: () => ({ meta: [{ title: "Wallet — CryptoBazar" }] }),
-  component: () => <RequireAuth><WalletPage /></RequireAuth>,
+  component: WalletRoute,
 });
+
+function WalletRoute() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/wallet") return <Outlet />;
+  return <RequireAuth><WalletPage /></RequireAuth>;
+}
 
 function WalletPage() {
   const { user } = useAuth();
@@ -72,11 +78,15 @@ function WalletPage() {
 
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             {actions.map((a) => (
-              <Link key={a.to} to={a.to} className="block">
-                <div className="group h-full rounded-xl border border-border bg-background p-4 transition hover:border-primary/50 hover:shadow-md">
-                  <Button variant={a.variant} size="sm" className="w-full">
+              <Link
+                key={a.to}
+                to={a.to}
+                className="group block h-full rounded-xl border border-border bg-background p-4 transition hover:border-primary/50 hover:shadow-md"
+              >
+                <div className="h-full">
+                  <span className={buttonVariants({ variant: a.variant, size: "sm", className: "w-full" })}>
                     <a.icon className="h-4 w-4" /> {a.label}
-                  </Button>
+                  </span>
                   <p className="mt-2 text-xs text-muted-foreground">{a.desc}</p>
                 </div>
               </Link>
