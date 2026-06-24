@@ -11,7 +11,7 @@ function cleanEnv(value: string | undefined): string | undefined {
   return trimmed || undefined;
 }
 
-function normalizeSupabaseUrl(value: string | undefined): string | null {
+function normalizeSupabaseUrl(value: string | null | undefined): string | null {
   const raw = cleanEnv(value);
   if (!raw) return null;
 
