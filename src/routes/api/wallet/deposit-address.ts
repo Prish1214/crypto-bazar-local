@@ -10,8 +10,23 @@ export const Route = createFileRoute("/api/wallet/deposit-address")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        try {
+          return await handleDepositAddress(request);
+        } catch (e: any) {
+          console.error("[deposit-address] unhandled", e);
+          return Response.json(
+            { error: e?.message || "Deposit address service failed" },
+            { status: 500 },
+          );
+        }
+      },
+    },
+  },
+});
+
+async function handleDepositAddress(request: Request) {
         const auth = await userFromRequest(request);
-        if (!auth) return new Response("Unauthorized", { status: 401 });
+        if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
         const { network } = (await request.json().catch(() => ({}))) as { network?: string };
         const net = (network ?? "").toLowerCase();
@@ -105,7 +120,4 @@ export const Route = createFileRoute("/api/wallet/deposit-address")({
           .maybeSingle();
 
         return Response.json({ address: saved?.address ?? address, network: net });
-      },
-    },
-  },
-});
+}
