@@ -166,7 +166,7 @@ export function ChatPanel({
   );
 }
 
-function MessageBubble({ m, mine }: { m: Message; mine: boolean }) {
+function MessageBubble({ m, mine, displayText }: { m: Message; mine: boolean; displayText: string }) {
   if (m.kind === "system") {
     return (
       <div className="flex justify-center">
@@ -190,7 +190,7 @@ function MessageBubble({ m, mine }: { m: Message; mine: boolean }) {
             <MapPin className="h-3.5 w-3.5" /> View on map
           </a>
         )}
-        {(m.kind === "text" || m.kind === "note") && <div className="whitespace-pre-wrap break-words">{m.content}</div>}
+        {(m.kind === "text" || m.kind === "note") && <div className="whitespace-pre-wrap break-words">{displayText}</div>}
         <div className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
           {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </div>
