@@ -184,3 +184,47 @@ export async function sendSystemMessage(dealId: string, senderId: string, conten
     kind: "system",
   } as any);
 }
+
+export async function hydrateDeals<T extends Deal>(rows: T[]): Promise<T[]> {
+  if (rows.length === 0) return rows;
+
+  const listingIds = [...new Set(rows.map((d) => d.listing_id).filter(Boolean))];
+  const userIds = [...new Set(rows.flatMap((d) => [d.buyer_id, d.seller_id]).filter(Boolean))];
+
+  const [listingsResult, profilesResult] = await Promise.all([
+    listingIds.length
+      ? supabase.from("listings").select("*").in("id", listingIds)
+      : Promise.resolve({ data: [] as Listing[] }),
+    userIds.length
+      ? supabase.from("profiles").select("*").in("id", userIds)
+      : Promise.resolve({ data: [] as Profile[] }),
+  ]);
+
+  const listings = new Map((listingsResult.data ?? []).map((listing: any) => [listing.id, listing as Listing]));
+  const profiles = new Map((profilesResult.data ?? []).map((profile: any) => [profile.id, profile as Profile]));
+
+  return rows.map((deal) => ({
+    ...deal,
+    listing: listings.get(deal.listing_id) ?? deal.listing ?? null,
+    buyer: profiles.get(deal.buyer_id) ?? deal.buyer ?? null,
+    seller: profiles.get(deal.seller_id) ?? deal.seller ?? null,
+  }));
+}
+
+export async function fetchDealWithContext(dealId: string): Promise<Deal | null> {
+  const { data, error } = await supabase.from("deals").select("*").eq("id", dealId).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const [deal] = await hydrateDeals([data as Deal]);
+  return deal;
+}
+
+export async function fetchUserDeals(userId: string): Promise<Deal[]> {
+  const { data, error } = await supabase
+    .from("deals")
+    .select("*")
+    .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return hydrateDeals((data ?? []) as Deal[]);
+}

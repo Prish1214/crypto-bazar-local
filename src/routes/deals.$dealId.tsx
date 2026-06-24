@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  db, sendSystemMessage, uploadDealFile, fmtUSDT, fmtFiat,
+  db, fetchDealWithContext, sendSystemMessage, uploadDealFile, fmtUSDT, fmtFiat,
   type Deal, type DealStatus, type Message,
 } from "@/lib/db";
 import { toast } from "sonner";
@@ -33,17 +33,31 @@ function DealRoom() {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [hasReview, setHasReview] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = async () => {
-    const { data } = await db.from("deals")
-      .select("*, listing:listings(*), buyer:profiles!deals_buyer_id_fkey(*), seller:profiles!deals_seller_id_fkey(*)")
-      .eq("id", dealId).maybeSingle();
-    setDeal((data as any) ?? null);
-    const { data: msgs } = await db.from("messages").select("*").eq("deal_id", dealId).order("created_at");
-    setMessages((msgs ?? []) as Message[]);
-    if (user) {
-      const { data: r } = await db.from("reviews").select("id").eq("deal_id", dealId).eq("reviewer_id", user.id).maybeSingle();
-      setHasReview(!!r);
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const hydratedDeal = await fetchDealWithContext(dealId);
+      setDeal(hydratedDeal);
+      if (!hydratedDeal) {
+        setLoadError("This deal room is not available for your account, or the deal was removed.");
+      }
+
+      const { data: msgs } = await db.from("messages").select("*").eq("deal_id", dealId).order("created_at");
+      setMessages((msgs ?? []) as Message[]);
+      if (user) {
+        const { data: r } = await db.from("reviews").select("id").eq("deal_id", dealId).eq("reviewer_id", user.id).maybeSingle();
+        setHasReview(!!r);
+      }
+    } catch (error: any) {
+      setDeal(null);
+      setMessages([]);
+      setLoadError(error?.message ?? "Deal room could not be loaded.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -65,8 +79,26 @@ function DealRoom() {
     // eslint-disable-next-line
   }, [dealId]);
 
-  if (!deal || !user) {
+  if (loading || !user) {
     return <PageShell><div className="grid place-items-center rounded-2xl border border-border bg-card p-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div></PageShell>;
+  }
+
+  if (!deal) {
+    return (
+      <PageShell>
+        <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
+          <Badge variant="destructive" className="mb-4">Deal room unavailable</Badge>
+          <h1 className="font-display text-2xl font-bold tracking-tight">This deal could not be opened</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            {loadError ?? "The deal may not exist, or your account may not be listed as buyer or seller."}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button variant="hero" onClick={load}>Try again</Button>
+            <Button variant="outline" onClick={() => history.back()}>Back</Button>
+          </div>
+        </div>
+      </PageShell>
+    );
   }
 
   const isBuyer = user.id === deal.buyer_id;

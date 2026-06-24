@@ -19,8 +19,11 @@ export function DealNotifier() {
     if (!user) return;
     seen.current.clear();
 
-    const open = (dealId: string) =>
-      router.navigate({ to: "/deals/$dealId", params: { dealId } });
+    const open = (dealId: string) => {
+      router.navigate({ to: "/deals/$dealId", params: { dealId } }).catch(() => {
+        window.location.assign(`/deals/${dealId}`);
+      });
+    };
 
     const onInsert = (payload: any) => {
       const d = payload.new as Deal;

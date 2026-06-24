@@ -8,7 +8,7 @@ import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { db, fmtFiat, fmtUSDT, type Deal, type DealStatus } from "@/lib/db";
+import { db, fetchUserDeals, fmtFiat, fmtUSDT, type Deal, type DealStatus } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { DealDetailsDialog } from "@/components/deal/deal-details-dialog";
 
@@ -42,15 +42,17 @@ function DealsIndex() {
   const { user } = useAuth();
   const [deals, setDeals] = useState<Deal[] | null>(null);
   const [tab, setTab] = useState<"ongoing" | "past">("ongoing");
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = async () => {
     if (!user) return;
-    const { data } = await db
-      .from("deals")
-      .select("*, listing:listings(*), buyer:profiles!deals_buyer_id_fkey(*), seller:profiles!deals_seller_id_fkey(*)")
-      .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
-      .order("created_at", { ascending: false });
-    setDeals((data ?? []) as Deal[]);
+    try {
+      setLoadError(null);
+      setDeals(await fetchUserDeals(user.id));
+    } catch (error: any) {
+      setDeals([]);
+      setLoadError(error?.message ?? "Deals could not be loaded.");
+    }
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [user?.id]);
@@ -97,6 +99,12 @@ function DealsIndex() {
           <Button variant="hero" size="sm">Find new trades <ArrowRight className="h-4 w-4" /></Button>
         </Link>
       </div>
+
+      {loadError && (
+        <div className="mb-4 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          {loadError}
+        </div>
+      )}
 
       <div className="mb-4 inline-flex rounded-xl border border-border bg-card p-1 shadow-sm">
         {(["ongoing", "past"] as const).map((t) => (
