@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertOctagon, CheckCircle2, Clock, FileCheck2, History,
-  Loader2, Lock, ReceiptText, ShieldCheck,
+  Loader2, Lock, ReceiptText, ShieldCheck, type LucideIcon,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader,
   DialogTitle, DialogTrigger,
@@ -159,7 +160,7 @@ export function DealDetailsDialog({ deal, trigger }: Props) {
   );
 }
 
-function SummaryTile({ icon: Icon, label, value }: { icon: typeof Lock; label: string; value: string }) {
+function SummaryTile({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <div className="rounded-xl border border-border bg-secondary/30 p-4">
       <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -170,7 +171,7 @@ function SummaryTile({ icon: Icon, label, value }: { icon: typeof Lock; label: s
   );
 }
 
-function DetailSection({ icon: Icon, title, children }: { icon: typeof History; title: string; children: React.ReactNode }) {
+function DetailSection({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
   return (
     <section className="rounded-xl border border-border bg-card p-4">
       <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
