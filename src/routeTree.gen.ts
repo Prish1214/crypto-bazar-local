@@ -28,6 +28,7 @@ import { Route as DealsNewListingIdRouteImport } from './routes/deals.new.$listi
 import { Route as ApiWalletWithdrawRouteImport } from './routes/api/wallet/withdraw'
 import { Route as ApiWalletTransferRouteImport } from './routes/api/wallet/transfer'
 import { Route as ApiWalletDepositAddressRouteImport } from './routes/api/wallet/deposit-address'
+import { Route as ApiPublicWebhooksNowpaymentsRouteImport } from './routes/api/public/webhooks/nowpayments'
 
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
@@ -124,6 +125,12 @@ const ApiWalletDepositAddressRoute = ApiWalletDepositAddressRouteImport.update({
   path: '/api/wallet/deposit-address',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicWebhooksNowpaymentsRoute =
+  ApiPublicWebhooksNowpaymentsRouteImport.update({
+    id: '/api/public/webhooks/nowpayments',
+    path: '/api/public/webhooks/nowpayments',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
+  '/api/public/webhooks/nowpayments': typeof ApiPublicWebhooksNowpaymentsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -166,6 +174,7 @@ export interface FileRoutesByTo {
   '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
+  '/api/public/webhooks/nowpayments': typeof ApiPublicWebhooksNowpaymentsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -188,6 +197,7 @@ export interface FileRoutesById {
   '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
+  '/api/public/webhooks/nowpayments': typeof ApiPublicWebhooksNowpaymentsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -211,6 +221,7 @@ export interface FileRouteTypes {
     | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
     | '/deals/new/$listingId'
+    | '/api/public/webhooks/nowpayments'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
     | '/deals/new/$listingId'
+    | '/api/public/webhooks/nowpayments'
   id:
     | '__root__'
     | '/'
@@ -253,6 +265,7 @@ export interface FileRouteTypes {
     | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
     | '/deals/new/$listingId'
+    | '/api/public/webhooks/nowpayments'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -272,6 +285,7 @@ export interface RootRouteChildren {
   ApiWalletTransferRoute: typeof ApiWalletTransferRoute
   ApiWalletWithdrawRoute: typeof ApiWalletWithdrawRoute
   DealsNewListingIdRoute: typeof DealsNewListingIdRoute
+  ApiPublicWebhooksNowpaymentsRoute: typeof ApiPublicWebhooksNowpaymentsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -409,6 +423,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWalletDepositAddressRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/webhooks/nowpayments': {
+      id: '/api/public/webhooks/nowpayments'
+      path: '/api/public/webhooks/nowpayments'
+      fullPath: '/api/public/webhooks/nowpayments'
+      preLoaderRoute: typeof ApiPublicWebhooksNowpaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -444,6 +465,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWalletTransferRoute: ApiWalletTransferRoute,
   ApiWalletWithdrawRoute: ApiWalletWithdrawRoute,
   DealsNewListingIdRoute: DealsNewListingIdRoute,
+  ApiPublicWebhooksNowpaymentsRoute: ApiPublicWebhooksNowpaymentsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
