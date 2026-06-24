@@ -185,7 +185,7 @@ export async function sendSystemMessage(dealId: string, senderId: string, conten
   } as any);
 }
 
-export async function hydrateDeals<T extends Deal>(rows: T[]): Promise<T[]> {
+export async function hydrateDeals(rows: Deal[]): Promise<Deal[]> {
   if (rows.length === 0) return rows;
 
   const listingIds = [...new Set(rows.map((d) => d.listing_id).filter(Boolean))];

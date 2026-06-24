@@ -20,7 +20,7 @@ export function DealNotifier() {
     seen.current.clear();
 
     const open = (dealId: string) => {
-      router.navigate({ to: "/deals/$dealId", params: { dealId } }).catch(() => {
+      Promise.resolve(router.navigate({ to: "/deals/$dealId", params: { dealId } })).catch(() => {
         window.location.assign(`/deals/${dealId}`);
       });
     };
