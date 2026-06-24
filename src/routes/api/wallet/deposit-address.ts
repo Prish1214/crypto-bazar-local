@@ -20,14 +20,18 @@ export const Route = createFileRoute("/api/wallet/deposit-address")({
 
         const sb = admin();
 
-        // 1. Existing address?
-        const { data: existing } = await sb
+        // 1. Existing address? Always return the persisted one — never regenerate.
+        const { data: existing, error: selErr } = await sb
           .from("deposit_addresses")
-          .select("*")
+          .select("address")
           .eq("user_id", auth.user.id)
           .eq("network", net)
           .maybeSingle();
-        if (existing) return Response.json({ address: existing.address, network: net });
+        if (selErr) {
+          console.error("[deposit-address] select failed", selErr);
+          return Response.json({ error: `DB read failed: ${selErr.message}` }, { status: 500 });
+        }
+        if (existing?.address) return Response.json({ address: existing.address, network: net });
 
         // 2. Ensure sub-partner exists.
         const { data: profile } = await sb
@@ -70,16 +74,37 @@ export const Route = createFileRoute("/api/wallet/deposit-address")({
           return Response.json({ error: e.message }, { status: 502 });
         }
 
-        // 4. Persist.
-        await sb.from("deposit_addresses").insert({
-          user_id: auth.user.id,
-          network: net,
-          currency,
-          address,
-          payment_id: paymentId,
-        });
+        // 4. Persist permanently (idempotent on user_id+network unique constraint).
+        const { error: upErr } = await sb
+          .from("deposit_addresses")
+          .upsert(
+            {
+              user_id: auth.user.id,
+              network: net,
+              currency,
+              address,
+              payment_id: paymentId,
+            },
+            { onConflict: "user_id,network", ignoreDuplicates: true },
+          );
+        if (upErr) {
+          console.error("[deposit-address] upsert failed", upErr);
+          return Response.json(
+            { error: `Could not save address: ${upErr.message}` },
+            { status: 500 },
+          );
+        }
 
-        return Response.json({ address, network: net });
+        // 5. Re-read to guarantee we return the persisted (canonical) address
+        //    even if another concurrent request wrote first.
+        const { data: saved } = await sb
+          .from("deposit_addresses")
+          .select("address")
+          .eq("user_id", auth.user.id)
+          .eq("network", net)
+          .maybeSingle();
+
+        return Response.json({ address: saved?.address ?? address, network: net });
       },
     },
   },
