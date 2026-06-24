@@ -25,6 +25,7 @@ import { Route as MerchantUserIdRouteImport } from './routes/merchant.$userId'
 import { Route as ListingsNewRouteImport } from './routes/listings.new'
 import { Route as DealsDealIdRouteImport } from './routes/deals.$dealId'
 import { Route as DealsNewListingIdRouteImport } from './routes/deals.new.$listingId'
+import { Route as ApiWalletWithdrawRouteImport } from './routes/api/wallet/withdraw'
 import { Route as ApiWalletDepositAddressRouteImport } from './routes/api/wallet/deposit-address'
 
 const WalletRoute = WalletRouteImport.update({
@@ -107,6 +108,11 @@ const DealsNewListingIdRoute = DealsNewListingIdRouteImport.update({
   path: '/deals/new/$listingId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWalletWithdrawRoute = ApiWalletWithdrawRouteImport.update({
+  id: '/api/wallet/withdraw',
+  path: '/api/wallet/withdraw',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWalletDepositAddressRoute = ApiWalletDepositAddressRouteImport.update({
   id: '/api/wallet/deposit-address',
   path: '/api/wallet/deposit-address',
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/deals/': typeof DealsIndexRoute
   '/listings/': typeof ListingsIndexRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
+  '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
 export interface FileRoutesByTo {
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/deals': typeof DealsIndexRoute
   '/listings': typeof ListingsIndexRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
+  '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
 export interface FileRoutesById {
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/deals/': typeof DealsIndexRoute
   '/listings/': typeof ListingsIndexRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
+  '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
 export interface FileRouteTypes {
@@ -190,6 +199,7 @@ export interface FileRouteTypes {
     | '/deals/'
     | '/listings/'
     | '/api/wallet/deposit-address'
+    | '/api/wallet/withdraw'
     | '/deals/new/$listingId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/deals'
     | '/listings'
     | '/api/wallet/deposit-address'
+    | '/api/wallet/withdraw'
     | '/deals/new/$listingId'
   id:
     | '__root__'
@@ -228,6 +239,7 @@ export interface FileRouteTypes {
     | '/deals/'
     | '/listings/'
     | '/api/wallet/deposit-address'
+    | '/api/wallet/withdraw'
     | '/deals/new/$listingId'
   fileRoutesById: FileRoutesById
 }
@@ -245,6 +257,7 @@ export interface RootRouteChildren {
   DealsIndexRoute: typeof DealsIndexRoute
   ListingsIndexRoute: typeof ListingsIndexRoute
   ApiWalletDepositAddressRoute: typeof ApiWalletDepositAddressRoute
+  ApiWalletWithdrawRoute: typeof ApiWalletWithdrawRoute
   DealsNewListingIdRoute: typeof DealsNewListingIdRoute
 }
 
@@ -362,6 +375,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DealsNewListingIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/wallet/withdraw': {
+      id: '/api/wallet/withdraw'
+      path: '/api/wallet/withdraw'
+      fullPath: '/api/wallet/withdraw'
+      preLoaderRoute: typeof ApiWalletWithdrawRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/wallet/deposit-address': {
       id: '/api/wallet/deposit-address'
       path: '/api/wallet/deposit-address'
@@ -401,6 +421,7 @@ const rootRouteChildren: RootRouteChildren = {
   DealsIndexRoute: DealsIndexRoute,
   ListingsIndexRoute: ListingsIndexRoute,
   ApiWalletDepositAddressRoute: ApiWalletDepositAddressRoute,
+  ApiWalletWithdrawRoute: ApiWalletWithdrawRoute,
   DealsNewListingIdRoute: DealsNewListingIdRoute,
 }
 export const routeTree = rootRouteImport
