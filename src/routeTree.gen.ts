@@ -26,6 +26,7 @@ import { Route as ListingsNewRouteImport } from './routes/listings.new'
 import { Route as DealsDealIdRouteImport } from './routes/deals.$dealId'
 import { Route as DealsNewListingIdRouteImport } from './routes/deals.new.$listingId'
 import { Route as ApiWalletWithdrawRouteImport } from './routes/api/wallet/withdraw'
+import { Route as ApiWalletTransferRouteImport } from './routes/api/wallet/transfer'
 import { Route as ApiWalletDepositAddressRouteImport } from './routes/api/wallet/deposit-address'
 
 const WalletRoute = WalletRouteImport.update({
@@ -113,6 +114,11 @@ const ApiWalletWithdrawRoute = ApiWalletWithdrawRouteImport.update({
   path: '/api/wallet/withdraw',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWalletTransferRoute = ApiWalletTransferRouteImport.update({
+  id: '/api/wallet/transfer',
+  path: '/api/wallet/transfer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWalletDepositAddressRoute = ApiWalletDepositAddressRouteImport.update({
   id: '/api/wallet/deposit-address',
   path: '/api/wallet/deposit-address',
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/deals/': typeof DealsIndexRoute
   '/listings/': typeof ListingsIndexRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
+  '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
@@ -156,6 +163,7 @@ export interface FileRoutesByTo {
   '/deals': typeof DealsIndexRoute
   '/listings': typeof ListingsIndexRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
+  '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
@@ -177,6 +185,7 @@ export interface FileRoutesById {
   '/deals/': typeof DealsIndexRoute
   '/listings/': typeof ListingsIndexRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
+  '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
   '/deals/new/$listingId': typeof DealsNewListingIdRoute
 }
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/deals/'
     | '/listings/'
     | '/api/wallet/deposit-address'
+    | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
     | '/deals/new/$listingId'
   fileRoutesByTo: FileRoutesByTo
@@ -219,6 +229,7 @@ export interface FileRouteTypes {
     | '/deals'
     | '/listings'
     | '/api/wallet/deposit-address'
+    | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
     | '/deals/new/$listingId'
   id:
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/deals/'
     | '/listings/'
     | '/api/wallet/deposit-address'
+    | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
     | '/deals/new/$listingId'
   fileRoutesById: FileRoutesById
@@ -257,6 +269,7 @@ export interface RootRouteChildren {
   DealsIndexRoute: typeof DealsIndexRoute
   ListingsIndexRoute: typeof ListingsIndexRoute
   ApiWalletDepositAddressRoute: typeof ApiWalletDepositAddressRoute
+  ApiWalletTransferRoute: typeof ApiWalletTransferRoute
   ApiWalletWithdrawRoute: typeof ApiWalletWithdrawRoute
   DealsNewListingIdRoute: typeof DealsNewListingIdRoute
 }
@@ -382,6 +395,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWalletWithdrawRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/wallet/transfer': {
+      id: '/api/wallet/transfer'
+      path: '/api/wallet/transfer'
+      fullPath: '/api/wallet/transfer'
+      preLoaderRoute: typeof ApiWalletTransferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/wallet/deposit-address': {
       id: '/api/wallet/deposit-address'
       path: '/api/wallet/deposit-address'
@@ -421,6 +441,7 @@ const rootRouteChildren: RootRouteChildren = {
   DealsIndexRoute: DealsIndexRoute,
   ListingsIndexRoute: ListingsIndexRoute,
   ApiWalletDepositAddressRoute: ApiWalletDepositAddressRoute,
+  ApiWalletTransferRoute: ApiWalletTransferRoute,
   ApiWalletWithdrawRoute: ApiWalletWithdrawRoute,
   DealsNewListingIdRoute: DealsNewListingIdRoute,
 }
