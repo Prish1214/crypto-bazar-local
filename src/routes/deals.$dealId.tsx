@@ -292,6 +292,7 @@ function DealRoom() {
           )}
 
           {showArrival && <ArrivalCheckIn deal={deal} isBuyer={isBuyer} onArrive={checkIn} />}
+          {showQR && <MutualQRVerification deal={deal} isBuyer={isBuyer} onVerified={markQRVerified} />}
           {showVerify && <PresenceVerification deal={deal} isBuyer={isBuyer} onUploadSelfie={uploadSelfie} />}
           {showCash && <CashHandoverPanel deal={deal} onSubmit={submitCashHandover} />}
           {showConfirm && (
