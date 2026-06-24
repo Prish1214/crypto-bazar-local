@@ -7,13 +7,16 @@ const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwb25lZWxtd3ZrdWZ2c3V4eWVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMzQ0MjQsImV4cCI6MjA5NzcxMDQyNH0.OLXdG3A2Q-qjBaUSCHXG0NywOaLt_2HE_EijSV3Se1o";
 
 function cleanEnv(value: string | null | undefined): string | undefined {
-  const trimmed = value?.trim().replace(/^['\"]|['\"]$/g, "");
+  let trimmed = value?.trim().replace(/^['\"]|['\"]$/g, "");
+  const assignment = trimmed?.match(/^[A-Z0-9_]+=(.+)$/i);
+  if (assignment?.[1]) trimmed = assignment[1].trim().replace(/^['\"]|['\"]$/g, "");
   return trimmed || undefined;
 }
 
 function normalizeSupabaseUrl(value: string | null | undefined): string | null {
-  const raw = cleanEnv(value);
+  let raw = cleanEnv(value);
   if (!raw) return null;
+  raw = raw.match(/https?:\/\/[^\s'\"]+/)?.[0] ?? raw;
 
   const candidate = raw.startsWith("http://") || raw.startsWith("https://")
     ? raw
