@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertOctagon, CheckCircle2, Clock, FileCheck2, History,
+  AlertOctagon, Clock, FileCheck2, History,
   Loader2, Lock, ReceiptText, ShieldCheck, type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   deal: Deal;
-  trigger?: React.ReactNode;
+  trigger?: ReactNode;
 }
 
 type VerificationLog = {
