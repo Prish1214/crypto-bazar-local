@@ -148,37 +148,14 @@ function DealRoom() {
     const amt = Number(deal.amount_usdt);
     const fee = Number(deal.fee_usdt);
     const net = amt - fee;
-    const [{ data: sw }, { data: bw }] = await Promise.all([
-      db.from("wallets").select("*").eq("user_id", deal.seller_id).maybeSingle(),
-      db.from("wallets").select("*").eq("user_id", deal.buyer_id).maybeSingle(),
-    ]);
-    if (!sw || !bw) { toast.error("Wallets missing"); return; }
-    await db.from("wallets").update({ escrow_balance: Number(sw.escrow_balance) - amt, updated_at: new Date().toISOString() }).eq("user_id", deal.seller_id);
-    await db.from("wallets").update({ balance: Number(bw.balance) + net, updated_at: new Date().toISOString() }).eq("user_id", deal.buyer_id);
-    await db.from("transactions").insert([
-      { user_id: deal.seller_id, deal_id: dealId, type: "escrow_release", amount: amt, description: "Released to buyer" },
-      { user_id: deal.buyer_id, deal_id: dealId, type: "trade", amount: net, description: "USDT received" },
-      { user_id: deal.seller_id, deal_id: dealId, type: "fee", amount: fee, description: "Platform fee" },
-    ]);
-    // bump reputation (best-effort, RLS-safe on profile owner only — also done client-side for visibility)
-    await bumpStats(deal.buyer_id, amt);
-    await bumpStats(deal.seller_id, amt);
-    await patch({
-      status: "completed",
-      seller_confirmed_at: new Date().toISOString(),
-      completed_at: new Date().toISOString(),
-    } as any, `Escrow released — ${fmtUSDT(net)} sent to buyer. Trade completed.`);
-  };
-
-  const bumpStats = async (uid: string, amt: number) => {
-    const { data: p } = await db.from("profiles").select("total_trades, completed_trades, trade_volume").eq("id", uid).maybeSingle();
-    if (!p) return;
-    await db.from("profiles").update({
-      total_trades: (p as any).total_trades + 1,
-      completed_trades: (p as any).completed_trades + 1,
-      trade_volume: Number((p as any).trade_volume) + amt,
-      updated_at: new Date().toISOString(),
-    }).eq("id", uid);
+    const { data, error } = await (db as any).rpc("complete_deal_release", { _deal_id: dealId });
+    if (error) {
+      toast.error(error.message ?? "Escrow release failed");
+      return;
+    }
+    if (data) setDeal(data as Deal);
+    await sendSystemMessage(dealId, user.id, `Escrow released — ${fmtUSDT(net)} sent to buyer. Trade completed.`);
+    toast.success("Escrow released and deal completed");
   };
 
   const submitReview = async () => {

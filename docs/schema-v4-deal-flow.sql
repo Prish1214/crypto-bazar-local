@@ -85,3 +85,80 @@ where not exists (
   select 1 from public.messages m
   where m.deal_id = d.id and m.kind = 'system' and m.content ilike 'Deal started%'
 );
+
+-- 5. Atomic seller confirmation / escrow release.
+-- Browser RLS correctly prevents a seller from directly updating the buyer's
+-- wallet, so settlement must happen through this authorized database function.
+create or replace function public.complete_deal_release(_deal_id uuid)
+returns public.deals
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  d public.deals%rowtype;
+  amt numeric(20,6);
+  fee numeric(20,6);
+  net numeric(20,6);
+begin
+  select * into d from public.deals where id = _deal_id for update;
+  if not found then
+    raise exception 'Deal not found';
+  end if;
+
+  if auth.uid() <> d.seller_id then
+    raise exception 'Only the seller can release escrow';
+  end if;
+
+  if d.status <> 'cash_sent' then
+    raise exception 'Deal is not ready for escrow release';
+  end if;
+
+  amt := d.amount_usdt;
+  fee := coalesce(d.fee_usdt, 0);
+  net := amt - fee;
+
+  update public.wallets
+     set escrow_balance = escrow_balance - amt,
+         updated_at = now()
+   where user_id = d.seller_id
+     and escrow_balance >= amt;
+  if not found then
+    raise exception 'Seller escrow balance is insufficient';
+  end if;
+
+  update public.wallets
+     set balance = balance + net,
+         updated_at = now()
+   where user_id = d.buyer_id;
+  if not found then
+    raise exception 'Buyer wallet not found';
+  end if;
+
+  insert into public.transactions (user_id, deal_id, type, amount, description)
+  values
+    (d.seller_id, d.id, 'escrow_release', amt, 'Released to buyer'),
+    (d.buyer_id, d.id, 'trade', net, 'USDT received'),
+    (d.seller_id, d.id, 'fee', fee, 'Platform fee');
+
+  update public.profiles
+     set total_trades = total_trades + 1,
+         completed_trades = completed_trades + 1,
+         trade_volume = trade_volume + amt,
+         updated_at = now()
+   where id in (d.buyer_id, d.seller_id);
+
+  update public.deals
+     set status = 'completed',
+         seller_confirmed_at = now(),
+         completed_at = now(),
+         updated_at = now()
+   where id = d.id
+   returning * into d;
+
+  return d;
+end;
+$$;
+
+revoke all on function public.complete_deal_release(uuid) from public;
+grant execute on function public.complete_deal_release(uuid) to authenticated;
