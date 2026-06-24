@@ -57,25 +57,27 @@ export async function getJwt(): Promise<string> {
   return j.token;
 }
 
-/** Create a custody sub-partner for a user (one-time). */
+/** Create a custody sub-partner for a user (one-time). Requires JWT. */
 export async function createSubPartner(name: string): Promise<string> {
-  const j = await np<{ result: { id: string | number } }>(
-    "/sub-partner/balance",
-    { method: "POST", body: JSON.stringify({ name }) },
-  );
-  // Some accounts use /sub-partner; we try the standard custody route first.
-  const id = (j as any).result?.id ?? (j as any).id ?? (j as any).sub_partner_id;
+  const token = await getJwt();
+  const j = await np<any>("/sub-partner", {
+    method: "POST",
+    auth: token,
+    body: JSON.stringify({ name }),
+  });
+  const r = j.result ?? j;
+  const id = r.id ?? r.sub_partner_id;
   if (!id) throw new Error("NOWPayments sub-partner id missing in response");
   return String(id);
 }
 
-/** Generate a deposit address for a sub-partner + currency. */
+/** Generate a deposit address for a sub-partner + currency. Requires JWT. */
 export async function generateDepositAddress(opts: {
   subPartnerId: string;
   currency: string; // e.g. usdttrc20
   ipnCallbackUrl?: string;
 }): Promise<{ address: string; paymentId?: string }> {
-  // Custody flow: POST /sub-partner/payment creates an address tied to the sub-partner.
+  const token = await getJwt();
   const body = {
     sub_partner_id: opts.subPartnerId,
     currency: opts.currency,
@@ -83,6 +85,7 @@ export async function generateDepositAddress(opts: {
   };
   const j = await np<any>("/sub-partner/payment", {
     method: "POST",
+    auth: token,
     body: JSON.stringify(body),
   });
   const r = j.result ?? j;
