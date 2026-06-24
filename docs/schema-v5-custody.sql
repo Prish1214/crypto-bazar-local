@@ -74,7 +74,7 @@ alter table public.transactions
 -- ============================================================
 -- GRANTS
 -- ============================================================
-grant select on public.deposit_addresses to authenticated;
+grant select, insert, update on public.deposit_addresses to authenticated;
 grant all   on public.deposit_addresses to service_role;
 
 grant select on public.deposits to authenticated;
@@ -96,7 +96,15 @@ alter table public.platform_fees     enable row level security;
 
 drop policy if exists deposit_addresses_select_own on public.deposit_addresses;
 create policy deposit_addresses_select_own on public.deposit_addresses
-  for select using (auth.uid() = user_id);
+  for select to authenticated using (auth.uid() = user_id);
+
+drop policy if exists deposit_addresses_insert_own on public.deposit_addresses;
+create policy deposit_addresses_insert_own on public.deposit_addresses
+  for insert to authenticated with check (auth.uid() = user_id);
+
+drop policy if exists deposit_addresses_update_own on public.deposit_addresses;
+create policy deposit_addresses_update_own on public.deposit_addresses
+  for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 drop policy if exists deposits_select_own on public.deposits;
 create policy deposits_select_own on public.deposits
