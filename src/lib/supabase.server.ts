@@ -6,15 +6,73 @@ const DEFAULT_SUPABASE_URL = "https://jponeelmwvkufvsuxyes.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwb25lZWxtd3ZrdWZ2c3V4eWVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMzQ0MjQsImV4cCI6MjA5NzcxMDQyNH0.OLXdG3A2Q-qjBaUSCHXG0NywOaLt_2HE_EijSV3Se1o";
 
-function supabaseUrl() {
-  return process.env.CB_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+function cleanEnv(value: string | null | undefined): string | undefined {
+  const trimmed = value?.trim().replace(/^['\"]|['\"]$/g, "");
+  return trimmed || undefined;
+}
+
+function normalizeSupabaseUrl(value: string | null | undefined): string | null {
+  const raw = cleanEnv(value);
+  if (!raw) return null;
+
+  const candidate = raw.startsWith("http://") || raw.startsWith("https://")
+    ? raw
+    : /^[a-z0-9-]+$/i.test(raw)
+      ? `https://${raw}.supabase.co`
+      : `https://${raw}`;
+
+  try {
+    const url = new URL(candidate);
+    const isAllowedHost =
+      url.hostname.endsWith(".supabase.co") ||
+      url.hostname === "supabase.co" ||
+      url.hostname === "localhost" ||
+      /^127\.\d+\.\d+\.\d+$/.test(url.hostname);
+
+    if ((url.protocol === "http:" || url.protocol === "https:") && isAllowedHost) {
+      return url.origin;
+    }
+  } catch {
+    // Ignore malformed env values and use the app's configured URL below.
+  }
+
+  return null;
+}
+
+function projectRefFromJwt(jwt: string): string | null {
+  try {
+    const payload = jwt.split(".")[1];
+    if (!payload) return null;
+    const padded = payload.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(payload.length / 4) * 4, "=");
+    const ref = JSON.parse(atob(padded))?.ref;
+    return typeof ref === "string" && /^[a-z0-9-]+$/i.test(ref) ? ref : null;
+  } catch {
+    return null;
+  }
+}
+
+function serviceRoleKey() {
+  const key = cleanEnv(
+    process.env.CB_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
+  );
+  if (!key) throw new Error("CB_SUPABASE_SERVICE_ROLE_KEY missing");
+  return key;
+}
+
+function adminSupabaseUrl(serviceKey: string) {
+  const ref = projectRefFromJwt(serviceKey);
+  return (
+    normalizeSupabaseUrl(ref) ??
+    normalizeSupabaseUrl(process.env.CB_SUPABASE_URL) ??
+    normalizeSupabaseUrl(process.env.SUPABASE_URL) ??
+    DEFAULT_SUPABASE_URL
+  );
 }
 
 /** Admin client (bypasses RLS) — webhook + credit_deposit only. */
 export function admin() {
-  const key = process.env.CB_SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) throw new Error("CB_SUPABASE_SERVICE_ROLE_KEY missing");
-  return createClient(supabaseUrl(), key, {
+  const key = serviceRoleKey();
+  return createClient(adminSupabaseUrl(key), key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
@@ -27,7 +85,7 @@ export async function userFromRequest(request: Request) {
     console.warn("[userFromRequest] missing bearer token", { hasHeader: !!auth });
     return null;
   }
-  const client = createClient(supabaseUrl(), SUPABASE_ANON_KEY, {
+  const client = createClient(DEFAULT_SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
