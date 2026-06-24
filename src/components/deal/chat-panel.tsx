@@ -170,7 +170,7 @@ function MessageBubble({ m, mine, displayText }: { m: Message; mine: boolean; di
   if (m.kind === "system") {
     return (
       <div className="flex justify-center">
-        <span className="rounded-full bg-secondary px-3 py-1 text-[11px] text-muted-foreground">{displayText || m.content}</span>
+        <span className="rounded-full bg-secondary px-3 py-1 text-[11px] text-muted-foreground">{m.content}</span>
       </div>
     );
   }
