@@ -2,13 +2,15 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
-  Shield, Coins, Users, Store, Wallet, ListOrdered,
+  Shield, Coins, Users, Store, Wallet, ListOrdered, Handshake,
   ReceiptText, Settings as SettingsIcon, LayoutDashboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DealNotifier } from "@/components/deal-notifier";
 
 const navItems = [
   { to: "/marketplace", label: "Market", icon: Store },
+  { to: "/deals", label: "Deals", icon: Handshake },
   { to: "/listings", label: "My Listings", icon: ListOrdered },
   { to: "/wallet", label: "Wallet", icon: Wallet },
   { to: "/transactions", label: "History", icon: ReceiptText },
@@ -137,6 +139,7 @@ export function SiteFooter() {
 export function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen px-4 pb-12">
+      <DealNotifier />
       <SiteHeader />
       <main className="mx-auto mt-8 max-w-7xl">{children}</main>
       <SiteFooter />
