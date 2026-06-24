@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { BellRing } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { db, type Deal } from "@/lib/db";
 
@@ -39,6 +40,30 @@ export function DealNotifier() {
       );
     };
 
+    const announceExistingActiveDeals = async () => {
+      const { data } = await db
+        .from("deals")
+        .select("id, deal_code, amount_usdt, status, buyer_id, seller_id, created_at")
+        .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+        .in("status", [
+          "pending", "accepted", "escrow_funded", "meeting_proposed",
+          "meeting_scheduled", "locked", "arrived", "verified", "cash_sent",
+          "confirmed", "proof_uploaded", "disputed",
+        ] as any)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      const d = data?.[0] as Deal | undefined;
+      if (!d || seen.current.has(`active-${d.id}-${d.status}`)) return;
+      seen.current.add(`active-${d.id}-${d.status}`);
+      toast("Active deal needs attention", {
+        icon: <BellRing className="h-4 w-4" />,
+        description: `${d.deal_code ?? d.id.slice(0, 8)} · ${Number(d.amount_usdt).toFixed(2)} USDT · ${d.status.replace(/_/g, " ")}`,
+        duration: 7000,
+        action: { label: "Open", onClick: () => open(d.id) },
+      });
+    };
+
     const onUpdate = (payload: any) => {
       const d = payload.new as Deal;
       const prev = payload.old as Deal;
@@ -52,6 +77,9 @@ export function DealNotifier() {
         action: { label: "Open", onClick: () => open(d.id) },
       });
     };
+
+    announceExistingActiveDeals();
+    const poll = window.setInterval(announceExistingActiveDeals, 15000);
 
     const ch = db
       .channel(`notif-${user.id}`)
@@ -69,7 +97,10 @@ export function DealNotifier() {
         onUpdate)
       .subscribe();
 
-    return () => { db.removeChannel(ch); };
+    return () => {
+      window.clearInterval(poll);
+      db.removeChannel(ch);
+    };
   }, [user?.id, router]);
 
   return null;

@@ -1,6 +1,6 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Check, X, Lock, Star, AlertOctagon } from "lucide-react";
+import { Loader2, Check, X, Lock, Star, AlertOctagon, Clock } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import {
 } from "@/components/deal/panels";
 import { ChatPanel } from "@/components/deal/chat-panel";
 import { DisputeButton } from "@/components/deal/dispute-button";
+import { DealDetailsDialog } from "@/components/deal/deal-details-dialog";
 
 export const Route = createFileRoute("/deals/$dealId")({
   head: () => ({ meta: [{ title: "Deal Room — CryptoBazar" }] }),
@@ -53,7 +54,11 @@ function DealRoom() {
       .channel(`deal-${dealId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `deal_id=eq.${dealId}` },
         (payload) => setMessages((m) => [...m, payload.new as Message]))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: `deal_id=eq.${dealId}` },
+        () => load())
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "deals", filter: `id=eq.${dealId}` },
+        () => load())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "disputes", filter: `deal_id=eq.${dealId}` },
         () => load())
       .subscribe();
     return () => { db.removeChannel(ch); };
@@ -143,37 +148,14 @@ function DealRoom() {
     const amt = Number(deal.amount_usdt);
     const fee = Number(deal.fee_usdt);
     const net = amt - fee;
-    const [{ data: sw }, { data: bw }] = await Promise.all([
-      db.from("wallets").select("*").eq("user_id", deal.seller_id).maybeSingle(),
-      db.from("wallets").select("*").eq("user_id", deal.buyer_id).maybeSingle(),
-    ]);
-    if (!sw || !bw) { toast.error("Wallets missing"); return; }
-    await db.from("wallets").update({ escrow_balance: Number(sw.escrow_balance) - amt, updated_at: new Date().toISOString() }).eq("user_id", deal.seller_id);
-    await db.from("wallets").update({ balance: Number(bw.balance) + net, updated_at: new Date().toISOString() }).eq("user_id", deal.buyer_id);
-    await db.from("transactions").insert([
-      { user_id: deal.seller_id, deal_id: dealId, type: "escrow_release", amount: amt, description: "Released to buyer" },
-      { user_id: deal.buyer_id, deal_id: dealId, type: "trade", amount: net, description: "USDT received" },
-      { user_id: deal.seller_id, deal_id: dealId, type: "fee", amount: fee, description: "Platform fee" },
-    ]);
-    // bump reputation (best-effort, RLS-safe on profile owner only — also done client-side for visibility)
-    await bumpStats(deal.buyer_id, amt);
-    await bumpStats(deal.seller_id, amt);
-    await patch({
-      status: "completed",
-      seller_confirmed_at: new Date().toISOString(),
-      completed_at: new Date().toISOString(),
-    } as any, `Escrow released — ${fmtUSDT(net)} sent to buyer. Trade completed.`);
-  };
-
-  const bumpStats = async (uid: string, amt: number) => {
-    const { data: p } = await db.from("profiles").select("total_trades, completed_trades, trade_volume").eq("id", uid).maybeSingle();
-    if (!p) return;
-    await db.from("profiles").update({
-      total_trades: (p as any).total_trades + 1,
-      completed_trades: (p as any).completed_trades + 1,
-      trade_volume: Number((p as any).trade_volume) + amt,
-      updated_at: new Date().toISOString(),
-    }).eq("id", uid);
+    const { data, error } = await (db as any).rpc("complete_deal_release", { _deal_id: dealId });
+    if (error) {
+      toast.error(error.message ?? "Escrow release failed");
+      return;
+    }
+    if (data) await load();
+    await sendSystemMessage(dealId, user.id, `Escrow released — ${fmtUSDT(net)} sent to buyer. Trade completed.`);
+    toast.success("Escrow released and deal completed");
   };
 
   const submitReview = async () => {
@@ -196,6 +178,7 @@ function DealRoom() {
   const showVerify  = ["arrived", "verified"].includes(deal.status) && (!deal.buyer_selfie_url || !deal.seller_selfie_url || deal.status !== "verified");
   const showCash    = deal.status === "verified" && isBuyer;
   const showConfirm = deal.status === "cash_sent" && isSeller;
+  const nextAction = getNextAction(deal.status, isBuyer, isSeller);
 
   return (
     <PageShell>
@@ -211,9 +194,11 @@ function DealRoom() {
             {isBuyer ? "Buying" : "Selling"} {fmtUSDT(deal.amount_usdt)}
           </h1>
           <p className="text-sm text-muted-foreground">for {fmtFiat(deal.total_fiat)} @ {fmtFiat(deal.price_per_usdt)}/USDT</p>
+          <p className="mt-1 text-xs font-medium text-primary">{nextAction}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <DealDetailsDialog deal={deal} />
           {deal.status === "pending" && isSeller && (
             <>
               <Button variant="hero" size="sm" onClick={accept}><Check className="h-4 w-4" /> Accept Deal</Button>
@@ -245,6 +230,7 @@ function DealRoom() {
         {/* LEFT: timeline + escrow */}
         <aside className="space-y-4">
           <EscrowStatusCard deal={deal} />
+          <MeetingCountdown deal={deal} />
           <ProgressTimeline deal={deal} />
         </aside>
 
@@ -305,4 +291,61 @@ function DealRoom() {
       </div>
     </PageShell>
   );
+}
+
+function MeetingCountdown({ deal }: { deal: Deal }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  if (!deal.meeting_at || deal.meeting_status !== "confirmed") {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <Clock className="h-4 w-4" /> Meeting timer
+        </div>
+        <div className="mt-3 font-display text-lg font-semibold">Not scheduled</div>
+        <p className="mt-1 text-xs text-muted-foreground">Confirm a city meeting point to start the countdown.</p>
+      </div>
+    );
+  }
+
+  const target = new Date(deal.meeting_at).getTime();
+  const diff = target - now;
+  const abs = Math.abs(diff);
+  const hours = Math.floor(abs / 3_600_000);
+  const minutes = Math.floor((abs % 3_600_000) / 60_000);
+  const seconds = Math.floor((abs % 60_000) / 1000);
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+        <Clock className="h-4 w-4" /> Meeting countdown
+      </div>
+      <div className="mt-3 font-mono text-2xl font-semibold tabular-nums">
+        {hours.toString().padStart(2, "0")}:{minutes.toString().padStart(2, "0")}:{seconds.toString().padStart(2, "0")}
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {diff >= 0 ? "until confirmed meeting" : "since scheduled meeting time"}
+      </p>
+    </div>
+  );
+}
+
+function getNextAction(status: DealStatus, isBuyer: boolean, isSeller: boolean) {
+  if (status === "pending") return isSeller ? "New request — accept or decline this deal." : "Waiting for seller to accept the deal.";
+  if (status === "accepted") return isSeller ? "Fund escrow to secure the trade." : "Seller accepted — waiting for escrow funding.";
+  if (status === "escrow_funded") return "Escrow is funded — schedule the meeting inside the Deal Room.";
+  if (status === "meeting_proposed") return "Meeting proposed — waiting for confirmation.";
+  if (status === "meeting_scheduled") return "Meeting confirmed — lock the deal before both parties arrive.";
+  if (status === "locked") return "Deal locked — both parties should check in at the meeting point.";
+  if (status === "arrived") return "Both parties arrived — complete presence verification.";
+  if (status === "verified") return isBuyer ? "Presence verified — hand over cash and submit proof." : "Presence verified — wait for buyer cash handover.";
+  if (status === "cash_sent") return isSeller ? "Buyer marked cash handed over — confirm receipt or dispute." : "Waiting for seller confirmation and escrow release.";
+  if (status === "completed") return "Trade completed — details and history are available.";
+  if (status === "disputed") return "Escrow frozen — admin review is in progress.";
+  if (status === "cancelled") return "Deal cancelled.";
+  return "Deal room is active.";
 }

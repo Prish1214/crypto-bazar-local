@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DealNotifier } from "@/components/deal-notifier";
+import { db, type DealStatus } from "@/lib/db";
 
 const navItems = [
   { to: "/marketplace", label: "Market", icon: Store },
@@ -16,9 +18,47 @@ const navItems = [
   { to: "/transactions", label: "History", icon: ReceiptText },
 ] as const;
 
+const ACTIVE_DEAL_STATUSES: DealStatus[] = [
+  "pending", "accepted", "escrow_funded", "meeting_proposed",
+  "meeting_scheduled", "locked", "arrived", "verified", "cash_sent",
+  "confirmed", "proof_uploaded", "disputed",
+];
+
 export function SiteHeader() {
   const { user, signOut } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [activeDealsCount, setActiveDealsCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) {
+      setActiveDealsCount(0);
+      return;
+    }
+
+    let mounted = true;
+    const loadActiveDeals = async () => {
+      const { data } = await db
+        .from("deals")
+        .select("id,status")
+        .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+        .in("status", ACTIVE_DEAL_STATUSES as any);
+      if (mounted) setActiveDealsCount(data?.length ?? 0);
+    };
+
+    loadActiveDeals();
+    const channel = db
+      .channel(`nav-deals-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "deals", filter: `buyer_id=eq.${user.id}` }, loadActiveDeals)
+      .on("postgres_changes", { event: "*", schema: "public", table: "deals", filter: `seller_id=eq.${user.id}` }, loadActiveDeals)
+      .subscribe();
+    const interval = window.setInterval(loadActiveDeals, 15000);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(interval);
+      db.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   return (
     <header className="sticky top-0 z-50 w-full">
@@ -49,6 +89,11 @@ export function SiteHeader() {
                 >
                   <n.icon className="h-4 w-4" />
                   {n.label}
+                    {n.to === "/deals" && activeDealsCount > 0 && (
+                      <span className="ml-0.5 grid min-w-5 place-items-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                        {activeDealsCount}
+                      </span>
+                    )}
                 </Link>
               );
             })}
@@ -100,6 +145,11 @@ export function SiteHeader() {
               >
                 <n.icon className="h-3.5 w-3.5" />
                 {n.label}
+                  {n.to === "/deals" && activeDealsCount > 0 && (
+                    <span className="grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-semibold leading-4 text-primary-foreground">
+                      {activeDealsCount}
+                    </span>
+                  )}
               </Link>
             );
           })}
@@ -136,7 +186,7 @@ export function SiteFooter() {
   );
 }
 
-export function PageShell({ children }: { children: React.ReactNode }) {
+export function PageShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen px-4 pb-12">
       <DealNotifier />
@@ -147,7 +197,7 @@ export function PageShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function RequireAuth({ children }: { children: React.ReactNode }) {
+export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) {
     return (
