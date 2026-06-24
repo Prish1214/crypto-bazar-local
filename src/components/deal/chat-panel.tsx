@@ -26,8 +26,9 @@ export function ChatPanel({
     if (!text.trim()) return;
     const { clean, blocked } = sanitizeMessage(text.trim());
     if (blocked) toast.warning("Personal contact details are blocked — keep chat in CryptoBazar.");
+    const ciphertext = await encryptForDeal(dealId, clean);
     const { error } = await db.from("messages").insert({
-      deal_id: dealId, sender_id: userId, content: clean, kind: "text",
+      deal_id: dealId, sender_id: userId, content: ciphertext, kind: "text",
     } as any);
     if (error) return toast.error(error.message);
     setText("");
