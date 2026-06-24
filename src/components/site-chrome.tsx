@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -186,7 +186,7 @@ export function SiteFooter() {
   );
 }
 
-export function PageShell({ children }: { children: React.ReactNode }) {
+export function PageShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen px-4 pb-12">
       <DealNotifier />
@@ -197,7 +197,7 @@ export function PageShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function RequireAuth({ children }: { children: React.ReactNode }) {
+export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) {
     return (
