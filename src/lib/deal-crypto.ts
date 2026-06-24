@@ -73,10 +73,12 @@ export async function decryptForDeal(dealId: string, payload: string): Promise<s
     if (!subtle) return "[encrypted]";
     const [, ivB64, ctB64] = payload.split(":");
     const key = await deriveKey(dealId);
+    const iv = unb64(ivB64);
+    const ct = unb64(ctB64);
     const pt = await subtle.decrypt(
-      { name: "AES-GCM", iv: unb64(ivB64) },
+      { name: "AES-GCM", iv: iv.buffer.slice(iv.byteOffset, iv.byteOffset + iv.byteLength) as ArrayBuffer },
       key,
-      unb64(ctB64),
+      ct.buffer.slice(ct.byteOffset, ct.byteOffset + ct.byteLength) as ArrayBuffer,
     );
     return new TextDecoder().decode(pt);
   } catch {

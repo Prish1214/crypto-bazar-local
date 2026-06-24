@@ -92,6 +92,8 @@ export interface Deal {
   cash_notes: string | null;
   cash_handover_at: string | null;
   seller_confirmed_at: string | null;
+  buyer_qr_verified_at: string | null;
+  seller_qr_verified_at: string | null;
   proof_image_url: string | null;
   proof_video_url: string | null;
   proof_uploaded_at: string | null;
