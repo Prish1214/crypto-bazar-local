@@ -63,12 +63,14 @@ function StartDeal() {
         total_fiat: totalFiat,
         fee_usdt: fee,
         status: "pending",
-      }).select().single();
+      }).select("id").single();
       if (error) throw error;
-      toast.success("Deal created");
+      if (!deal?.id) throw new Error("Deal was created but could not be opened — check permissions.");
+      toast.success("Deal created — opening deal room");
       navigate({ to: "/deals/$dealId", params: { dealId: (deal as any).id } });
     } catch (e: any) {
-      toast.error(e.message ?? "Failed");
+      console.error("start deal failed", e);
+      toast.error(e.message ?? "Failed to start deal");
     } finally {
       setBusy(false);
     }
