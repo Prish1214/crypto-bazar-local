@@ -57,10 +57,12 @@ export async function getJwt(): Promise<string> {
   return j.token;
 }
 
-/** Create a custody sub-partner for a user (one-time). Requires JWT. */
+/** Create a custody sub-partner (Billing API). The documented path is
+ *  `POST /v1/sub-partner/balance` — it both creates the user and is later
+ *  used to fetch the balance. Requires JWT. */
 export async function createSubPartner(name: string): Promise<string> {
   const token = await getJwt();
-  const j = await np<any>("/sub-partner", {
+  const j = await np<any>("/sub-partner/balance", {
     method: "POST",
     auth: token,
     body: JSON.stringify({ name }),
@@ -71,7 +73,10 @@ export async function createSubPartner(name: string): Promise<string> {
   return String(id);
 }
 
-/** Generate a deposit address for a sub-partner + currency. Requires JWT. */
+/** Generate a deposit address for a sub-partner + currency. Requires JWT.
+ *  The Billing API requires an `amount` field; we pass a large notional so
+ *  the user can send any amount up to that ceiling — the address is then
+ *  cached per (user, network) in the DB. */
 export async function generateDepositAddress(opts: {
   subPartnerId: string;
   currency: string; // e.g. usdttrc20
@@ -81,6 +86,7 @@ export async function generateDepositAddress(opts: {
   const body = {
     sub_partner_id: opts.subPartnerId,
     currency: opts.currency,
+    amount: 100000, // notional ceiling; user-perceived deposits can be any amount
     ipn_callback_url: opts.ipnCallbackUrl,
   };
   const j = await np<any>("/sub-partner/payment", {
@@ -91,7 +97,7 @@ export async function generateDepositAddress(opts: {
   const r = j.result ?? j;
   const address = r.address ?? r.pay_address ?? r.deposit_address;
   if (!address) throw new Error("NOWPayments did not return a deposit address");
-  return { address, paymentId: r.payment_id ?? r.id };
+  return { address, paymentId: String(r.payment_id ?? r.id ?? "") || undefined };
 }
 
 /** Create a payout (withdrawal) to a destination address. */
