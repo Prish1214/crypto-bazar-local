@@ -16,13 +16,18 @@ in this exact order:
    transaction type, the `disputes` table, and backfills wallets /
    profiles / roles for any user that signed up before the trigger
    existed.
+4. **`docs/schema-v4-deal-flow.sql`** — fixes deal creation from both
+   BUY and SELL listings, enables realtime for deal rooms, and allows
+   both deal participants to see escrow/accounting movements for the
+   deal details view.
 
 Each file is **idempotent** (safe to re-run). If a step errors,
 copy the exact error text — it usually means a previous file wasn't
 run yet.
 
-> **Tip**: If you're starting clean, you can just run all three back to
-> back. If you previously only ran schema.sql, run v2 and v3 now.
+> **Tip**: If you're starting clean, run all four back to back. If you
+> previously ran the first three, run v4 now to fix Start Deal and
+> realtime notifications.
 
 ## Auth settings
 
