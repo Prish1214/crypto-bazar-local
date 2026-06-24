@@ -97,6 +97,7 @@ export interface Deal {
   proof_uploaded_at: string | null;
   completed_at: string | null;
   created_at: string;
+  updated_at: string;
   listing?: Listing | null;
   buyer?: Profile | null;
   seller?: Profile | null;
