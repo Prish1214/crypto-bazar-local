@@ -57,20 +57,42 @@ export async function getJwt(): Promise<string> {
   return j.token;
 }
 
+/** Look up an existing sub-partner by name. */
+async function findSubPartnerByName(token: string, name: string): Promise<string | null> {
+  const j = await np<any>("/sub-partner?limit=1000", { method: "GET", auth: token });
+  const list: any[] = j.result ?? j.data ?? [];
+  const match = list.find((p) => p?.name === name);
+  return match ? String(match.id ?? match.sub_partner_id) : null;
+}
+
 /** Create a custody sub-partner (Billing API). The documented path is
  *  `POST /v1/sub-partner/balance` — it both creates the user and is later
- *  used to fetch the balance. Requires JWT. */
+ *  used to fetch the balance. Requires JWT. If the name was already
+ *  created in a previous attempt (e.g. response was lost), look it up
+ *  via `GET /v1/sub-partner` and return that id instead. */
 export async function createSubPartner(name: string): Promise<string> {
   const token = await getJwt();
-  const j = await np<any>("/sub-partner/balance", {
-    method: "POST",
-    auth: token,
-    body: JSON.stringify({ name }),
-  });
-  const r = j.result ?? j;
-  const id = r.id ?? r.sub_partner_id;
-  if (!id) throw new Error("NOWPayments sub-partner id missing in response");
-  return String(id);
+  try {
+    const j = await np<any>("/sub-partner/balance", {
+      method: "POST",
+      auth: token,
+      body: JSON.stringify({ name }),
+    });
+    const r = j.result ?? j;
+    const id = r.id ?? r.sub_partner_id;
+    if (id) return String(id);
+    // Fall through to lookup if response didn't include an id.
+    const existing = await findSubPartnerByName(token, name);
+    if (existing) return existing;
+    throw new Error("NOWPayments sub-partner id missing in response");
+  } catch (e: any) {
+    const msg = String(e?.message ?? "");
+    if (/already exist/i.test(msg)) {
+      const existing = await findSubPartnerByName(token, name);
+      if (existing) return existing;
+    }
+    throw e;
+  }
 }
 
 /** Generate a deposit address for a sub-partner + currency. Requires JWT.
