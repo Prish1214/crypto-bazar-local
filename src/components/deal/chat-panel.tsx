@@ -122,7 +122,18 @@ export function ChatPanel({
             Say hello — all communication stays inside CryptoBazar.
           </p>
         )}
-        {messages.map((m) => <MessageBubble key={m.id} m={m} mine={m.sender_id === userId} />)}
+        {messages.map((m) => (
+          <MessageBubble
+            key={m.id}
+            m={m}
+            mine={m.sender_id === userId}
+            displayText={
+              m.kind === "text" || m.kind === "note"
+                ? decrypted[m.id] ?? (m.content?.startsWith("enc:v1:") ? "…" : m.content)
+                : m.content
+            }
+          />
+        ))}
       </div>
 
       <div className="border-t border-border bg-background px-3 py-2.5">
