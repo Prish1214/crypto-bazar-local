@@ -27,7 +27,7 @@ export async function userFromRequest(request: Request) {
     console.warn("[userFromRequest] missing bearer token", { hasHeader: !!auth });
     return null;
   }
-  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const client = createClient(supabaseUrl(), SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
