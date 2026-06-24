@@ -56,9 +56,17 @@ function DepositPage() {
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ network: network.id }),
         });
-        const j = await r.json();
+        const text = await r.text();
+        let j: any = {};
+        try { j = text ? JSON.parse(text) : {}; } catch {
+          throw new Error(
+            r.status === 404
+              ? "Deposit endpoint not deployed yet. Please refresh in a moment."
+              : `Server error (${r.status}): ${text.slice(0, 120)}`,
+          );
+        }
         if (cancel) return;
-        if (!r.ok) throw new Error(j.error || "Could not generate address");
+        if (!r.ok) throw new Error(j.error || `Could not generate address (${r.status})`);
         setAddress(j.address);
       } catch (e: any) {
         if (!cancel) setError(e.message);
