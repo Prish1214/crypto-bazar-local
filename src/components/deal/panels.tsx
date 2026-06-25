@@ -11,17 +11,14 @@ import { Link } from "@tanstack/react-router";
 
 // ---------- Progress Timeline ----------
 export const TIMELINE: { key: string; label: string; match: (d: Deal) => boolean }[] = [
-  { key: "started",     label: "Deal Started",      match: (d) => true },
-  { key: "escrow",      label: "Escrow Locked",     match: (d) => !!d.locked_at || ["escrow_funded","meeting_proposed","meeting_scheduled","locked","arrived","verified","cash_sent","confirmed","completed","proof_uploaded"].includes(d.status) },
-  { key: "meeting",     label: "Meeting Scheduled", match: (d) => !!d.meeting_at && d.meeting_status === "confirmed" },
-  { key: "locked",      label: "Deal Locked",       match: (d) => ["locked","arrived","verified","cash_sent","confirmed","completed"].includes(d.status) },
-  { key: "arrived",     label: "Both Arrived",      match: (d) => !!d.buyer_arrived_at && !!d.seller_arrived_at },
-  { key: "qr",          label: "QR Verified",       match: (d) => !!d.buyer_qr_verified_at && !!d.seller_qr_verified_at },
-  { key: "verified",    label: "Identity Verified", match: (d) => !!d.buyer_selfie_url && !!d.seller_selfie_url },
-  { key: "cash",        label: "Cash Handed Over",  match: (d) => !!d.cash_handover_at },
-  { key: "confirmed",   label: "Seller Confirmed",  match: (d) => !!d.seller_confirmed_at },
-  { key: "released",    label: "Escrow Released",   match: (d) => d.status === "completed" },
-  { key: "completed",   label: "Trade Completed",   match: (d) => d.status === "completed" },
+  { key: "started",     label: "Deal Started",         match: () => true },
+  { key: "escrow",      label: "Escrow Locked",        match: (d) => !!d.locked_at || ["escrow_funded","meeting_proposed","meeting_scheduled","locked","arrived","verified","cash_sent","confirmed","completed","proof_uploaded"].includes(d.status) },
+  { key: "meeting",     label: "Meeting Scheduled",    match: (d) => !!d.meeting_at && d.meeting_status === "confirmed" },
+  { key: "arrived",     label: "Both Arrived",         match: (d) => !!d.buyer_arrived_at && !!d.seller_arrived_at },
+  { key: "qr",          label: "Mutual QR Verified",   match: (d) => !!d.buyer_qr_verified_at && !!d.seller_qr_verified_at },
+  { key: "cash",        label: "Cash Handed Over",     match: (d) => !!d.cash_handover_at },
+  { key: "released",    label: "Escrow Released",      match: (d) => d.status === "completed" },
+  { key: "completed",   label: "Trade Completed",      match: (d) => d.status === "completed" },
 ];
 
 export function ProgressTimeline({ deal }: { deal: Deal }) {
