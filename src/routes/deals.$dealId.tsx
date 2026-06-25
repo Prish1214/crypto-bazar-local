@@ -137,8 +137,8 @@ function DealRoom() {
       [`${key}_arrival_lat`]: lat,
       [`${key}_arrival_lng`]: lng,
     };
-    const both = isBuyer ? deal.seller_arrived_at : deal.buyer_arrived_at;
-    if (both) update.status = "arrived";
+    const otherArrived = isBuyer ? deal.seller_arrived_at : deal.buyer_arrived_at;
+    update.status = otherArrived ? "arrived" : "locked";
     await patch(update, `${isBuyer ? "Buyer" : "Seller"} arrived at meeting point.`);
   };
 
