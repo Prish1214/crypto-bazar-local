@@ -334,7 +334,11 @@ function renderPrimaryAction(props: {
     return <WaitingCard title="Waiting for ad owner" text="The ad owner will accept or decline your request shortly." />;
   }
 
-  if (["escrow_funded", "meeting_proposed", "meeting_scheduled"].includes(deal.status)) {
+  // Meeting scheduling phase — only until a meeting is confirmed
+  if (
+    ["escrow_funded", "meeting_proposed"].includes(deal.status) ||
+    (deal.status === "meeting_scheduled" && deal.meeting_status !== "confirmed")
+  ) {
     return (
       <MeetingCard
         deal={deal} isBuyer={isBuyer} isSeller={isSeller}
@@ -343,7 +347,12 @@ function renderPrimaryAction(props: {
     );
   }
 
-  if (deal.status === "locked" || deal.status === "arrived") {
+  // Once meeting is confirmed (or deal is locked/arrived) → arrival check-in
+  if (
+    deal.status === "meeting_scheduled" ||
+    deal.status === "locked" ||
+    deal.status === "arrived"
+  ) {
     const meArrived = isBuyer ? !!deal.buyer_arrived_at : !!deal.seller_arrived_at;
     const otherArrived = isBuyer ? !!deal.seller_arrived_at : !!deal.buyer_arrived_at;
     if (!meArrived || !otherArrived) {
