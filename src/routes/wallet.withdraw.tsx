@@ -55,8 +55,10 @@ function WithdrawPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ network: network.id, address: address.trim(), amount: amt }),
       });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "Withdrawal failed");
+      const text = await r.text();
+      let j: any = {};
+      try { j = text ? JSON.parse(text) : {}; } catch { j = { error: text || `HTTP ${r.status}` }; }
+      if (!r.ok) throw new Error(j.error || `Withdrawal failed (HTTP ${r.status})`);
       toast.success(`Withdrawal of ${fmtUSDT(amt)} submitted`, {
         description: "You'll receive USDT once the network confirms the payout.",
       });

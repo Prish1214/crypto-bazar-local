@@ -112,7 +112,11 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             .from("withdrawals")
             .update({ status: "failed", raw: { error: e.message } })
             .eq("id", wRow.id);
-          return Response.json({ error: `Payout failed: ${e.message}` }, { status: 502 });
+          const raw = String(e?.message ?? "");
+          const friendly = /invalid ip|access denied/i.test(raw)
+            ? "Withdrawals are temporarily unavailable: the payment provider is rejecting our server IP. Please contact support — the admin needs to disable IP whitelist on the NOWPayments API key."
+            : `Payout failed: ${raw}`;
+          return Response.json({ error: friendly }, { status: 502 });
         }
       },
     },
