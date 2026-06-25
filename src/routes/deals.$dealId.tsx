@@ -306,7 +306,7 @@ function renderPrimaryAction(props: {
   onPropose: (when: string, loc: string) => void;
   onAcceptMeeting: () => void; onRejectMeeting: () => void;
   onArrive: (lat: number | null, lng: number | null) => void;
-  onQR: () => void;
+  onQR: () => Promise<void>;
   onCash: (photo: File | null, notes: string) => Promise<void>;
   onConfirm: () => Promise<void>;
 }) {
