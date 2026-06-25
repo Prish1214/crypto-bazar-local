@@ -298,12 +298,13 @@ export function PresenceVerification({
   );
 }
 
-// ---------- Cash Handover ----------
+// ---------- Cash Handover (live camera only) ----------
+import { LiveCameraCapture } from "./live-camera-capture";
+
 export function CashHandoverPanel({
   deal, onSubmit,
 }: { deal: Deal; onSubmit: (photo: File | null, notes: string) => Promise<void> }) {
   const [notes, setNotes] = useState("");
-  const [photo, setPhoto] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   if (deal.cash_handover_at) {
     return (
@@ -316,13 +317,16 @@ export function CashHandoverPanel({
   return (
     <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
       <h3 className="font-display text-sm font-semibold tracking-tight">Cash Handover</h3>
-      <p className="mt-1 text-xs text-muted-foreground">Hand the cash over, then upload proof.</p>
-      <div className="mt-3 space-y-2">
-        <Input type="file" accept="image/*,video/*" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
+      <p className="mt-1 text-xs text-muted-foreground">Hand the cash over, then capture a live photo as proof.</p>
+      <div className="mt-3 space-y-3">
         <Textarea placeholder="Optional notes (denomination breakdown, witness, etc.)" value={notes} onChange={(e) => setNotes(e.target.value)} />
-        <Button variant="hero" className="w-full" size="sm" disabled={busy} onClick={async () => { setBusy(true); try { await onSubmit(photo, notes); } finally { setBusy(false); } }}>
-          {busy ? "Submitting…" : "Cash Handed Over"}
-        </Button>
+        <LiveCameraCapture
+          busy={busy}
+          onCapture={async (file) => {
+            setBusy(true);
+            try { await onSubmit(file, notes); } finally { setBusy(false); }
+          }}
+        />
       </div>
     </div>
   );
