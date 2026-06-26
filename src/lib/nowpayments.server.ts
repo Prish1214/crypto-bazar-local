@@ -122,6 +122,26 @@ export async function generateDepositAddress(opts: {
   return { address, paymentId: String(r.payment_id ?? r.id ?? "") || undefined };
 }
 
+/** Fetch a sub-partner's custody balances. Returns { [currency]: amount }. */
+export async function getSubPartnerBalance(
+  subPartnerId: string,
+): Promise<Record<string, number>> {
+  const token = await getJwt();
+  const j = await np<any>(`/sub-partner/balance/${subPartnerId}`, {
+    method: "GET",
+    auth: token,
+  });
+  const r = j.result ?? j;
+  const out: Record<string, number> = {};
+  // API returns { balances: { usdttrc20: { amount, pendingAmount }, ... } }
+  const balances = r.balances ?? r;
+  for (const [k, v] of Object.entries<any>(balances)) {
+    if (v && typeof v === "object") out[k.toLowerCase()] = Number(v.amount ?? 0);
+    else if (typeof v === "number") out[k.toLowerCase()] = v;
+  }
+  return out;
+}
+
 /** Move funds from a sub-partner custody balance up to the master account.
  *  Required before /payout, since /payout draws from the master balance. */
 export async function writeOffFromSubPartner(opts: {
