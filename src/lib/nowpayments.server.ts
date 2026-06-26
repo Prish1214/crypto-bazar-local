@@ -122,6 +122,25 @@ export async function generateDepositAddress(opts: {
   return { address, paymentId: String(r.payment_id ?? r.id ?? "") || undefined };
 }
 
+/** Move funds from a sub-partner custody balance up to the master account.
+ *  Required before /payout, since /payout draws from the master balance. */
+export async function writeOffFromSubPartner(opts: {
+  subPartnerId: string;
+  currency: string;
+  amount: number;
+}): Promise<void> {
+  const token = await getJwt();
+  await np<any>("/sub-partner/write-off", {
+    method: "POST",
+    auth: token,
+    body: JSON.stringify({
+      sub_partner_id: opts.subPartnerId,
+      currency: opts.currency,
+      amount: opts.amount,
+    }),
+  });
+}
+
 /** Create a payout (withdrawal) to a destination address. */
 export async function createPayout(opts: {
   address: string;

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { userFromRequest, admin } from "@/lib/supabase.server";
-import { NETWORK_TO_CURRENCY, createPayout, estimateFee } from "@/lib/nowpayments.server";
+import { NETWORK_TO_CURRENCY, createPayout, estimateFee, writeOffFromSubPartner } from "@/lib/nowpayments.server";
 
 export const Route = createFileRoute("/api/wallet/withdraw")({
   server: {
@@ -75,9 +75,26 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
           return Response.json({ error: "Could not record withdrawal" }, { status: 500 });
         }
 
-        // 4. Call NOWPayments payout.
+        // 4. Move funds from sub-partner custody → master, then call payout.
         const origin = new URL(request.url).origin;
         try {
+          const { data: prof } = await sb
+            .from("profiles")
+            .select("nowpayments_sub_partner_id")
+            .eq("id", auth.user.id)
+            .maybeSingle();
+          const subId = prof?.nowpayments_sub_partner_id as string | null;
+          if (subId) {
+            try {
+              await writeOffFromSubPartner({ subPartnerId: subId, currency, amount: amt });
+            } catch (e: any) {
+              throw new Error(
+                /insufficient/i.test(String(e?.message))
+                  ? `You don't have enough confirmed ${currency.toUpperCase()} in custody for this network. Make sure the deposit was on ${net.toUpperCase()} and fully confirmed.`
+                  : `Could not move funds from custody: ${e?.message ?? e}`,
+              );
+            }
+          }
           const r = await createPayout({
             address: addr,
             amount: amt,
