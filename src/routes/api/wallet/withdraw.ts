@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
           amount?: number | string;
         };
         const net = (body.network ?? "").toLowerCase();
-        const currency = NETWORK_TO_CURRENCY[net];
+        let currency = NETWORK_TO_CURRENCY[net];
         const addr = (body.address ?? "").trim();
         const amt = Number(body.amount);
 
