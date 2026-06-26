@@ -85,14 +85,51 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             .maybeSingle();
           const subId = prof?.nowpayments_sub_partner_id as string | null;
           if (subId) {
+            // Try the requested currency first; if NOW reports insufficient,
+            // inspect actual custody balances and try any matching USDT ticker
+            // with enough funds (handles ticker-name mismatches like
+            // usdtbsc vs usdtbep20).
+            let writeOffOk = false;
+            let writeOffErr = "";
             try {
               await writeOffFromSubPartner({ subPartnerId: subId, currency, amount: amt });
+              writeOffOk = true;
             } catch (e: any) {
-              throw new Error(
-                /insufficient/i.test(String(e?.message))
-                  ? `You don't have enough confirmed ${currency.toUpperCase()} in custody for this network. Make sure the deposit was on ${net.toUpperCase()} and fully confirmed.`
-                  : `Could not move funds from custody: ${e?.message ?? e}`,
-              );
+              writeOffErr = String(e?.message ?? e);
+            }
+            if (!writeOffOk) {
+              let balances: Record<string, number> = {};
+              try { balances = await getSubPartnerBalance(subId); } catch {}
+              // Try same-network ticker aliases.
+              const aliases: Record<string, string[]> = {
+                usdttrc20: ["usdttrc20", "usdttron"],
+                usdtbsc:   ["usdtbsc", "usdtbep20"],
+                usdterc20: ["usdterc20", "usdt"],
+                usdtmatic: ["usdtmatic", "usdtpolygon"],
+              };
+              const candidates = aliases[currency] ?? [currency];
+              let used = "";
+              for (const c of candidates) {
+                if ((balances[c] ?? 0) + 1e-9 >= amt) {
+                  try {
+                    await writeOffFromSubPartner({ subPartnerId: subId, currency: c, amount: amt });
+                    used = c; writeOffOk = true; break;
+                  } catch {}
+                }
+              }
+              if (!writeOffOk) {
+                const summary = Object.entries(balances)
+                  .filter(([, v]) => v > 0)
+                  .map(([k, v]) => `${k}: ${v}`)
+                  .join(", ") || "no confirmed funds";
+                throw new Error(
+                  `Custody has insufficient ${currency.toUpperCase()} for this withdrawal. ` +
+                  `NOWPayments custody currently holds — ${summary}. ` +
+                  `Make sure the deposit landed on ${net.toUpperCase()} and is fully confirmed on-chain. (${writeOffErr})`,
+                );
+              }
+              // If we used a non-default currency successfully, swap it in for payout.
+              if (used && used !== currency) (currency as any) = used;
             }
           }
           const r = await createPayout({
