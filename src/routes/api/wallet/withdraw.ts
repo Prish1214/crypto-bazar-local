@@ -129,7 +129,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
                 );
               }
               // If we used a non-default currency successfully, swap it in for payout.
-              if (used && used !== currency) (currency as any) = used;
+              if (used && used !== currency) currency = used;
             }
           }
           const r = await createPayout({
