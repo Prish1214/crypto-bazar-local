@@ -37,7 +37,7 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
         // Deposit payload
         const npId = String(payload.payment_id ?? payload.id ?? "");
         const status = String(payload.payment_status ?? "").toLowerCase();
-        const actuallyPaid = Number(payload.actually_paid ?? payload.pay_amount ?? 0);
+        const actuallyPaid = Number(payload.outcome_amount ?? payload.actually_paid ?? payload.pay_amount ?? 0);
         const address = payload.pay_address ?? payload.payin_address;
         if (!npId || !address || actuallyPaid <= 0) {
           return Response.json({ ok: true, skipped: true });
