@@ -247,7 +247,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
 });
 
 const EPSILON = 1e-8;
-const SERVICE_FEE_RATE = 0.01;
+const SERVICE_FEE_RATE = 0.05;
 
 const CURRENCY_ALIASES: Record<string, string[]> = {
   usdttrc20: ["usdttrc20", "usdttron"],
