@@ -7,7 +7,12 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
     handlers: {
       POST: async ({ request }) => {
         const auth = await userFromRequest(request);
-        if (!auth) return new Response("Unauthorized", { status: 401 });
+        if (!auth) {
+          return Response.json(
+            { error: "Your login session expired. Please sign out, sign in again, then retry the withdrawal." },
+            { status: 401 },
+          );
+        }
 
         const body = (await request.json().catch(() => ({}))) as {
           network?: string;
@@ -217,6 +222,12 @@ function summarizeBalances(balances: Record<string, number>) {
 }
 
 function providerAuthMessage(raw: string) {
+  if (/NOWPayments \/auth failed \(401\)|NOWPayments \/auth failed \(403\)|unauthori[sz]ed/i.test(raw)) {
+    return "NOWPayments rejected the payout login. Update NOWPAYMENTS_EMAIL and NOWPAYMENTS_PASSWORD with the exact live NOWPayments account login, then retry.";
+  }
+  if (/NOWPayments \/payout failed \(401\)|NOWPayments \/payout failed \(403\)|NOWPayments \/sub-partner/i.test(raw) && /unauthori[sz]ed|access denied/i.test(raw)) {
+    return "NOWPayments rejected the payout API credentials. Update the live NOWPAYMENTS_API_KEY, email, and password from the same NOWPayments account that owns the custody balance.";
+  }
   if (/invalid ip|ip whitelist/i.test(raw)) {
     return "Withdrawals are temporarily unavailable because the payment provider is rejecting this server IP. Disable the API IP whitelist in NOWPayments, then retry.";
   }
