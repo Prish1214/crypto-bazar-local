@@ -121,13 +121,59 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         }
 
         // 5. Move funds from sub-partner custody → master, then call payout.
+        //    Try each candidate currency ticker; if NOWPayments reports an
+        //    "insufficient" custody amount, retry with the largest available
+        //    custody figure (platform absorbs the small provider/network gap
+        //    so the user can withdraw the full deposited amount).
         const origin = new URL(request.url).origin;
+        let lastError = "";
+        let writtenOff = false;
+        let usedCurrency = currency;
+        let writeOffAmount = payoutAmount;
+
+        for (const cand of candidates) {
+          // Try requested amount first.
+          const tries: number[] = [payoutAmount];
+          const readback = floorNowAmount(custodyBalances[cand] ?? 0);
+          if (readback > 0 && readback < payoutAmount) tries.push(readback);
+          for (const tryAmt of tries) {
+            try {
+              await writeOffFromSubPartner({ subPartnerId: subId, currency: cand, amount: tryAmt });
+              writtenOff = true;
+              usedCurrency = cand;
+              writeOffAmount = tryAmt;
+              break;
+            } catch (e: any) {
+              lastError = String(e?.message ?? "");
+              // Try to parse the "available" amount from the error and retry once.
+              const m = lastError.match(/([0-9]+\.?[0-9]*)\s*(?:available|left|remaining)?/i);
+              const parsed = m ? Number(m[1]) : NaN;
+              if (Number.isFinite(parsed) && parsed > 0 && parsed < tryAmt && !tries.includes(parsed)) {
+                tries.push(floorNowAmount(parsed));
+              }
+            }
+          }
+          if (writtenOff) break;
+        }
+
+        if (!writtenOff) {
+          // refund and report
+          await sb
+            .from("wallets")
+            .update({ balance: walletBalance, updated_at: new Date().toISOString() })
+            .eq("user_id", auth.user.id);
+          await sb
+            .from("withdrawals")
+            .update({ status: "failed", raw: { error: lastError } })
+            .eq("id", wRow.id);
+          return Response.json({ error: providerAuthMessage(lastError) }, { status: 502 });
+        }
+
         try {
-          await writeOffFromSubPartner({ subPartnerId: subId, currency, amount: custodySourceAmount });
           const r = await createPayout({
             address: addr,
-            amount: payoutAmount,
-            currency,
+            amount: writeOffAmount,
+            currency: usedCurrency,
             ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
           });
           await sb
@@ -147,9 +193,8 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             description: `Withdrawal ${amt.toFixed(8)} USDT → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
             reference_id: wRow.id,
           });
-          return Response.json({ ok: true, withdrawal_id: wRow.id, fee, net_amount });
+          return Response.json({ ok: true, withdrawal_id: wRow.id, fee, net_amount: writeOffAmount });
         } catch (e: any) {
-          // refund on payout failure
           await sb
             .from("wallets")
             .update({ balance: walletBalance, updated_at: new Date().toISOString() })
@@ -158,9 +203,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             .from("withdrawals")
             .update({ status: "failed", raw: { error: e.message } })
             .eq("id", wRow.id);
-          const raw = String(e?.message ?? "");
-          const friendly = providerAuthMessage(raw);
-          return Response.json({ error: friendly }, { status: 502 });
+          return Response.json({ error: providerAuthMessage(String(e?.message ?? "")) }, { status: 502 });
         }
       },
     },
