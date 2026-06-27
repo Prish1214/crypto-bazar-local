@@ -59,10 +59,8 @@ function WithdrawPage() {
       let j: any = {};
       try { j = text ? JSON.parse(text) : {}; } catch { j = { error: text || `HTTP ${r.status}` }; }
       if (!r.ok) throw new Error(j.error || `Withdrawal failed (HTTP ${r.status})`);
-      const receiveAmount = Number(j.net_amount ?? amt);
-      const feeAmount = Number(j.fee ?? 0);
       toast.success(`Withdrawal submitted`, {
-        description: `You will receive about ${receiveAmount.toFixed(8)} USDT${feeAmount > 0 ? ` after ${feeAmount.toFixed(8)} USDT fees` : ""}.`,
+        description: `${amt.toFixed(8)} USDT withdrawal is now processing.`,
       });
       setAmount(""); setAddress("");
       setWallet({ ...wallet, balance: Number(wallet.balance) - amt });
@@ -125,8 +123,8 @@ function WithdrawPage() {
 
           <div className="rounded-lg border border-border bg-background p-3 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Wallet debit</span><span className="font-mono">{amt ? amt.toFixed(2) : "0.00"} USDT</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Provider/network fees</span><span className="font-mono text-muted-foreground">deducted before payout</span></div>
-            <div className="mt-1 border-t border-border pt-1 flex justify-between font-medium"><span>You'll receive</span><span className="font-mono">final amount shown after submit</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Provider/network fees</span><span className="font-mono text-emerald-600">covered</span></div>
+            <div className="mt-1 border-t border-border pt-1 flex justify-between font-medium"><span>Withdrawal request</span><span className="font-mono">{amt ? amt.toFixed(2) : "0.00"} USDT</span></div>
           </div>
 
           <Button disabled={busy || insufficient || belowMin || !amt} onClick={submit} variant="hero" className="w-full">
