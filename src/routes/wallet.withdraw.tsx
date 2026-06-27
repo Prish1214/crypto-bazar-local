@@ -36,7 +36,7 @@ function WithdrawPage() {
   }, [user?.id]);
 
   const amt = parseFloat(amount || "0");
-  const serviceFee = Math.floor((amt * 0.01 + Number.EPSILON) * 100_000_000) / 100_000_000;
+  const serviceFee = Math.floor((amt * 0.05 + Number.EPSILON) * 100_000_000) / 100_000_000;
   const receiveAmount = Math.max(0, Math.floor(((amt - serviceFee) + Number.EPSILON) * 100_000_000) / 100_000_000);
   const insufficient = wallet ? amt > Number(wallet.balance) : false;
   const belowMin = amt > 0 && amt < network.min;
