@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { userFromRequest, admin } from "@/lib/supabase.server";
-import { NETWORK_TO_CURRENCY, createPayout, estimateFee, writeOffFromSubPartner, getSubPartnerBalance } from "@/lib/nowpayments.server";
+import { NETWORK_TO_CURRENCY, createPayout, writeOffFromSubPartner, getSubPartnerBalance } from "@/lib/nowpayments.server";
 
 export const Route = createFileRoute("/api/wallet/withdraw")({
   server: {
@@ -47,12 +47,18 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
           .maybeSingle();
 
         const subId = prof?.nowpayments_sub_partner_id as string | null;
+        if (!subId) {
+          return Response.json(
+            { error: "Withdrawal setup is incomplete for this wallet. Please generate a deposit address once, then try again." },
+            { status: 400 },
+          );
+        }
         let custodyCurrency = currency;
         let custodySourceAmount = amt;
         let custodyBalances: Record<string, number> = {};
 
-        if (subId) {
-          custodyBalances = await getSubPartnerBalance(subId).catch(() => ({}));
+        try {
+          custodyBalances = await getSubPartnerBalance(subId);
           const candidates = CURRENCY_ALIASES[currency] ?? [currency];
           const sufficient = candidates.find((c) => (custodyBalances[c] ?? 0) + EPSILON >= amt);
 
@@ -65,13 +71,13 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             const available = best?.amount ?? 0;
             const shortage = amt - available;
 
-            // If the user is withdrawing the full displayed balance and custody is
-            // only slightly lower, reconcile the old over-credit as provider fees
-            // instead of blocking the payout.
+            // If custody is below the displayed wallet balance because the
+            // provider credited net funds, still let the user withdraw their
+            // full visible balance by sending the confirmed custody amount.
             const fullBalanceWithdrawal = Math.abs(walletBalance - amt) <= Math.max(0.01, walletBalance * 0.005);
-            const smallProviderDelta = shortage > 0 && shortage <= Math.max(0.1, amt * 0.08);
+            const providerDelta = shortage > 0 && shortage <= Math.max(1, amt * 0.15);
 
-            if (available > 0 && (fullBalanceWithdrawal || smallProviderDelta)) {
+            if (available > 0 && (fullBalanceWithdrawal || providerDelta)) {
               custodyCurrency = best.currency;
               custodySourceAmount = available;
             } else {
@@ -87,18 +93,20 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
               );
             }
           }
+        } catch (e: any) {
+          const raw = String(e?.message ?? "");
+          return Response.json({ error: providerAuthMessage(raw) }, { status: 502 });
         }
 
         currency = custodyCurrency;
 
-        // 2. Estimate payout/network fee. The withdrawal amount is the gross
-        // wallet debit; the payout amount is what we ask NOWPayments to send.
-        const networkFee = (await estimateFee(currency, custodySourceAmount)) ?? 0;
-        const payoutAmount = floorNowAmount(Math.max(0, custodySourceAmount - networkFee));
-        const fee = floorNowAmount(Math.max(0, amt - payoutAmount));
+        // 2. User withdraws the displayed wallet amount. The platform absorbs
+        // provider/network differences; payout uses confirmed custody funds.
+        const payoutAmount = floorNowAmount(amt);
         const net_amount = payoutAmount;
+        const fee = 0;
 
-        if (net_amount <= 0) {
+        if (payoutAmount <= 0) {
           return Response.json(
             { error: "Withdrawal amount is too small after provider/network fees. Please increase the amount." },
             { status: 400 },
@@ -143,12 +151,10 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         // 5. Move funds from sub-partner custody → master, then call payout.
         const origin = new URL(request.url).origin;
         try {
-          if (subId) {
-            await writeOffFromSubPartner({ subPartnerId: subId, currency, amount: custodySourceAmount });
-          }
+          await writeOffFromSubPartner({ subPartnerId: subId, currency, amount: custodySourceAmount });
           const r = await createPayout({
             address: addr,
-            amount: net_amount,
+            amount: payoutAmount,
             currency,
             ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
           });
@@ -166,7 +172,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             type: "withdraw",
             amount: amt,
             network: net,
-            description: `Withdrawal ${net_amount.toFixed(8)} USDT → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
+            description: `Withdrawal ${amt.toFixed(8)} USDT → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
             reference_id: wRow.id,
           });
           return Response.json({ ok: true, withdrawal_id: wRow.id, fee, net_amount });
@@ -181,9 +187,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             .update({ status: "failed", raw: { error: e.message } })
             .eq("id", wRow.id);
           const raw = String(e?.message ?? "");
-          const friendly = /invalid ip|access denied/i.test(raw)
-            ? "Withdrawals are temporarily unavailable: the payment provider is rejecting our server IP. Please contact support — the admin needs to disable IP whitelist on the NOWPayments API key."
-            : `Payout failed: ${raw}`;
+          const friendly = providerAuthMessage(raw);
           return Response.json({ error: friendly }, { status: 502 });
         }
       },
@@ -210,4 +214,17 @@ function summarizeBalances(balances: Record<string, number>) {
     .filter(([, v]) => v > 0)
     .map(([k, v]) => `${k}: ${floorNowAmount(v).toFixed(8)}`)
     .join(", ") || "no confirmed funds";
+}
+
+function providerAuthMessage(raw: string) {
+  if (/invalid ip|ip whitelist/i.test(raw)) {
+    return "Withdrawals are temporarily unavailable because the payment provider is rejecting this server IP. Disable the API IP whitelist in NOWPayments, then retry.";
+  }
+  if (/unauthori[sz]ed|access denied|invalid api|invalid credentials|jwt/i.test(raw)) {
+    return "Withdrawal provider authorization failed. Please reconnect the live NOWPayments API key, email, and password for the same account that holds custody funds.";
+  }
+  if (/insufficient balance|not enough/i.test(raw)) {
+    return "Withdrawal provider liquidity is insufficient for this payout. The user wallet was refunded automatically; add enough USDT to the NOWPayments master payout balance or enable enough platform reserve to cover provider/network costs, then retry.";
+  }
+  return `Payout failed: ${raw}`;
 }
