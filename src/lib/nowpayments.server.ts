@@ -12,9 +12,16 @@ export const NETWORK_TO_CURRENCY: Record<string, string> = {
 };
 
 function apiKey(): string {
-  const k = process.env.NOWPAYMENTS_API_KEY;
+  const k = cleanSecret(process.env.NOWPAYMENTS_API_KEY);
   if (!k) throw new Error("NOWPAYMENTS_API_KEY not configured");
   return k;
+}
+
+function cleanSecret(value: string | null | undefined): string | undefined {
+  let trimmed = value?.trim().replace(/^['\"]|['\"]$/g, "");
+  const assignment = trimmed?.match(/^[A-Z0-9_]+=(.+)$/i);
+  if (assignment?.[1]) trimmed = assignment[1].trim().replace(/^['\"]|['\"]$/g, "");
+  return trimmed || undefined;
 }
 
 async function np<T = any>(
@@ -46,8 +53,8 @@ async function np<T = any>(
 let cachedJwt: { token: string; expires: number } | null = null;
 export async function getJwt(): Promise<string> {
   if (cachedJwt && cachedJwt.expires > Date.now() + 30_000) return cachedJwt.token;
-  const email = process.env.NOWPAYMENTS_EMAIL;
-  const password = process.env.NOWPAYMENTS_PASSWORD;
+  const email = cleanSecret(process.env.NOWPAYMENTS_EMAIL);
+  const password = cleanSecret(process.env.NOWPAYMENTS_PASSWORD);
   if (!email || !password) throw new Error("NOWPAYMENTS_EMAIL/PASSWORD not configured");
   const j = await np<{ token: string }>("/auth", {
     method: "POST",
@@ -208,7 +215,7 @@ export async function estimateFee(
 
 /** HMAC-SHA512 verify for IPN body (NOWPayments standard). */
 export async function verifyIpn(rawBody: string, signature: string): Promise<boolean> {
-  const secret = process.env.NOWPAYMENTS_IPN_SECRET;
+  const secret = cleanSecret(process.env.NOWPAYMENTS_IPN_SECRET);
   if (!secret) throw new Error("NOWPAYMENTS_IPN_SECRET not configured");
   // NOWPayments signs the JSON body sorted alphabetically.
   const sorted = sortJsonString(rawBody);
