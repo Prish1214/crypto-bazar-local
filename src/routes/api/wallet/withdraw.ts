@@ -58,62 +58,29 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             { status: 400 },
           );
         }
-        let custodyCurrency = currency;
-        let custodySourceAmount = amt;
-        let custodyBalances: Record<string, number> = {};
+        // Candidate currency tickers NOWPayments might use for this network.
+        const candidates = CURRENCY_ALIASES[currency] ?? [currency];
 
+        // Best-effort custody readback — informational only. Do NOT block on
+        // it: the balance endpoint sometimes returns empty/zero shapes even
+        // when funds are confirmed, which previously caused false "no
+        // confirmed funds" rejections. We rely on the write-off response to
+        // decide what is actually available, and progressively fall back.
+        let custodyBalances: Record<string, number> = {};
         try {
           custodyBalances = await getSubPartnerBalance(subId);
-          const candidates = CURRENCY_ALIASES[currency] ?? [currency];
-          const sufficient = candidates.find((c) => (custodyBalances[c] ?? 0) + EPSILON >= amt);
-
-          if (sufficient) {
-            custodyCurrency = sufficient;
-          } else {
-            const best = candidates
-              .map((c) => ({ currency: c, amount: floorNowAmount(custodyBalances[c] ?? 0) }))
-              .sort((a, b) => b.amount - a.amount)[0];
-            const available = best?.amount ?? 0;
-            const shortage = amt - available;
-
-            // If custody is below the displayed wallet balance because the
-            // provider credited net funds, still let the user withdraw their
-            // full visible balance by sending the confirmed custody amount.
-            const fullBalanceWithdrawal = Math.abs(walletBalance - amt) <= Math.max(0.01, walletBalance * 0.005);
-            const providerDelta = shortage > 0 && shortage <= Math.max(1, amt * 0.15);
-
-            if (available > 0 && (fullBalanceWithdrawal || providerDelta)) {
-              custodyCurrency = best.currency;
-              custodySourceAmount = available;
-            } else {
-              const summary = summarizeBalances(custodyBalances);
-              return Response.json(
-                {
-                  error:
-                    `Your confirmed ${net.toUpperCase()} custody balance is ${available.toFixed(8)} USDT, ` +
-                    `but you requested ${amt.toFixed(8)} USDT. Current custody: ${summary}. ` +
-                    `Withdraw ${available.toFixed(8)} USDT or wait for the deposit to finish confirming.`,
-                },
-                { status: 400 },
-              );
-            }
-          }
         } catch (e: any) {
-          const raw = String(e?.message ?? "");
-          return Response.json({ error: providerAuthMessage(raw) }, { status: 502 });
+          console.warn("[withdraw] custody readback failed:", e?.message);
         }
 
-        currency = custodyCurrency;
-
-        // 2. User withdraws the displayed wallet amount. The platform absorbs
-        // provider/network differences; payout uses confirmed custody funds.
+        currency = candidates[0];
         const payoutAmount = floorNowAmount(amt);
         const net_amount = payoutAmount;
         const fee = 0;
 
         if (payoutAmount <= 0) {
           return Response.json(
-            { error: "Withdrawal amount is too small after provider/network fees. Please increase the amount." },
+            { error: "Withdrawal amount is too small to process." },
             { status: 400 },
           );
         }
