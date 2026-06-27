@@ -169,19 +169,53 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
           return Response.json({ error: providerAuthMessage(lastError) }, { status: 502 });
         }
 
-        try {
-          const r = await createPayout({
-            address: addr,
-            amount: writeOffAmount,
-            currency: usedCurrency,
-            ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
-          });
+        // Try payout. If NOWPayments master balance is short (because the
+        // provider credited the deposit net of fees), parse the available
+        // amount from the error and retry — the user still gets the maximum
+        // payout we can issue against the confirmed custody.
+        const payoutTries: number[] = [writeOffAmount];
+        let payoutResult: { payoutId: string; raw: any } | null = null;
+        let payoutError = "";
+        let sentAmount = writeOffAmount;
+
+        for (let i = 0; i < payoutTries.length && i < 5; i++) {
+          const tryAmt = floorNowAmount(payoutTries[i]);
+          if (tryAmt <= 0) break;
+          try {
+            payoutResult = await createPayout({
+              address: addr,
+              amount: tryAmt,
+              currency: usedCurrency,
+              ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
+            });
+            sentAmount = tryAmt;
+            break;
+          } catch (e: any) {
+            payoutError = String(e?.message ?? "");
+            if (/insufficient|not enough|liquidity/i.test(payoutError)) {
+              // Parse a number from the error; else shave 1% and retry.
+              const m = payoutError.match(/([0-9]+\.[0-9]+|[0-9]+)/);
+              const parsed = m ? Number(m[1]) : NaN;
+              const next = Number.isFinite(parsed) && parsed > 0 && parsed < tryAmt
+                ? floorNowAmount(parsed)
+                : floorNowAmount(tryAmt * 0.99);
+              if (next > 0 && next < tryAmt && !payoutTries.includes(next)) {
+                payoutTries.push(next);
+                continue;
+              }
+            }
+            break;
+          }
+        }
+
+        if (payoutResult) {
           await sb
             .from("withdrawals")
             .update({
               status: "processing",
-              nowpayments_payout_id: r.payoutId,
-              raw: r.raw,
+              nowpayments_payout_id: payoutResult.payoutId,
+              raw: payoutResult.raw,
+              net_amount: sentAmount,
               updated_at: new Date().toISOString(),
             })
             .eq("id", wRow.id);
@@ -190,21 +224,22 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             type: "withdraw",
             amount: amt,
             network: net,
-            description: `Withdrawal ${amt.toFixed(8)} USDT → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
+            description: `Withdrawal ${sentAmount.toFixed(8)} USDT → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
             reference_id: wRow.id,
           });
-          return Response.json({ ok: true, withdrawal_id: wRow.id, fee, net_amount: writeOffAmount });
-        } catch (e: any) {
-          await sb
-            .from("wallets")
-            .update({ balance: walletBalance, updated_at: new Date().toISOString() })
-            .eq("user_id", auth.user.id);
-          await sb
-            .from("withdrawals")
-            .update({ status: "failed", raw: { error: e.message } })
-            .eq("id", wRow.id);
-          return Response.json({ error: providerAuthMessage(String(e?.message ?? "")) }, { status: 502 });
+          return Response.json({ ok: true, withdrawal_id: wRow.id, fee, net_amount: sentAmount });
         }
+
+        // Refund and report.
+        await sb
+          .from("wallets")
+          .update({ balance: walletBalance, updated_at: new Date().toISOString() })
+          .eq("user_id", auth.user.id);
+        await sb
+          .from("withdrawals")
+          .update({ status: "failed", raw: { error: payoutError } })
+          .eq("id", wRow.id);
+        return Response.json({ error: providerAuthMessage(payoutError) }, { status: 502 });
       },
     },
   },
