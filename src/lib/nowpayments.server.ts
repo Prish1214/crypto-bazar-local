@@ -18,9 +18,16 @@ function apiKey(): string {
 }
 
 function cleanSecret(value: string | null | undefined): string | undefined {
-  let trimmed = value?.trim().replace(/^['\"]|['\"]$/g, "");
-  const assignment = trimmed?.match(/^[A-Z0-9_]+=(.+)$/i);
-  if (assignment?.[1]) trimmed = assignment[1].trim().replace(/^['\"]|['\"]$/g, "");
+  let trimmed = value
+    ?.trim()
+    .replace(/^export\s+/i, "")
+    .replace(/^['\"`]|['\"`;]$/g, "");
+  const assignment = trimmed?.match(/^[A-Z0-9_]+\s*=\s*(.+)$/i);
+  if (assignment?.[1]) {
+    trimmed = assignment[1]
+      .trim()
+      .replace(/^['\"`]|['\"`;]$/g, "");
+  }
   return trimmed || undefined;
 }
 
@@ -44,7 +51,8 @@ async function np<T = any>(
   }
   if (!r.ok) {
     const msg = json?.message || json?.error || `NOWPayments ${path} failed (${r.status})`;
-    throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+    const printable = typeof msg === "string" ? msg : JSON.stringify(msg);
+    throw new Error(`NOWPayments ${path} failed (${r.status}): ${printable}`);
   }
   return json;
 }
@@ -56,10 +64,16 @@ export async function getJwt(): Promise<string> {
   const email = cleanSecret(process.env.NOWPAYMENTS_EMAIL);
   const password = cleanSecret(process.env.NOWPAYMENTS_PASSWORD);
   if (!email || !password) throw new Error("NOWPAYMENTS_EMAIL/PASSWORD not configured");
-  const j = await np<{ token: string }>("/auth", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
-  });
+  let j: { token: string };
+  try {
+    j = await np<{ token: string }>("/auth", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+  } catch (e: any) {
+    cachedJwt = null;
+    throw new Error(`${String(e?.message ?? e)}. Check NOWPAYMENTS_EMAIL and NOWPAYMENTS_PASSWORD exactly as your live NOWPayments account login.`);
+  }
   cachedJwt = { token: j.token, expires: Date.now() + 4 * 60 * 1000 }; // ~5min token
   return j.token;
 }
