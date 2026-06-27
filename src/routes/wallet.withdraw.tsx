@@ -36,6 +36,8 @@ function WithdrawPage() {
   }, [user?.id]);
 
   const amt = parseFloat(amount || "0");
+  const serviceFee = Math.floor((amt * 0.01 + Number.EPSILON) * 100_000_000) / 100_000_000;
+  const receiveAmount = Math.max(0, Math.floor(((amt - serviceFee) + Number.EPSILON) * 100_000_000) / 100_000_000);
   const insufficient = wallet ? amt > Number(wallet.balance) : false;
   const belowMin = amt > 0 && amt < network.min;
 
@@ -60,7 +62,7 @@ function WithdrawPage() {
       try { j = text ? JSON.parse(text) : {}; } catch { j = { error: text || `HTTP ${r.status}` }; }
       if (!r.ok) throw new Error(j.error || `Withdrawal failed (HTTP ${r.status})`);
       toast.success(`Withdrawal submitted`, {
-        description: `${amt.toFixed(8)} USDT withdrawal is now processing.`,
+        description: `${receiveAmount.toFixed(8)} USDT withdrawal is now processing.`,
       });
       setAmount(""); setAddress("");
       setWallet({ ...wallet, balance: Number(wallet.balance) - amt });
@@ -123,8 +125,9 @@ function WithdrawPage() {
 
           <div className="rounded-lg border border-border bg-background p-3 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Wallet debit</span><span className="font-mono">{amt ? amt.toFixed(2) : "0.00"} USDT</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Provider/network fees</span><span className="font-mono text-emerald-600">covered</span></div>
-            <div className="mt-1 border-t border-border pt-1 flex justify-between font-medium"><span>Withdrawal request</span><span className="font-mono">{amt ? amt.toFixed(2) : "0.00"} USDT</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Service fee (1%)</span><span className="font-mono">-{amt ? serviceFee.toFixed(8) : "0.00000000"} USDT</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Provider/network fees</span><span className="font-mono text-emerald-600">included</span></div>
+            <div className="mt-1 border-t border-border pt-1 flex justify-between font-medium"><span>You receive</span><span className="font-mono">{amt ? receiveAmount.toFixed(8) : "0.00000000"} USDT</span></div>
           </div>
 
           <Button disabled={busy || insufficient || belowMin || !amt} onClick={submit} variant="hero" className="w-full">
