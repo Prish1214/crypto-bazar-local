@@ -102,10 +102,11 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
 
         // 2. User withdraws the displayed wallet amount. The platform absorbs
         // provider/network differences; payout uses confirmed custody funds.
-        const net_amount = floorNowAmount(custodySourceAmount);
+        const payoutAmount = floorNowAmount(amt);
+        const net_amount = payoutAmount;
         const fee = 0;
 
-        if (net_amount <= 0) {
+        if (payoutAmount <= 0) {
           return Response.json(
             { error: "Withdrawal amount is too small after provider/network fees. Please increase the amount." },
             { status: 400 },
@@ -150,10 +151,10 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         // 5. Move funds from sub-partner custody → master, then call payout.
         const origin = new URL(request.url).origin;
         try {
-          await writeOffFromSubPartner({ subPartnerId: subId, currency, amount: net_amount });
+          await writeOffFromSubPartner({ subPartnerId: subId, currency, amount: custodySourceAmount });
           const r = await createPayout({
             address: addr,
-            amount: net_amount,
+            amount: payoutAmount,
             currency,
             ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
           });
@@ -216,11 +217,14 @@ function summarizeBalances(balances: Record<string, number>) {
 }
 
 function providerAuthMessage(raw: string) {
+  if (/invalid ip|ip whitelist/i.test(raw)) {
+    return "Withdrawals are temporarily unavailable because the payment provider is rejecting this server IP. Disable the API IP whitelist in NOWPayments, then retry.";
+  }
   if (/unauthori[sz]ed|access denied|invalid api|invalid credentials|jwt/i.test(raw)) {
     return "Withdrawal provider authorization failed. Please reconnect the live NOWPayments API key, email, and password for the same account that holds custody funds.";
   }
-  if (/invalid ip|ip whitelist/i.test(raw)) {
-    return "Withdrawals are temporarily unavailable because the payment provider is rejecting this server IP. Disable the API IP whitelist in NOWPayments, then retry.";
+  if (/insufficient balance|not enough/i.test(raw)) {
+    return "Withdrawal provider liquidity is insufficient for this payout. The user wallet was refunded automatically; add enough USDT to the NOWPayments master payout balance or enable enough platform reserve to cover provider/network costs, then retry.";
   }
   return `Payout failed: ${raw}`;
 }
