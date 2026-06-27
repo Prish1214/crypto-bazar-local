@@ -23,7 +23,7 @@ const NETWORKS = [
 ] as const;
 
 function WithdrawPage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [network, setNetwork] = useState<(typeof NETWORKS)[number]>(NETWORKS[0]);
   const [amount, setAmount] = useState("");
@@ -48,8 +48,8 @@ function WithdrawPage() {
 
     setBusy(true);
     try {
-      const { data: session } = await supabase.auth.getSession();
-      const token = session.session?.access_token;
+      const token = session?.access_token ?? (await supabase.auth.getSession()).data.session?.access_token;
+      if (!token) throw new Error("Your login session expired. Please sign in again, then retry.");
       const r = await fetch("/api/wallet/withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
