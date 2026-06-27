@@ -74,9 +74,9 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         }
 
         currency = candidates[0];
-        const payoutAmount = floorNowAmount(amt);
+        const fee = floorNowAmount(amt * SERVICE_FEE_RATE);
+        const payoutAmount = floorNowAmount(amt - fee);
         const net_amount = payoutAmount;
-        const fee = 0;
 
         if (payoutAmount <= 0) {
           return Response.json(
@@ -173,10 +173,11 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         // provider credited the deposit net of fees), parse the available
         // amount from the error and retry — the user still gets the maximum
         // payout we can issue against the confirmed custody.
-        const payoutTries: number[] = [writeOffAmount];
+        const payoutTries: number[] = [payoutAmount];
+        if (writeOffAmount < payoutAmount) payoutTries.push(writeOffAmount);
         let payoutResult: { payoutId: string; raw: any } | null = null;
         let payoutError = "";
-        let sentAmount = writeOffAmount;
+        let sentAmount = payoutAmount;
 
         for (let i = 0; i < payoutTries.length && i < 5; i++) {
           const tryAmt = floorNowAmount(payoutTries[i]);
@@ -224,7 +225,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             type: "withdraw",
             amount: amt,
             network: net,
-            description: `Withdrawal ${sentAmount.toFixed(8)} USDT → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
+            description: `Withdrawal ${sentAmount.toFixed(8)} USDT after ${(SERVICE_FEE_RATE * 100).toFixed(0)}% service fee → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
             reference_id: wRow.id,
           });
           return Response.json({ ok: true, withdrawal_id: wRow.id, fee, net_amount: sentAmount });
@@ -246,6 +247,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
 });
 
 const EPSILON = 1e-8;
+const SERVICE_FEE_RATE = 0.01;
 
 const CURRENCY_ALIASES: Record<string, string[]> = {
   usdttrc20: ["usdttrc20", "usdttron"],
