@@ -173,10 +173,11 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         // provider credited the deposit net of fees), parse the available
         // amount from the error and retry — the user still gets the maximum
         // payout we can issue against the confirmed custody.
-        const payoutTries: number[] = [writeOffAmount];
+        const payoutTries: number[] = [payoutAmount];
+        if (writeOffAmount < payoutAmount) payoutTries.push(writeOffAmount);
         let payoutResult: { payoutId: string; raw: any } | null = null;
         let payoutError = "";
-        let sentAmount = writeOffAmount;
+        let sentAmount = payoutAmount;
 
         for (let i = 0; i < payoutTries.length && i < 5; i++) {
           const tryAmt = floorNowAmount(payoutTries[i]);
