@@ -74,9 +74,9 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         }
 
         currency = candidates[0];
-        const payoutAmount = floorNowAmount(amt);
+        const fee = floorNowAmount(amt * SERVICE_FEE_RATE);
+        const payoutAmount = floorNowAmount(amt - fee);
         const net_amount = payoutAmount;
-        const fee = 0;
 
         if (payoutAmount <= 0) {
           return Response.json(
@@ -224,7 +224,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             type: "withdraw",
             amount: amt,
             network: net,
-            description: `Withdrawal ${sentAmount.toFixed(8)} USDT → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
+            description: `Withdrawal ${sentAmount.toFixed(8)} USDT after ${(SERVICE_FEE_RATE * 100).toFixed(0)}% service fee → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
             reference_id: wRow.id,
           });
           return Response.json({ ok: true, withdrawal_id: wRow.id, fee, net_amount: sentAmount });
@@ -246,6 +246,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
 });
 
 const EPSILON = 1e-8;
+const SERVICE_FEE_RATE = 0.01;
 
 const CURRENCY_ALIASES: Record<string, string[]> = {
   usdttrc20: ["usdttrc20", "usdttron"],
