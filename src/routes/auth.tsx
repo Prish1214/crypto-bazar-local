@@ -118,6 +118,28 @@ function AuthPage() {
                   <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Alex Carter" required />
                 </div>
                 <div className="space-y-1.5">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                    placeholder="alex_trader"
+                    maxLength={20}
+                    required
+                  />
+                  <p className={`text-xs ${
+                    usernameStatus === "available" ? "text-emerald-600" :
+                    usernameStatus === "taken" || usernameStatus === "invalid" ? "text-destructive" :
+                    "text-muted-foreground"
+                  }`}>
+                    {usernameStatus === "idle" && "3–20 chars · letters, numbers, underscore. Used for private chat."}
+                    {usernameStatus === "checking" && "Checking availability…"}
+                    {usernameStatus === "available" && `✓ @${username} is available`}
+                    {usernameStatus === "taken" && `@${username} is already taken`}
+                    {usernameStatus === "invalid" && "Use 3–20 chars: a–z, 0–9, underscore"}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
                   <Label htmlFor="city">City</Label>
                   <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Mumbai" required />
                 </div>
