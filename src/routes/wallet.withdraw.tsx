@@ -35,6 +35,18 @@ function WithdrawPage() {
     ensureWallet(user.id).then(setWallet).catch((e) => toast.error(e.message));
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!user) return;
+    const run = async () => {
+      const token = session?.access_token ?? (await supabase.auth.getSession()).data.session?.access_token;
+      if (!token) return;
+      await fetch("/api/wallet/withdraw", { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+    };
+    run();
+    const timer = window.setInterval(run, 30_000);
+    return () => window.clearInterval(timer);
+  }, [user?.id, session?.access_token]);
+
   const amt = parseFloat(amount || "0");
   const serviceFee = Math.floor((amt * 0.05 + Number.EPSILON) * 100_000_000) / 100_000_000;
   const receiveAmount = Math.max(0, Math.floor(((amt - serviceFee) + Number.EPSILON) * 100_000_000) / 100_000_000);
@@ -61,8 +73,8 @@ function WithdrawPage() {
       let j: any = {};
       try { j = text ? JSON.parse(text) : {}; } catch { j = { error: text || `HTTP ${r.status}` }; }
       if (!r.ok) throw new Error(j.error || `Withdrawal failed (HTTP ${r.status})`);
-      toast.success(`Withdrawal submitted`, {
-        description: `${receiveAmount.toFixed(8)} USDT withdrawal is now processing.`,
+      toast.success(j.status === "processing" ? "Withdrawal queued" : "Withdrawal submitted", {
+        description: j.message ?? `${receiveAmount.toFixed(8)} USDT withdrawal is now processing.`,
       });
       setAmount(""); setAddress("");
       setWallet({ ...wallet, balance: Number(wallet.balance) - amt });
