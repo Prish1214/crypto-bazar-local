@@ -310,7 +310,9 @@ async function processQueuedWithdrawals(userId: string, requestUrl: string) {
     const baseCurrency = NETWORK_TO_CURRENCY[String(row.network ?? "").toLowerCase()];
     const candidates = row.raw?.currency
       ? [String(row.raw.currency)]
-      : CURRENCY_ALIASES[baseCurrency] ?? [baseCurrency];
+      : baseCurrency
+        ? CURRENCY_ALIASES[baseCurrency] ?? [baseCurrency]
+        : [];
 
     for (const cand of candidates.filter(Boolean)) {
       const master = await getMasterBalance().catch(() => ({} as Record<string, number>));
