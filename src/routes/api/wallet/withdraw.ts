@@ -11,6 +11,12 @@ import {
 export const Route = createFileRoute("/api/wallet/withdraw")({
   server: {
     handlers: {
+      GET: async ({ request }) => {
+        const auth = await userFromRequest(request);
+        if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
+        const processed = await processQueuedWithdrawals(auth.user.id, request.url);
+        return Response.json({ ok: true, processed });
+      },
       POST: async ({ request }) => {
         const auth = await userFromRequest(request);
         if (!auth) {
@@ -231,6 +237,8 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             .update({
               status: "processing",
               raw: {
+                queued_for_payout: true,
+                currency: payoutError.split(":")[1],
                 note: "NOWPayments accepted the custody write-off. The payout will be retried after the provider moves funds to the master payout balance.",
                 payout_amount: sentAmount,
               },
@@ -280,6 +288,63 @@ const CURRENCY_ALIASES: Record<string, string[]> = {
   usdterc20: ["usdterc20", "usdt"],
   usdtmatic: ["usdtmatic", "usdtpolygon"],
 };
+
+async function processQueuedWithdrawals(userId: string, requestUrl: string) {
+  const sb = admin();
+  const { data: rows } = await sb
+    .from("withdrawals")
+    .select("id, network, address, net_amount, raw")
+    .eq("user_id", userId)
+    .eq("status", "processing")
+    .is("nowpayments_payout_id", null)
+    .limit(5);
+
+  if (!rows?.length) return 0;
+
+  const origin = new URL(requestUrl).origin;
+  let processed = 0;
+  for (const row of rows as any[]) {
+    const amount = floorNowAmount(Number(row.net_amount ?? row.raw?.payout_amount ?? 0));
+    if (amount <= 0) continue;
+
+    const baseCurrency = NETWORK_TO_CURRENCY[String(row.network ?? "").toLowerCase()];
+    const candidates = row.raw?.currency
+      ? [String(row.raw.currency)]
+      : CURRENCY_ALIASES[baseCurrency] ?? [baseCurrency];
+
+    for (const cand of candidates.filter(Boolean)) {
+      const master = await getMasterBalance().catch(() => ({} as Record<string, number>));
+      if (floorNowAmount(master[cand] ?? 0) + EPSILON < amount) continue;
+      try {
+        const payout = await createPayout({
+          address: row.address,
+          amount,
+          currency: cand,
+          ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
+        });
+        await sb
+          .from("withdrawals")
+          .update({
+            nowpayments_payout_id: payout.payoutId,
+            raw: { ...(row.raw ?? {}), payout: payout.raw, queued_for_payout: false },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", row.id);
+        processed += 1;
+        break;
+      } catch (e: any) {
+        await sb
+          .from("withdrawals")
+          .update({
+            raw: { ...(row.raw ?? {}), last_retry_error: String(e?.message ?? e) },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", row.id);
+      }
+    }
+  }
+  return processed;
+}
 
 function floorNowAmount(amount: number) {
   const factor = 100_000_000;
