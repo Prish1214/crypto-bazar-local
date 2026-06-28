@@ -1,10 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { userFromRequest, admin } from "@/lib/supabase.server";
-import { NETWORK_TO_CURRENCY, createPayout, writeOffFromSubPartner, getSubPartnerBalance } from "@/lib/nowpayments.server";
+import {
+  NETWORK_TO_CURRENCY,
+  createPayout,
+  getMasterBalance,
+  getSubPartnerBalance,
+  writeOffFromSubPartner,
+} from "@/lib/nowpayments.server";
 
 export const Route = createFileRoute("/api/wallet/withdraw")({
   server: {
     handlers: {
+      GET: async ({ request }) => {
+        const auth = await userFromRequest(request);
+        if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
+        const processed = await processQueuedWithdrawals(auth.user.id, request.url);
+        return Response.json({ ok: true, processed });
+      },
       POST: async ({ request }) => {
         const auth = await userFromRequest(request);
         if (!auth) {
@@ -127,8 +139,8 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         const origin = new URL(request.url).origin;
         let payoutResult: { payoutId: string; raw: any } | null = null;
         let payoutError = "";
-        let usedCurrency = currency;
         let sentAmount = payoutAmount;
+        let movedToMaster = false;
 
         outer: for (const cand of candidates) {
           const readback = floorNowAmount(custodyBalances[cand] ?? 0);
@@ -140,11 +152,18 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             if (tryAmt <= 0) continue;
             // Step A: write-off from custody to master.
             try {
-              await writeOffFromSubPartner({
+              const writeOff = await writeOffFromSubPartner({
                 subPartnerId: subId,
                 currency: cand,
                 amount: tryAmt,
               });
+              const writeOffStatus = String(
+                writeOff?.status ?? writeOff?.result?.status ?? "",
+              ).toLowerCase();
+              if (writeOffStatus && /rejected|failed/i.test(writeOffStatus)) {
+                payoutError = `NOWPayments write-off was rejected: ${JSON.stringify(writeOff)}`;
+                continue;
+              }
             } catch (e: any) {
               payoutError = String(e?.message ?? "");
               if (/insufficient|not enough|balance/i.test(payoutError)) {
@@ -157,6 +176,8 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
               }
               continue;
             }
+            movedToMaster = true;
+
             // Step B: payout from master to destination address.
             try {
               payoutResult = await createPayout({
@@ -164,19 +185,25 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
                 amount: tryAmt,
                 currency: cand,
                 ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
+                executeAt: scheduledPayoutTime(),
               });
-              usedCurrency = cand;
               sentAmount = tryAmt;
               break outer;
             } catch (e: any) {
               payoutError = String(e?.message ?? "");
+              const masterReady = await waitForMasterLiquidity(cand, tryAmt);
+              if (!masterReady && /insufficient|not enough|liquidity|balance/i.test(payoutError)) {
+                sentAmount = tryAmt;
+                payoutError = `WRITE_OFF_PENDING:${cand}:${tryAmt}`;
+                break outer;
+              }
               if (/insufficient|not enough|liquidity|balance/i.test(payoutError)) {
                 const m = payoutError.match(/([0-9]+\.[0-9]+|[0-9]+)/);
                 const parsed = m ? Number(m[1]) : NaN;
                 const next = Number.isFinite(parsed) && parsed > 0 && parsed < tryAmt
                   ? floorNowAmount(parsed)
                   : floorNowAmount(tryAmt * 0.99);
-                if (next > 0 && next < tryAmt && !tries.includes(next)) tries.push(next);
+                if (!m && next > 0 && next < tryAmt && !tries.includes(next)) tries.push(next);
               }
             }
           }
@@ -204,6 +231,39 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
           return Response.json({ ok: true, withdrawal_id: wRow.id, fee, net_amount: sentAmount });
         }
 
+        if (movedToMaster && payoutError.startsWith("WRITE_OFF_PENDING:")) {
+          await sb
+            .from("withdrawals")
+            .update({
+              status: "processing",
+              raw: {
+                queued_for_payout: true,
+                currency: payoutError.split(":")[1],
+                note: "NOWPayments accepted the custody write-off. The payout will be retried after the provider moves funds to the master payout balance.",
+                payout_amount: sentAmount,
+              },
+              net_amount: sentAmount,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", wRow.id);
+          await sb.from("transactions").insert({
+            user_id: auth.user.id,
+            type: "withdraw",
+            amount: amt,
+            network: net,
+            description: `Withdrawal queued ${sentAmount.toFixed(8)} USDT after ${(SERVICE_FEE_RATE * 100).toFixed(0)}% service fee → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
+            reference_id: wRow.id,
+          });
+          return Response.json({
+            ok: true,
+            withdrawal_id: wRow.id,
+            fee,
+            net_amount: sentAmount,
+            status: "processing",
+            message: "Withdrawal accepted. Your funds were moved from custody and the payout is queued while the provider updates payout liquidity.",
+          });
+        }
+
         // Refund and report.
         await sb
           .from("wallets")
@@ -229,6 +289,65 @@ const CURRENCY_ALIASES: Record<string, string[]> = {
   usdtmatic: ["usdtmatic", "usdtpolygon"],
 };
 
+async function processQueuedWithdrawals(userId: string, requestUrl: string) {
+  const sb = admin();
+  const { data: rows } = await sb
+    .from("withdrawals")
+    .select("id, network, address, net_amount, raw")
+    .eq("user_id", userId)
+    .eq("status", "processing")
+    .is("nowpayments_payout_id", null)
+    .limit(5);
+
+  if (!rows?.length) return 0;
+
+  const origin = new URL(requestUrl).origin;
+  let processed = 0;
+  for (const row of rows as any[]) {
+    const amount = floorNowAmount(Number(row.net_amount ?? row.raw?.payout_amount ?? 0));
+    if (amount <= 0) continue;
+
+    const baseCurrency = NETWORK_TO_CURRENCY[String(row.network ?? "").toLowerCase()];
+    const candidates = row.raw?.currency
+      ? [String(row.raw.currency)]
+      : baseCurrency
+        ? CURRENCY_ALIASES[baseCurrency] ?? [baseCurrency]
+        : [];
+
+    for (const cand of candidates.filter(Boolean)) {
+      const master = await getMasterBalance().catch(() => ({} as Record<string, number>));
+      if (floorNowAmount(master[cand] ?? 0) + EPSILON < amount) continue;
+      try {
+        const payout = await createPayout({
+          address: row.address,
+          amount,
+          currency: cand,
+          ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
+        });
+        await sb
+          .from("withdrawals")
+          .update({
+            nowpayments_payout_id: payout.payoutId,
+            raw: { ...(row.raw ?? {}), payout: payout.raw, queued_for_payout: false },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", row.id);
+        processed += 1;
+        break;
+      } catch (e: any) {
+        await sb
+          .from("withdrawals")
+          .update({
+            raw: { ...(row.raw ?? {}), last_retry_error: String(e?.message ?? e) },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", row.id);
+      }
+    }
+  }
+  return processed;
+}
+
 function floorNowAmount(amount: number) {
   const factor = 100_000_000;
   return Math.floor((amount + Number.EPSILON) * factor) / factor;
@@ -239,6 +358,28 @@ function summarizeBalances(balances: Record<string, number>) {
     .filter(([, v]) => v > 0)
     .map(([k, v]) => `${k}: ${floorNowAmount(v).toFixed(8)}`)
     .join(", ") || "no confirmed funds";
+}
+
+async function waitForMasterLiquidity(currency: string, amount: number) {
+  for (let i = 0; i < 10; i++) {
+    try {
+      const balances = await getMasterBalance();
+      if (floorNowAmount(balances[currency] ?? 0) + EPSILON >= amount) return true;
+    } catch (e: any) {
+      console.warn("[withdraw] master balance readback failed:", e?.message);
+    }
+    await delay(3000);
+  }
+  return false;
+}
+
+function scheduledPayoutTime() {
+  // Give NOWPayments time to finish custody write-off before executing payout.
+  return new Date(Date.now() + 15 * 60 * 1000).toISOString();
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function providerAuthMessage(raw: string) {
@@ -255,7 +396,7 @@ function providerAuthMessage(raw: string) {
     return "Withdrawal provider authorization failed. Please reconnect the live NOWPayments API key, email, and password for the same account that holds custody funds.";
   }
   if (/insufficient balance|not enough/i.test(raw)) {
-    return "Withdrawal provider liquidity is insufficient for this payout. The user wallet was refunded automatically; add enough USDT to the NOWPayments master payout balance or enable enough platform reserve to cover provider/network costs, then retry.";
+    return "Withdrawal provider says the payout balance is still not ready. The wallet was refunded automatically. In NOWPayments, set Withdrawal fee paid by = Receiver and make sure payout 2FA is disabled/automated, then retry.";
   }
   return `Payout failed: ${raw}`;
 }
