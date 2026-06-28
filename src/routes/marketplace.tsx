@@ -17,9 +17,23 @@ function Marketplace() {
   const { user } = useAuth();
   const [tab, setTab] = useState<ListingType>("sell");
   const [city, setCity] = useState("");
+  const [myCity, setMyCity] = useState<string>("");
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Prefill city filter from signed-in user's profile city
+  useEffect(() => {
+    if (!user) { setMyCity(""); return; }
+    (async () => {
+      const { data } = await db.from("profiles").select("city").eq("id", user.id).maybeSingle();
+      const c = (data as any)?.city ?? "";
+      if (c) {
+        setMyCity(c);
+        setCity((prev) => prev || c);
+      }
+    })();
+  }, [user]);
 
   useEffect(() => {
     (async () => {
