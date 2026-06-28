@@ -17,9 +17,23 @@ function Marketplace() {
   const { user } = useAuth();
   const [tab, setTab] = useState<ListingType>("sell");
   const [city, setCity] = useState("");
+  const [myCity, setMyCity] = useState<string>("");
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Prefill city filter from signed-in user's profile city
+  useEffect(() => {
+    if (!user) { setMyCity(""); return; }
+    (async () => {
+      const { data } = await db.from("profiles").select("city").eq("id", user.id).maybeSingle();
+      const c = (data as any)?.city ?? "";
+      if (c) {
+        setMyCity(c);
+        setCity((prev) => prev || c);
+      }
+    })();
+  }, [user]);
 
   useEffect(() => {
     (async () => {
@@ -103,6 +117,23 @@ function Marketplace() {
           <Input className="pl-9" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} />
         </div>
       </div>
+      {myCity && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span>
+            Showing listings in <span className="font-medium text-foreground">{city || "all cities"}</span>
+            {city && city.toLowerCase() === myCity.toLowerCase() && " (your city)"}
+          </span>
+          {city ? (
+            <button onClick={() => setCity("")} className="font-medium text-primary hover:underline">
+              Show all cities
+            </button>
+          ) : (
+            <button onClick={() => setCity(myCity)} className="font-medium text-primary hover:underline">
+              Show only {myCity}
+            </button>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="glass-panel grid place-items-center rounded-2xl p-16 text-muted-foreground">
