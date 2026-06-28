@@ -71,7 +71,10 @@ export async function decryptForConversation(convId: string, payload: string): P
   try {
     const s = subtle();
     if (!s) return "[encrypted]";
-    const [, ivB64, ctB64] = payload.split(":");
+    // payload = "pc:v1:<b64iv>:<b64ct>"
+    const parts = payload.split(":");
+    const ivB64 = parts[2];
+    const ctB64 = parts.slice(3).join(":");
     const key = await deriveKey(convId);
     const iv = unb64(ivB64);
     const ct = unb64(ctB64);
