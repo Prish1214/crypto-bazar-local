@@ -163,15 +163,26 @@ export async function getSubPartnerBalance(
   return out;
 }
 
+/** Fetch the master payout balances. Returns { [currency]: amount }. */
+export async function getMasterBalance(): Promise<Record<string, number>> {
+  const j = await np<any>("/balance", { method: "GET" });
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries<any>(j ?? {})) {
+    if (v && typeof v === "object") out[k.toLowerCase()] = Number(v.amount ?? 0);
+    else if (typeof v === "number") out[k.toLowerCase()] = v;
+  }
+  return out;
+}
+
 /** Move funds from a sub-partner custody balance up to the master account.
  *  Required before /payout, since /payout draws from the master balance. */
 export async function writeOffFromSubPartner(opts: {
   subPartnerId: string;
   currency: string;
   amount: number;
-}): Promise<void> {
+}): Promise<any> {
   const token = await getJwt();
-  await np<any>("/sub-partner/write-off", {
+  return np<any>("/sub-partner/write-off", {
     method: "POST",
     auth: token,
     body: JSON.stringify({
