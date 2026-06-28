@@ -183,9 +183,9 @@ export async function writeOffFromSubPartner(opts: {
 }
 
 /** Create a payout (withdrawal) to a destination address.
- *  When `subPartnerId` is provided, the payout is drawn directly from the
- *  sub-partner custody balance via `/sub-partner/payout` — no master
- *  funding needed. Otherwise falls back to the master `/payout` endpoint. */
+ *  When `subPartnerId` is provided, the withdrawal item carries it so
+ *  NOWPayments debits the sub-partner custody balance instead of the
+ *  master payout balance — no separate master top-up required. */
 export async function createPayout(opts: {
   address: string;
   amount: number;
@@ -194,36 +194,18 @@ export async function createPayout(opts: {
   subPartnerId?: string;
 }): Promise<{ payoutId: string; raw: any }> {
   const token = await getJwt();
-  if (opts.subPartnerId) {
-    // Custody payout — funds leave the sub-partner balance directly.
-    const j = await np<any>("/sub-partner/payout", {
-      method: "POST",
-      auth: token,
-      body: JSON.stringify({
-        sub_partner_id: opts.subPartnerId,
-        currency: opts.currency,
-        amount: opts.amount,
-        address: opts.address,
-        ipn_callback_url: opts.ipnCallbackUrl,
-      }),
-    });
-    const r = j.result ?? j;
-    const payoutId = String(r.id ?? r.payout_id ?? r.withdrawal_id ?? "");
-    if (!payoutId) throw new Error("NOWPayments did not return a payout id");
-    return { payoutId, raw: j };
-  }
+  const withdrawal: Record<string, any> = {
+    address: opts.address,
+    currency: opts.currency,
+    amount: opts.amount,
+  };
+  if (opts.subPartnerId) withdrawal.sub_partner_id = opts.subPartnerId;
   const j = await np<any>("/payout", {
     method: "POST",
     auth: token,
     body: JSON.stringify({
       ipn_callback_url: opts.ipnCallbackUrl,
-      withdrawals: [
-        {
-          address: opts.address,
-          currency: opts.currency,
-          amount: opts.amount,
-        },
-      ],
+      withdrawals: [withdrawal],
     }),
   });
   const w = j.withdrawals?.[0] ?? j.result?.withdrawals?.[0];
