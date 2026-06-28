@@ -25,6 +25,8 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -32,20 +34,45 @@ function AuthPage() {
     if (!authLoading && user) navigate({ to: "/" });
   }, [user, authLoading, navigate]);
 
+  // Live username availability check
+  useEffect(() => {
+    if (mode !== "signup") return;
+    const u = username.trim().toLowerCase();
+    if (!u) { setUsernameStatus("idle"); return; }
+    if (!/^[a-z0-9_]{3,20}$/.test(u)) { setUsernameStatus("invalid"); return; }
+    setUsernameStatus("checking");
+    const t = setTimeout(async () => {
+      const { data } = await supabase.from("profiles").select("id").eq("username", u).maybeSingle();
+      setUsernameStatus(data ? "taken" : "available");
+    }, 350);
+    return () => clearTimeout(t);
+  }, [username, mode]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup") {
+      if (usernameStatus !== "available") {
+        toast.error("Pick a unique username (3–20 chars, letters/numbers/underscore).");
+        return;
+      }
+    }
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const u = username.trim().toLowerCase();
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { full_name: fullName, city },
+            data: { full_name: fullName, city, username: u },
           },
         });
         if (error) throw error;
+        // Ensure profile reflects chosen username even if trigger fell back
+        if (data.user) {
+          await supabase.from("profiles").update({ username: u, full_name: fullName, city }).eq("id", data.user.id);
+        }
         toast.success("Account created — check your email if confirmation is required.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
