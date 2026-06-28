@@ -172,13 +172,6 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             }
             movedToMaster = true;
 
-            const masterReady = await waitForMasterLiquidity(cand, tryAmt);
-            if (!masterReady) {
-              sentAmount = tryAmt;
-              payoutError = `WRITE_OFF_PENDING:${cand}:${tryAmt}`;
-              break outer;
-            }
-
             // Step B: payout from master to destination address.
             try {
               payoutResult = await createPayout({
@@ -186,18 +179,25 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
                 amount: tryAmt,
                 currency: cand,
                 ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
+                executeAt: scheduledPayoutTime(),
               });
               sentAmount = tryAmt;
               break outer;
             } catch (e: any) {
               payoutError = String(e?.message ?? "");
+              const masterReady = await waitForMasterLiquidity(cand, tryAmt);
+              if (!masterReady && /insufficient|not enough|liquidity|balance/i.test(payoutError)) {
+                sentAmount = tryAmt;
+                payoutError = `WRITE_OFF_PENDING:${cand}:${tryAmt}`;
+                break outer;
+              }
               if (/insufficient|not enough|liquidity|balance/i.test(payoutError)) {
                 const m = payoutError.match(/([0-9]+\.[0-9]+|[0-9]+)/);
                 const parsed = m ? Number(m[1]) : NaN;
                 const next = Number.isFinite(parsed) && parsed > 0 && parsed < tryAmt
                   ? floorNowAmount(parsed)
                   : floorNowAmount(tryAmt * 0.99);
-                if (next > 0 && next < tryAmt && !tries.includes(next)) tries.push(next);
+                if (!m && next > 0 && next < tryAmt && !tries.includes(next)) tries.push(next);
               }
             }
           }
@@ -303,6 +303,11 @@ async function waitForMasterLiquidity(currency: string, amount: number) {
     }
   }
   return false;
+}
+
+function scheduledPayoutTime() {
+  // Give NOWPayments time to finish custody write-off before executing payout.
+  return new Date(Date.now() + 15 * 60 * 1000).toISOString();
 }
 
 function providerAuthMessage(raw: string) {
