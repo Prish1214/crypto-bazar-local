@@ -294,13 +294,14 @@ function summarizeBalances(balances: Record<string, number>) {
 }
 
 async function waitForMasterLiquidity(currency: string, amount: number) {
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 10; i++) {
     try {
       const balances = await getMasterBalance();
       if (floorNowAmount(balances[currency] ?? 0) + EPSILON >= amount) return true;
     } catch (e: any) {
       console.warn("[withdraw] master balance readback failed:", e?.message);
     }
+    await delay(3000);
   }
   return false;
 }
@@ -308,6 +309,10 @@ async function waitForMasterLiquidity(currency: string, amount: number) {
 function scheduledPayoutTime() {
   // Give NOWPayments time to finish custody write-off before executing payout.
   return new Date(Date.now() + 15 * 60 * 1000).toISOString();
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function providerAuthMessage(raw: string) {
