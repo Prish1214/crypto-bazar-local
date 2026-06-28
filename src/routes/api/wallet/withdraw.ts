@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { userFromRequest, admin } from "@/lib/supabase.server";
-import { NETWORK_TO_CURRENCY, createPayout, getSubPartnerBalance } from "@/lib/nowpayments.server";
+import { NETWORK_TO_CURRENCY, createPayout, writeOffFromSubPartner, getSubPartnerBalance } from "@/lib/nowpayments.server";
 
 export const Route = createFileRoute("/api/wallet/withdraw")({
   server: {
@@ -120,9 +120,10 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
           return Response.json({ error: "Could not record withdrawal" }, { status: 500 });
         }
 
-        // 5. Pay out directly from the sub-partner custody balance.
-        //    Uses NOWPayments `/sub-partner/payout` so funds come straight
-        //    from the user's confirmed custody — no master top-up required.
+        // 5. Two-step: write-off custody → master, then payout from master.
+        //    NOWPayments requires payouts to draw from the master balance.
+        //    `write-off` transfers the user's confirmed custody funds up to
+        //    the master account; then `/payout` sends them on-chain.
         const origin = new URL(request.url).origin;
         let payoutResult: { payoutId: string; raw: any } | null = null;
         let payoutError = "";
@@ -137,12 +138,31 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
           for (let i = 0; i < tries.length && i < 6; i++) {
             const tryAmt = floorNowAmount(tries[i]);
             if (tryAmt <= 0) continue;
+            // Step A: write-off from custody to master.
+            try {
+              await writeOffFromSubPartner({
+                subPartnerId: subId,
+                currency: cand,
+                amount: tryAmt,
+              });
+            } catch (e: any) {
+              payoutError = String(e?.message ?? "");
+              if (/insufficient|not enough|balance/i.test(payoutError)) {
+                const m = payoutError.match(/([0-9]+\.[0-9]+|[0-9]+)/);
+                const parsed = m ? Number(m[1]) : NaN;
+                const next = Number.isFinite(parsed) && parsed > 0 && parsed < tryAmt
+                  ? floorNowAmount(parsed)
+                  : floorNowAmount(tryAmt * 0.99);
+                if (next > 0 && next < tryAmt && !tries.includes(next)) tries.push(next);
+              }
+              continue;
+            }
+            // Step B: payout from master to destination address.
             try {
               payoutResult = await createPayout({
                 address: addr,
                 amount: tryAmt,
                 currency: cand,
-                subPartnerId: subId,
                 ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
               });
               usedCurrency = cand;

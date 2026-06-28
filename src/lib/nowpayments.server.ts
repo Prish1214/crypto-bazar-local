@@ -182,30 +182,27 @@ export async function writeOffFromSubPartner(opts: {
   });
 }
 
-/** Create a payout (withdrawal) to a destination address.
- *  When `subPartnerId` is provided, the withdrawal item carries it so
- *  NOWPayments debits the sub-partner custody balance instead of the
- *  master payout balance — no separate master top-up required. */
+/** Create a payout (withdrawal) to a destination address from the master balance. */
 export async function createPayout(opts: {
   address: string;
   amount: number;
   currency: string;
   ipnCallbackUrl?: string;
-  subPartnerId?: string;
+  subPartnerId?: string; // accepted but ignored — payout always draws from master
 }): Promise<{ payoutId: string; raw: any }> {
   const token = await getJwt();
-  const withdrawal: Record<string, any> = {
-    address: opts.address,
-    currency: opts.currency,
-    amount: opts.amount,
-  };
-  if (opts.subPartnerId) withdrawal.sub_partner_id = opts.subPartnerId;
   const j = await np<any>("/payout", {
     method: "POST",
     auth: token,
     body: JSON.stringify({
       ipn_callback_url: opts.ipnCallbackUrl,
-      withdrawals: [withdrawal],
+      withdrawals: [
+        {
+          address: opts.address,
+          currency: opts.currency,
+          amount: opts.amount,
+        },
+      ],
     }),
   });
   const w = j.withdrawals?.[0] ?? j.result?.withdrawals?.[0];
