@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { userFromRequest, admin } from "@/lib/supabase.server";
-import { NETWORK_TO_CURRENCY, createPayout, writeOffFromSubPartner, getSubPartnerBalance } from "@/lib/nowpayments.server";
+import { NETWORK_TO_CURRENCY, createPayout, getSubPartnerBalance } from "@/lib/nowpayments.server";
 
 export const Route = createFileRoute("/api/wallet/withdraw")({
   server: {
@@ -120,92 +120,45 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
           return Response.json({ error: "Could not record withdrawal" }, { status: 500 });
         }
 
-        // 5. Move funds from sub-partner custody → master, then call payout.
-        //    Try each candidate currency ticker; if NOWPayments reports an
-        //    "insufficient" custody amount, retry with the largest available
-        //    custody figure (platform absorbs the small provider/network gap
-        //    so the user can withdraw the full deposited amount).
+        // 5. Pay out directly from the sub-partner custody balance.
+        //    Uses NOWPayments `/sub-partner/payout` so funds come straight
+        //    from the user's confirmed custody — no master top-up required.
         const origin = new URL(request.url).origin;
-        let lastError = "";
-        let writtenOff = false;
-        let usedCurrency = currency;
-        let writeOffAmount = payoutAmount;
-
-        for (const cand of candidates) {
-          // Try requested amount first.
-          const tries: number[] = [payoutAmount];
-          const readback = floorNowAmount(custodyBalances[cand] ?? 0);
-          if (readback > 0 && readback < payoutAmount) tries.push(readback);
-          for (const tryAmt of tries) {
-            try {
-              await writeOffFromSubPartner({ subPartnerId: subId, currency: cand, amount: tryAmt });
-              writtenOff = true;
-              usedCurrency = cand;
-              writeOffAmount = tryAmt;
-              break;
-            } catch (e: any) {
-              lastError = String(e?.message ?? "");
-              // Try to parse the "available" amount from the error and retry once.
-              const m = lastError.match(/([0-9]+\.?[0-9]*)\s*(?:available|left|remaining)?/i);
-              const parsed = m ? Number(m[1]) : NaN;
-              if (Number.isFinite(parsed) && parsed > 0 && parsed < tryAmt && !tries.includes(parsed)) {
-                tries.push(floorNowAmount(parsed));
-              }
-            }
-          }
-          if (writtenOff) break;
-        }
-
-        if (!writtenOff) {
-          // refund and report
-          await sb
-            .from("wallets")
-            .update({ balance: walletBalance, updated_at: new Date().toISOString() })
-            .eq("user_id", auth.user.id);
-          await sb
-            .from("withdrawals")
-            .update({ status: "failed", raw: { error: lastError } })
-            .eq("id", wRow.id);
-          return Response.json({ error: providerAuthMessage(lastError) }, { status: 502 });
-        }
-
-        // Try payout. If NOWPayments master balance is short (because the
-        // provider credited the deposit net of fees), parse the available
-        // amount from the error and retry — the user still gets the maximum
-        // payout we can issue against the confirmed custody.
-        const payoutTries: number[] = [payoutAmount];
-        if (writeOffAmount < payoutAmount) payoutTries.push(writeOffAmount);
         let payoutResult: { payoutId: string; raw: any } | null = null;
         let payoutError = "";
+        let usedCurrency = currency;
         let sentAmount = payoutAmount;
 
-        for (let i = 0; i < payoutTries.length && i < 5; i++) {
-          const tryAmt = floorNowAmount(payoutTries[i]);
-          if (tryAmt <= 0) break;
-          try {
-            payoutResult = await createPayout({
-              address: addr,
-              amount: tryAmt,
-              currency: usedCurrency,
-              ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
-            });
-            sentAmount = tryAmt;
-            break;
-          } catch (e: any) {
-            payoutError = String(e?.message ?? "");
-            if (/insufficient|not enough|liquidity/i.test(payoutError)) {
-              // Parse a number from the error; else shave 1% and retry.
-              const m = payoutError.match(/([0-9]+\.[0-9]+|[0-9]+)/);
-              const parsed = m ? Number(m[1]) : NaN;
-              const next = Number.isFinite(parsed) && parsed > 0 && parsed < tryAmt
-                ? floorNowAmount(parsed)
-                : floorNowAmount(tryAmt * 0.99);
-              if (next > 0 && next < tryAmt && !payoutTries.includes(next)) {
-                payoutTries.push(next);
-                continue;
+        outer: for (const cand of candidates) {
+          const readback = floorNowAmount(custodyBalances[cand] ?? 0);
+          const tries: number[] = [payoutAmount];
+          if (readback > 0 && readback < payoutAmount) tries.push(readback);
+
+          for (let i = 0; i < tries.length && i < 6; i++) {
+            const tryAmt = floorNowAmount(tries[i]);
+            if (tryAmt <= 0) continue;
+            try {
+              payoutResult = await createPayout({
+                address: addr,
+                amount: tryAmt,
+                currency: cand,
+                subPartnerId: subId,
+                ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
+              });
+              usedCurrency = cand;
+              sentAmount = tryAmt;
+              break outer;
+            } catch (e: any) {
+              payoutError = String(e?.message ?? "");
+              if (/insufficient|not enough|liquidity|balance/i.test(payoutError)) {
+                const m = payoutError.match(/([0-9]+\.[0-9]+|[0-9]+)/);
+                const parsed = m ? Number(m[1]) : NaN;
+                const next = Number.isFinite(parsed) && parsed > 0 && parsed < tryAmt
+                  ? floorNowAmount(parsed)
+                  : floorNowAmount(tryAmt * 0.99);
+                if (next > 0 && next < tryAmt && !tries.includes(next)) tries.push(next);
               }
             }
-            break;
           }
         }
 
