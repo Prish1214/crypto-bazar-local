@@ -75,7 +75,9 @@ export async function decryptForConversation(convId: string, payload: string): P
     const key = await deriveKey(convId);
     const iv = unb64(ivB64);
     const ct = unb64(ctB64);
-    const pt = await s.decrypt({ name: "AES-GCM", iv }, key, ct);
+    const ivBuf = iv.buffer.slice(iv.byteOffset, iv.byteOffset + iv.byteLength) as ArrayBuffer;
+    const ctBuf = ct.buffer.slice(ct.byteOffset, ct.byteOffset + ct.byteLength) as ArrayBuffer;
+    const pt = await s.decrypt({ name: "AES-GCM", iv: ivBuf }, key, ctBuf);
     return new TextDecoder().decode(pt);
   } catch {
     return "[unable to decrypt]";
