@@ -18,12 +18,14 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ListingsIndexRouteImport } from './routes/listings.index'
 import { Route as DealsIndexRouteImport } from './routes/deals.index'
+import { Route as ChatIndexRouteImport } from './routes/chat.index'
 import { Route as WalletWithdrawRouteImport } from './routes/wallet.withdraw'
 import { Route as WalletTransferRouteImport } from './routes/wallet.transfer'
 import { Route as WalletDepositRouteImport } from './routes/wallet.deposit'
 import { Route as MerchantUserIdRouteImport } from './routes/merchant.$userId'
 import { Route as ListingsNewRouteImport } from './routes/listings.new'
 import { Route as DealsDealIdRouteImport } from './routes/deals.$dealId'
+import { Route as ChatConversationIdRouteImport } from './routes/chat.$conversationId'
 import { Route as DealsNewListingIdRouteImport } from './routes/deals.new.$listingId'
 import { Route as ApiWalletWithdrawRouteImport } from './routes/api/wallet/withdraw'
 import { Route as ApiWalletTransferRouteImport } from './routes/api/wallet/transfer'
@@ -75,6 +77,11 @@ const DealsIndexRoute = DealsIndexRouteImport.update({
   path: '/deals/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChatIndexRoute = ChatIndexRouteImport.update({
+  id: '/chat/',
+  path: '/chat/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WalletWithdrawRoute = WalletWithdrawRouteImport.update({
   id: '/withdraw',
   path: '/withdraw',
@@ -103,6 +110,11 @@ const ListingsNewRoute = ListingsNewRouteImport.update({
 const DealsDealIdRoute = DealsDealIdRouteImport.update({
   id: '/deals/$dealId',
   path: '/deals/$dealId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatConversationIdRoute = ChatConversationIdRouteImport.update({
+  id: '/chat/$conversationId',
+  path: '/chat/$conversationId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DealsNewListingIdRoute = DealsNewListingIdRouteImport.update({
@@ -140,12 +152,14 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
+  '/chat/$conversationId': typeof ChatConversationIdRoute
   '/deals/$dealId': typeof DealsDealIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/merchant/$userId': typeof MerchantUserIdRoute
   '/wallet/deposit': typeof WalletDepositRoute
   '/wallet/transfer': typeof WalletTransferRoute
   '/wallet/withdraw': typeof WalletWithdrawRoute
+  '/chat/': typeof ChatIndexRoute
   '/deals/': typeof DealsIndexRoute
   '/listings/': typeof ListingsIndexRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
@@ -162,12 +176,14 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
+  '/chat/$conversationId': typeof ChatConversationIdRoute
   '/deals/$dealId': typeof DealsDealIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/merchant/$userId': typeof MerchantUserIdRoute
   '/wallet/deposit': typeof WalletDepositRoute
   '/wallet/transfer': typeof WalletTransferRoute
   '/wallet/withdraw': typeof WalletWithdrawRoute
+  '/chat': typeof ChatIndexRoute
   '/deals': typeof DealsIndexRoute
   '/listings': typeof ListingsIndexRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
@@ -185,12 +201,14 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
+  '/chat/$conversationId': typeof ChatConversationIdRoute
   '/deals/$dealId': typeof DealsDealIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/merchant/$userId': typeof MerchantUserIdRoute
   '/wallet/deposit': typeof WalletDepositRoute
   '/wallet/transfer': typeof WalletTransferRoute
   '/wallet/withdraw': typeof WalletWithdrawRoute
+  '/chat/': typeof ChatIndexRoute
   '/deals/': typeof DealsIndexRoute
   '/listings/': typeof ListingsIndexRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
@@ -209,12 +227,14 @@ export interface FileRouteTypes {
     | '/settings'
     | '/transactions'
     | '/wallet'
+    | '/chat/$conversationId'
     | '/deals/$dealId'
     | '/listings/new'
     | '/merchant/$userId'
     | '/wallet/deposit'
     | '/wallet/transfer'
     | '/wallet/withdraw'
+    | '/chat/'
     | '/deals/'
     | '/listings/'
     | '/api/wallet/deposit-address'
@@ -231,12 +251,14 @@ export interface FileRouteTypes {
     | '/settings'
     | '/transactions'
     | '/wallet'
+    | '/chat/$conversationId'
     | '/deals/$dealId'
     | '/listings/new'
     | '/merchant/$userId'
     | '/wallet/deposit'
     | '/wallet/transfer'
     | '/wallet/withdraw'
+    | '/chat'
     | '/deals'
     | '/listings'
     | '/api/wallet/deposit-address'
@@ -253,12 +275,14 @@ export interface FileRouteTypes {
     | '/settings'
     | '/transactions'
     | '/wallet'
+    | '/chat/$conversationId'
     | '/deals/$dealId'
     | '/listings/new'
     | '/merchant/$userId'
     | '/wallet/deposit'
     | '/wallet/transfer'
     | '/wallet/withdraw'
+    | '/chat/'
     | '/deals/'
     | '/listings/'
     | '/api/wallet/deposit-address'
@@ -276,9 +300,11 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TransactionsRoute: typeof TransactionsRoute
   WalletRoute: typeof WalletRouteWithChildren
+  ChatConversationIdRoute: typeof ChatConversationIdRoute
   DealsDealIdRoute: typeof DealsDealIdRoute
   ListingsNewRoute: typeof ListingsNewRoute
   MerchantUserIdRoute: typeof MerchantUserIdRoute
+  ChatIndexRoute: typeof ChatIndexRoute
   DealsIndexRoute: typeof DealsIndexRoute
   ListingsIndexRoute: typeof ListingsIndexRoute
   ApiWalletDepositAddressRoute: typeof ApiWalletDepositAddressRoute
@@ -353,6 +379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DealsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chat/': {
+      id: '/chat/'
+      path: '/chat'
+      fullPath: '/chat/'
+      preLoaderRoute: typeof ChatIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/wallet/withdraw': {
       id: '/wallet/withdraw'
       path: '/withdraw'
@@ -393,6 +426,13 @@ declare module '@tanstack/react-router' {
       path: '/deals/$dealId'
       fullPath: '/deals/$dealId'
       preLoaderRoute: typeof DealsDealIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat/$conversationId': {
+      id: '/chat/$conversationId'
+      path: '/chat/$conversationId'
+      fullPath: '/chat/$conversationId'
+      preLoaderRoute: typeof ChatConversationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/deals/new/$listingId': {
@@ -456,9 +496,11 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TransactionsRoute: TransactionsRoute,
   WalletRoute: WalletRouteWithChildren,
+  ChatConversationIdRoute: ChatConversationIdRoute,
   DealsDealIdRoute: DealsDealIdRoute,
   ListingsNewRoute: ListingsNewRoute,
   MerchantUserIdRoute: MerchantUserIdRoute,
+  ChatIndexRoute: ChatIndexRoute,
   DealsIndexRoute: DealsIndexRoute,
   ListingsIndexRoute: ListingsIndexRoute,
   ApiWalletDepositAddressRoute: ApiWalletDepositAddressRoute,

@@ -25,6 +25,8 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -32,20 +34,45 @@ function AuthPage() {
     if (!authLoading && user) navigate({ to: "/" });
   }, [user, authLoading, navigate]);
 
+  // Live username availability check
+  useEffect(() => {
+    if (mode !== "signup") return;
+    const u = username.trim().toLowerCase();
+    if (!u) { setUsernameStatus("idle"); return; }
+    if (!/^[a-z0-9_]{3,20}$/.test(u)) { setUsernameStatus("invalid"); return; }
+    setUsernameStatus("checking");
+    const t = setTimeout(async () => {
+      const { data } = await supabase.from("profiles").select("id").eq("username", u).maybeSingle();
+      setUsernameStatus(data ? "taken" : "available");
+    }, 350);
+    return () => clearTimeout(t);
+  }, [username, mode]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup") {
+      if (usernameStatus !== "available") {
+        toast.error("Pick a unique username (3–20 chars, letters/numbers/underscore).");
+        return;
+      }
+    }
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const u = username.trim().toLowerCase();
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { full_name: fullName, city },
+            data: { full_name: fullName, city, username: u },
           },
         });
         if (error) throw error;
+        // Ensure profile reflects chosen username even if trigger fell back
+        if (data.user) {
+          await supabase.from("profiles").update({ username: u, full_name: fullName, city }).eq("id", data.user.id);
+        }
         toast.success("Account created — check your email if confirmation is required.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -89,6 +116,28 @@ function AuthPage() {
                 <div className="space-y-1.5">
                   <Label htmlFor="name">Full name</Label>
                   <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Alex Carter" required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                    placeholder="alex_trader"
+                    maxLength={20}
+                    required
+                  />
+                  <p className={`text-xs ${
+                    usernameStatus === "available" ? "text-emerald-600" :
+                    usernameStatus === "taken" || usernameStatus === "invalid" ? "text-destructive" :
+                    "text-muted-foreground"
+                  }`}>
+                    {usernameStatus === "idle" && "3–20 chars · letters, numbers, underscore. Used for private chat."}
+                    {usernameStatus === "checking" && "Checking availability…"}
+                    {usernameStatus === "available" && `✓ @${username} is available`}
+                    {usernameStatus === "taken" && `@${username} is already taken`}
+                    {usernameStatus === "invalid" && "Use 3–20 chars: a–z, 0–9, underscore"}
+                  </p>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="city">City</Label>

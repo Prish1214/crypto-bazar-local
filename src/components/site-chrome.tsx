@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   Shield, Coins, Users, Store, Wallet, ListOrdered, Handshake,
-  ReceiptText, Settings as SettingsIcon, LayoutDashboard,
+  ReceiptText, Settings as SettingsIcon, LayoutDashboard, MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DealNotifier } from "@/components/deal-notifier";
@@ -13,6 +13,7 @@ import { db, type DealStatus } from "@/lib/db";
 const navItems = [
   { to: "/marketplace", label: "Market", icon: Store },
   { to: "/deals", label: "Deals", icon: Handshake },
+  { to: "/chat", label: "Chat", icon: MessageSquare },
   { to: "/listings", label: "My Listings", icon: ListOrdered },
   { to: "/wallet", label: "Wallet", icon: Wallet },
   { to: "/transactions", label: "History", icon: ReceiptText },
