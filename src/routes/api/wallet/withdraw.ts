@@ -98,6 +98,17 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
           );
         }
 
+        const selectedCustodyAvailable = maxBalanceForCandidates(custodyBalances, candidates);
+        const betterNetwork = findBetterFundedNetwork(custodyBalances, net, payoutAmount);
+        if (selectedCustodyAvailable <= EPSILON && betterNetwork) {
+          return Response.json(
+            {
+              error: `Your confirmed custody funds are on ${betterNetwork.label}, not ${net.toUpperCase()}. Select ${betterNetwork.label} on the withdrawal form and use a matching ${betterNetwork.label} address.`,
+            },
+            { status: 400 },
+          );
+        }
+
         // 3. Atomic balance debit; rely on update WHERE balance >= amt for safety.
         const debitOk = await debitWallet(sb, auth.user.id, amt, walletBalance);
         if (!debitOk) {
@@ -134,6 +145,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         let sentAmount = payoutAmount;
         let movedToMaster = false;
         let writeOffRaw: any = null;
+        let payoutSource: "custody_write_off" | "master_reserve" = "custody_write_off";
 
         outer: for (const cand of candidates) {
           const readback = floorNowAmount(custodyBalances[cand] ?? 0);
@@ -166,6 +178,14 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
               }
             } catch (e: any) {
               payoutError = String(e?.message ?? "");
+              console.warn("[withdraw] custody write-off failed", {
+                user_id: auth.user.id,
+                network: net,
+                currency: cand,
+                amount: tryAmt,
+                custody: summarizeBalances(custodyBalances),
+                message: payoutError.slice(0, 400),
+              });
               if (/insufficient|not enough|balance/i.test(payoutError)) {
                 const parsed = parseProviderAvailableAmount(payoutError, cand);
                 const readback = floorNowAmount(custodyBalances[cand] ?? 0);
@@ -223,13 +243,44 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
           }
         }
 
+        // If the custody write-off endpoint rejects the sub-partner movement,
+        // still allow the withdrawal when the master payout reserve already has
+        // enough same-network USDT. This is the practical production path for
+        // small/user withdrawals: the app debits the user wallet once, pays from
+        // master liquidity, and records the failed custody attempt for admin
+        // reconciliation instead of blocking the user forever.
+        if (!payoutResult && !movedToMaster && /insufficient|not enough|balance/i.test(payoutError)) {
+          const reserve = await tryMasterReservePayout({
+            address: addr,
+            amount: payoutAmount,
+            candidates,
+            origin,
+          });
+          if (reserve.payoutResult) {
+            payoutResult = reserve.payoutResult;
+            sentAmount = reserve.sentAmount;
+            payoutSource = "master_reserve";
+            writeOffRaw = {
+              failed_write_off_error: payoutError,
+              custody_balances: custodyBalances,
+              master_balances: reserve.masterBalances,
+            };
+          } else if (reserve.error) {
+            payoutError = `${payoutError} | master reserve payout failed: ${reserve.error}`;
+          }
+        }
+
         if (payoutResult) {
           await sb
             .from("withdrawals")
             .update({
               status: "processing",
               nowpayments_payout_id: payoutResult.payoutId,
-              raw: payoutResult.raw,
+              raw: {
+                payout: payoutResult.raw,
+                payout_source: payoutSource,
+                write_off: writeOffRaw,
+              },
               net_amount: sentAmount,
               updated_at: new Date().toISOString(),
             })
@@ -471,6 +522,73 @@ function parseProviderAvailableAmount(message: string, currency: string) {
   const holds = /(?:holds|available|balance|custody)[^0-9]{0,80}([0-9]+(?:\.[0-9]+)?)/i.exec(message);
   if (holds?.[1]) return Number(holds[1]);
   return NaN;
+}
+
+function maxBalanceForCandidates(balances: Record<string, number>, candidates: string[]) {
+  return candidates.reduce((max, c) => Math.max(max, floorNowAmount(balances[c] ?? 0)), 0);
+}
+
+function findBetterFundedNetwork(
+  balances: Record<string, number>,
+  selectedNetwork: string,
+  neededAmount: number,
+) {
+  for (const [network, currency] of Object.entries(NETWORK_TO_CURRENCY)) {
+    if (network === selectedNetwork) continue;
+    const candidates = CURRENCY_ALIASES[currency] ?? [currency];
+    if (maxBalanceForCandidates(balances, candidates) + EPSILON >= neededAmount) {
+      return { network, label: network.toUpperCase() };
+    }
+  }
+  return null;
+}
+
+async function tryMasterReservePayout(opts: {
+  address: string;
+  amount: number;
+  candidates: string[];
+  origin: string;
+}): Promise<{
+  payoutResult: { payoutId: string; raw: any } | null;
+  sentAmount: number;
+  masterBalances: Record<string, number>;
+  error: string;
+}> {
+  let masterBalances: Record<string, number> = {};
+  try {
+    masterBalances = await getMasterBalance();
+  } catch (e: any) {
+    return {
+      payoutResult: null,
+      sentAmount: opts.amount,
+      masterBalances,
+      error: `master balance read failed: ${String(e?.message ?? e)}`,
+    };
+  }
+
+  let error = "";
+  for (const cand of opts.candidates) {
+    const available = floorNowAmount(masterBalances[cand] ?? 0);
+    if (available + EPSILON < opts.amount) continue;
+    try {
+      const payoutResult = await createPayout({
+        address: opts.address,
+        amount: opts.amount,
+        currency: cand,
+        ipnCallbackUrl: `${opts.origin}/api/public/webhooks/nowpayments`,
+      });
+      return { payoutResult, sentAmount: opts.amount, masterBalances, error: "" };
+    } catch (e: any) {
+      error = String(e?.message ?? e);
+    }
+  }
+
+  return {
+    payoutResult: null,
+    sentAmount: opts.amount,
+    masterBalances,
+    error: error || `master reserve has insufficient same-network balance (${summarizeBalances(masterBalances)})`,
+  };
 }
 
 function mapPayoutStatus(s: string | undefined, txHash?: string | null, raw?: any): string {
