@@ -40,7 +40,16 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
 
         // Deposit payload
         const npId = String(payload.payment_id ?? payload.id ?? "");
-        const txHash = String(payload.hash ?? payload.tx_hash ?? payload.txid ?? "");
+        const txHash = String(
+          payload.hash ??
+          payload.tx_hash ??
+          payload.txid ??
+          payload.transaction_hash ??
+          payload.payin_hash ??
+          payload.payin_tx_hash ??
+          payload.outcome_hash ??
+          "",
+        );
         // Users reuse one custody address. Some NOWPayments custody IPNs keep
         // the same payment_id for later deposits, so idempotency must include
         // the blockchain tx hash when it is available.
