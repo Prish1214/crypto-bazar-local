@@ -42,14 +42,25 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
         if (!npId || !address || creditedAmount <= 0) {
           return Response.json({ ok: true, skipped: true });
         }
+
+        // Resolve user by permanent deposit address for every status. Pending
+        // IPNs normally do not include our user id, and deposits.user_id is
+        // required, so resolve before writing any ledger row.
+        const { data: da } = await sb
+          .from("deposit_addresses")
+          .select("user_id, network")
+          .eq("address", address)
+          .maybeSingle();
+        if (!da) return Response.json({ ok: true, unknown_address: true });
+
         if (!["finished", "confirmed", "completed", "partially_paid"].includes(status)) {
           // Just record progress.
           await sb.from("deposits").upsert(
             {
-              user_id: payload._user_id ?? null,
+              user_id: da.user_id,
               nowpayments_payment_id: npId,
               amount: creditedAmount,
-              network: payload.network ?? guessNetwork(payload.pay_currency),
+              network: da.network,
               status: status || "pending",
               raw: payload,
             },
@@ -57,14 +68,6 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
           );
           return Response.json({ ok: true, status });
         }
-
-        // Resolve user by deposit address.
-        const { data: da } = await sb
-          .from("deposit_addresses")
-          .select("user_id, network")
-          .eq("address", address)
-          .maybeSingle();
-        if (!da) return Response.json({ ok: true, unknown_address: true });
 
         await sb.rpc("credit_deposit", {
           _user_id: da.user_id,
