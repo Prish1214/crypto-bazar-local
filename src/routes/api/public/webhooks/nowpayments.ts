@@ -23,14 +23,18 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
         const isPayout = !!(payload.payout_id || payload.batch_withdrawal_id);
 
         if (isPayout) {
-          const payoutId = String(payload.payout_id ?? payload.id);
+          const payoutIds = [payload.batch_withdrawal_id, payload.payout_id, payload.id]
+            .filter(Boolean)
+            .map(String);
           const status = mapPayoutStatus(payload.status);
-          await sb.rpc("update_withdrawal_status", {
-            _payout_id: payoutId,
-            _status: status,
-            _tx_hash: payload.hash ?? payload.tx_hash ?? null,
-            _raw: payload,
-          });
+          for (const payoutId of [...new Set(payoutIds)]) {
+            await sb.rpc("update_withdrawal_status", {
+              _payout_id: payoutId,
+              _status: status,
+              _tx_hash: payload.hash ?? payload.tx_hash ?? null,
+              _raw: payload,
+            });
+          }
           return Response.json({ ok: true });
         }
 
