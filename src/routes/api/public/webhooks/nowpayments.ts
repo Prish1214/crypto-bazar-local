@@ -23,7 +23,17 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
         const isPayout = isExternalPayoutPayload(payload);
 
         if (isPayout) {
-          const payoutIds = [payload.batch_withdrawal_id, payload.payout_id, payload.id]
+          const payoutIds = [
+            payload.batch_withdrawal_id,
+            payload.payout_id,
+            payload.withdrawal_id,
+            payload.id,
+            payload.result?.id,
+            payload.withdrawals?.[0]?.id,
+            payload.withdrawals?.[0]?.batch_withdrawal_id,
+            payload.result?.withdrawals?.[0]?.id,
+            payload.result?.withdrawals?.[0]?.batch_withdrawal_id,
+          ]
             .filter(Boolean)
             .map(String);
           const txHash = extractPayoutTxHash(payload);
@@ -136,8 +146,14 @@ function mapPayoutStatus(s: string | undefined, txHash?: string | null, raw?: an
 }
 
 function isExternalPayoutPayload(payload: any): boolean {
-  if (!(payload?.payout_id || payload?.batch_withdrawal_id)) return false;
-  return !isWriteOffToMaster(payload);
+  if (isWriteOffToMaster(payload)) return false;
+  return !!(
+    payload?.payout_id ||
+    payload?.batch_withdrawal_id ||
+    payload?.withdrawal_id ||
+    payload?.withdrawals?.length ||
+    payload?.result?.withdrawals?.length
+  );
 }
 
 function extractPayoutTxHash(input: any): string {
