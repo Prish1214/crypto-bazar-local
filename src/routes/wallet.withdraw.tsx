@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowUpFromLine, AlertTriangle, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowUpFromLine, AlertTriangle, Loader2, Clock3, CheckCircle2, XCircle } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,10 +29,11 @@ function WithdrawPage() {
   const [amount, setAmount] = useState("");
   const [address, setAddress] = useState("");
   const [busy, setBusy] = useState(false);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
-    ensureWallet(user.id).then(setWallet).catch((e) => toast.error(e.message));
+    refreshWalletData(user.id).catch((e) => toast.error(e.message));
   }, [user?.id]);
 
   useEffect(() => {
@@ -41,6 +42,7 @@ function WithdrawPage() {
       const token = session?.access_token ?? (await supabase.auth.getSession()).data.session?.access_token;
       if (!token) return;
       await fetch("/api/wallet/withdraw", { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+      if (user) await refreshWalletData(user.id).catch(() => null);
     };
     run();
     const timer = window.setInterval(run, 30_000);
@@ -77,7 +79,7 @@ function WithdrawPage() {
         description: j.message ?? `${receiveAmount.toFixed(8)} USDT withdrawal is now processing.`,
       });
       setAmount(""); setAddress("");
-      setWallet({ ...wallet, balance: Number(wallet.balance) - amt });
+      await refreshWalletData(user.id);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -151,7 +153,51 @@ function WithdrawPage() {
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>Double-check the destination address and network. Withdrawals to the wrong network are unrecoverable.</div>
         </div>
+
+        {withdrawals.length > 0 && (
+          <div className="mt-5 rounded-xl border border-border bg-background p-4">
+            <h2 className="mb-3 text-sm font-semibold">Recent withdrawals</h2>
+            <div className="space-y-2">
+              {withdrawals.map((w) => (
+                <div key={w.id} className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-xs">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 font-medium capitalize">
+                      {statusIcon(w.status)} {String(w.status).replace("_", " ")}
+                    </div>
+                    <div className="truncate text-muted-foreground">
+                      {w.network?.toUpperCase()} · {String(w.address).slice(0, 8)}…{String(w.address).slice(-6)}
+                    </div>
+                  </div>
+                  <div className="text-right font-mono">
+                    <div>{Number(w.net_amount ?? 0).toFixed(8)} USDT</div>
+                    <div className="text-[10px] text-muted-foreground">{new Date(w.created_at).toLocaleDateString()}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </PageShell>
   );
+
+  async function refreshWalletData(userId: string) {
+    const [w, rows] = await Promise.all([
+      ensureWallet(userId),
+      supabase
+        .from("withdrawals")
+        .select("id, network, address, amount, fee, net_amount, status, tx_hash, created_at, updated_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(6),
+    ]);
+    setWallet(w);
+    setWithdrawals(rows.data ?? []);
+  }
+}
+
+function statusIcon(status: string) {
+  if (status === "completed") return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />;
+  if (status === "failed" || status === "rejected") return <XCircle className="h-3.5 w-3.5 text-red-600" />;
+  return <Clock3 className="h-3.5 w-3.5 text-amber-600" />;
 }

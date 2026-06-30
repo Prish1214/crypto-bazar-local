@@ -23,19 +23,37 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
         const isPayout = !!(payload.payout_id || payload.batch_withdrawal_id);
 
         if (isPayout) {
-          const payoutId = String(payload.payout_id ?? payload.id);
+          const payoutIds = [payload.batch_withdrawal_id, payload.payout_id, payload.id]
+            .filter(Boolean)
+            .map(String);
           const status = mapPayoutStatus(payload.status);
-          await sb.rpc("update_withdrawal_status", {
-            _payout_id: payoutId,
-            _status: status,
-            _tx_hash: payload.hash ?? payload.tx_hash ?? null,
-            _raw: payload,
-          });
+          for (const payoutId of [...new Set(payoutIds)]) {
+            await sb.rpc("update_withdrawal_status", {
+              _payout_id: payoutId,
+              _status: status,
+              _tx_hash: payload.hash ?? payload.tx_hash ?? null,
+              _raw: payload,
+            });
+          }
           return Response.json({ ok: true });
         }
 
         // Deposit payload
         const npId = String(payload.payment_id ?? payload.id ?? "");
+        const txHash = String(
+          payload.hash ??
+          payload.tx_hash ??
+          payload.txid ??
+          payload.transaction_hash ??
+          payload.payin_hash ??
+          payload.payin_tx_hash ??
+          payload.outcome_hash ??
+          "",
+        );
+        // Users reuse one custody address. Some NOWPayments custody IPNs keep
+        // the same payment_id for later deposits, so idempotency must include
+        // the blockchain tx hash when it is available.
+        const depositKey = txHash ? `${npId}:${txHash}` : npId;
         const status = String(payload.payment_status ?? "").toLowerCase();
         const creditedAmount = pickDepositCreditAmount(payload);
         const address = payload.pay_address ?? payload.payin_address;
@@ -58,7 +76,7 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
           await sb.from("deposits").upsert(
             {
               user_id: da.user_id,
-              nowpayments_payment_id: npId,
+              nowpayments_payment_id: depositKey,
               amount: creditedAmount,
               network: da.network,
               status: status || "pending",
@@ -73,8 +91,8 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
           _user_id: da.user_id,
           _amount: creditedAmount,
           _network: da.network,
-          _tx_hash: payload.hash ?? payload.tx_hash ?? "",
-          _nowpayments_payment_id: npId,
+          _tx_hash: txHash,
+          _nowpayments_payment_id: depositKey,
           _raw: payload,
         });
         return Response.json({ ok: true, credited: creditedAmount });
@@ -84,13 +102,14 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
 });
 
 function pickDepositCreditAmount(payload: any): number {
-  // For open custody deposit addresses, `amount/pay_amount` can be the large
-  // notional ceiling used when creating the address. `actually_paid` is the
-  // user's real on-chain deposit; fall back to outcome only if needed.
-  const candidates = [payload.actually_paid, payload.outcome_amount, payload.pay_amount];
-  for (const value of candidates) {
+  // Permanent custody addresses are created with a large notional `amount`
+  // ceiling. NOWPayments may echo that ceiling back as `amount`,
+  // `pay_amount`, or `price_amount`; using those fields is what can create
+  // fake wallet balances in the thousands. Only credit the real on-chain paid
+  // value. If it is not present yet, skip and wait for the next final IPN.
+  for (const value of [payload.actually_paid, payload.actual_paid, payload.paid_amount, payload.outcome_amount]) {
     const n = Number(value);
-    if (Number.isFinite(n) && n > 0 && n < 100000) {
+    if (Number.isFinite(n) && n > 0 && n < 99000) {
       return Math.floor((n + Number.EPSILON) * 100_000_000) / 100_000_000;
     }
   }
