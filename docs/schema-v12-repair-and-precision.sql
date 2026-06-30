@@ -274,10 +274,10 @@ begin
     d.user_id,
     round(d.amount::numeric, 8),
     round(coalesce(
-      case when nullif(d.raw->>'actually_paid','')::numeric > 0 and nullif(d.raw->>'actually_paid','')::numeric < 99000 then nullif(d.raw->>'actually_paid','')::numeric end,
-      case when nullif(d.raw->>'actual_paid','')::numeric > 0 and nullif(d.raw->>'actual_paid','')::numeric < 99000 then nullif(d.raw->>'actual_paid','')::numeric end,
-      case when nullif(d.raw->>'paid_amount','')::numeric > 0 and nullif(d.raw->>'paid_amount','')::numeric < 99000 then nullif(d.raw->>'paid_amount','')::numeric end,
-      case when nullif(d.raw->>'outcome_amount','')::numeric > 0 and nullif(d.raw->>'outcome_amount','')::numeric < 99000 then nullif(d.raw->>'outcome_amount','')::numeric end,
+      case when (d.raw->>'actually_paid') ~ '^[0-9]+(\.[0-9]+)?$' and (d.raw->>'actually_paid')::numeric > 0 and (d.raw->>'actually_paid')::numeric < 99000 then (d.raw->>'actually_paid')::numeric end,
+      case when (d.raw->>'actual_paid') ~ '^[0-9]+(\.[0-9]+)?$' and (d.raw->>'actual_paid')::numeric > 0 and (d.raw->>'actual_paid')::numeric < 99000 then (d.raw->>'actual_paid')::numeric end,
+      case when (d.raw->>'paid_amount') ~ '^[0-9]+(\.[0-9]+)?$' and (d.raw->>'paid_amount')::numeric > 0 and (d.raw->>'paid_amount')::numeric < 99000 then (d.raw->>'paid_amount')::numeric end,
+      case when (d.raw->>'outcome_amount') ~ '^[0-9]+(\.[0-9]+)?$' and (d.raw->>'outcome_amount')::numeric > 0 and (d.raw->>'outcome_amount')::numeric < 99000 then (d.raw->>'outcome_amount')::numeric end,
       0
     )::numeric, 8)
   from public.deposits d
