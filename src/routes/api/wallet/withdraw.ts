@@ -133,6 +133,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         let payoutError = "";
         let sentAmount = payoutAmount;
         let movedToMaster = false;
+        let writeOffRaw: any = null;
 
         outer: for (const cand of candidates) {
           const readback = floorNowAmount(custodyBalances[cand] ?? 0);
@@ -149,6 +150,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
                 currency: cand,
                 amount: tryAmt,
               });
+              writeOffRaw = writeOff;
               const writeOffStatus = String(
                 writeOff?.status ?? writeOff?.result?.status ?? "",
               ).toLowerCase();
@@ -251,8 +253,9 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
               raw: {
                 queued_for_payout: true,
                 currency: payoutError.split(":")[1],
-                note: "NOWPayments accepted the custody write-off. The payout will be retried without scheduling after the provider moves funds to payout liquidity.",
+                note: "NOWPayments accepted the custody write-off request. The payout will be retried without scheduling after the provider confirms the custody-to-payout transfer.",
                 payout_amount: sentAmount,
+                write_off: writeOffRaw,
               },
               net_amount: sentAmount,
               updated_at: new Date().toISOString(),
@@ -272,7 +275,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             fee,
             net_amount: sentAmount,
             status: "processing",
-            message: "Withdrawal accepted. Your funds were moved from custody and the payout is queued while the provider updates payout liquidity.",
+            message: "Withdrawal accepted. The custody transfer is pending at NOWPayments and payout will retry automatically until provider liquidity is ready.",
           });
         }
 
@@ -286,6 +289,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
                 note: "Custody write-off was accepted, but payout liquidity was not ready. The app will retry the payout without refunding/duplicating the wallet balance.",
                 payout_amount: sentAmount,
                 last_retry_error: payoutError,
+                write_off: writeOffRaw,
               },
               net_amount: sentAmount,
               updated_at: new Date().toISOString(),
