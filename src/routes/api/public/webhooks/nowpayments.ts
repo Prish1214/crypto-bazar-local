@@ -93,9 +93,11 @@ function pickDepositCreditAmount(payload: any): number {
   // `pay_amount`, or `price_amount`; using those fields is what can create
   // fake wallet balances in the thousands. Only credit the real on-chain paid
   // value. If it is not present yet, skip and wait for the next final IPN.
-  const n = Number(payload.actually_paid ?? payload.actual_paid ?? payload.paid_amount);
-  if (Number.isFinite(n) && n > 0 && n < 100000) {
-    return Math.floor((n + Number.EPSILON) * 100_000_000) / 100_000_000;
+  for (const value of [payload.actually_paid, payload.actual_paid, payload.paid_amount, payload.outcome_amount]) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0 && n < 99000) {
+      return Math.floor((n + Number.EPSILON) * 100_000_000) / 100_000_000;
+    }
   }
   return 0;
 }
