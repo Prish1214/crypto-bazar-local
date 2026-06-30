@@ -353,11 +353,12 @@ async function processQueuedWithdrawals(userId: string, requestUrl: string) {
       try {
         const status = await getPayoutStatus(String(row.nowpayments_payout_id));
         const w = status?.withdrawals?.[0] ?? status?.result?.withdrawals?.[0] ?? status;
-        const mapped = mapPayoutStatus(w?.status ?? status?.status);
+        const txHash = extractPayoutTxHash(w) || extractPayoutTxHash(status);
+        const mapped = mapPayoutStatus(w?.status ?? status?.status, txHash, status);
         await sb.rpc("update_withdrawal_status", {
           _payout_id: String(row.nowpayments_payout_id),
           _status: mapped,
-          _tx_hash: w?.hash ?? status?.hash ?? null,
+          _tx_hash: txHash || null,
           _raw: { ...(row.raw ?? {}), status_check: status },
         });
         processed += 1;
@@ -472,12 +473,16 @@ function parseProviderAvailableAmount(message: string, currency: string) {
   return NaN;
 }
 
-function mapPayoutStatus(s: string | undefined): string {
+function mapPayoutStatus(s: string | undefined, txHash?: string | null, raw?: any): string {
+  if (isWriteOffToMaster(raw)) return "processing";
   switch ((s ?? "").toLowerCase()) {
     case "finished":
     case "sent":
     case "completed":
-      return "completed";
+      // NOWPayments also reports custody write-offs as "finished". A user
+      // withdrawal is only complete after the external payout has an on-chain
+      // transaction hash for the requested address.
+      return txHash ? "completed" : "processing";
     case "failed":
     case "rejected":
     case "rejected_not_checked":
@@ -489,6 +494,40 @@ function mapPayoutStatus(s: string | undefined): string {
     default:
       return "processing";
   }
+}
+
+function extractPayoutTxHash(input: any): string {
+  const candidates = [
+    input?.hash,
+    input?.tx_hash,
+    input?.txid,
+    input?.transaction_hash,
+    input?.withdrawal_hash,
+    input?.payout_hash,
+    input?.result?.hash,
+    input?.result?.tx_hash,
+    input?.withdrawals?.[0]?.hash,
+    input?.withdrawals?.[0]?.tx_hash,
+    input?.result?.withdrawals?.[0]?.hash,
+    input?.result?.withdrawals?.[0]?.tx_hash,
+  ];
+  return String(candidates.find((v) => typeof v === "string" && v.trim().length > 8) ?? "").trim();
+}
+
+function isWriteOffToMaster(input: any): boolean {
+  const text = [
+    input?.transaction_type,
+    input?.type,
+    input?.operation,
+    input?.event,
+    input?.description,
+    input?.result?.transaction_type,
+    input?.result?.type,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return /withdrawal\s*to\s*master|write[-_\s]*off|sub[-_\s]*partner/.test(text);
 }
 
 async function waitForMasterLiquidity(currency: string, amount: number) {

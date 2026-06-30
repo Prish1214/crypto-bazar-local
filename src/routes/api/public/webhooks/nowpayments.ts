@@ -20,18 +20,19 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
         try { payload = JSON.parse(raw); } catch { return new Response("Bad JSON", { status: 400 }); }
 
         const sb = admin();
-        const isPayout = !!(payload.payout_id || payload.batch_withdrawal_id);
+        const isPayout = isExternalPayoutPayload(payload);
 
         if (isPayout) {
           const payoutIds = [payload.batch_withdrawal_id, payload.payout_id, payload.id]
             .filter(Boolean)
             .map(String);
-          const status = mapPayoutStatus(payload.status);
+          const txHash = extractPayoutTxHash(payload);
+          const status = mapPayoutStatus(payload.status, txHash, payload);
           for (const payoutId of [...new Set(payoutIds)]) {
             await sb.rpc("update_withdrawal_status", {
               _payout_id: payoutId,
               _status: status,
-              _tx_hash: payload.hash ?? payload.tx_hash ?? null,
+              _tx_hash: txHash || null,
               _raw: payload,
             });
           }
@@ -116,12 +117,13 @@ function pickDepositCreditAmount(payload: any): number {
   return 0;
 }
 
-function mapPayoutStatus(s: string | undefined): string {
+function mapPayoutStatus(s: string | undefined, txHash?: string | null, raw?: any): string {
+  if (isWriteOffToMaster(raw)) return "processing";
   switch ((s ?? "").toLowerCase()) {
     case "finished":
     case "sent":
     case "completed":
-      return "completed";
+      return txHash ? "completed" : "processing";
     case "failed":
     case "rejected":
       return "failed";
@@ -131,6 +133,45 @@ function mapPayoutStatus(s: string | undefined): string {
     default:
       return "processing";
   }
+}
+
+function isExternalPayoutPayload(payload: any): boolean {
+  if (!(payload?.payout_id || payload?.batch_withdrawal_id)) return false;
+  return !isWriteOffToMaster(payload);
+}
+
+function extractPayoutTxHash(input: any): string {
+  const candidates = [
+    input?.hash,
+    input?.tx_hash,
+    input?.txid,
+    input?.transaction_hash,
+    input?.withdrawal_hash,
+    input?.payout_hash,
+    input?.result?.hash,
+    input?.result?.tx_hash,
+    input?.withdrawals?.[0]?.hash,
+    input?.withdrawals?.[0]?.tx_hash,
+    input?.result?.withdrawals?.[0]?.hash,
+    input?.result?.withdrawals?.[0]?.tx_hash,
+  ];
+  return String(candidates.find((v) => typeof v === "string" && v.trim().length > 8) ?? "").trim();
+}
+
+function isWriteOffToMaster(input: any): boolean {
+  const text = [
+    input?.transaction_type,
+    input?.type,
+    input?.operation,
+    input?.event,
+    input?.description,
+    input?.result?.transaction_type,
+    input?.result?.type,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return /withdrawal\s*to\s*master|write[-_\s]*off|sub[-_\s]*partner/.test(text);
 }
 
 function guessNetwork(currency: string | undefined): string {
