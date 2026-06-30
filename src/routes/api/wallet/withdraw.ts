@@ -4,6 +4,7 @@ import {
   NETWORK_TO_CURRENCY,
   createPayout,
   getMasterBalance,
+  getPayoutStatus,
   getSubPartnerBalance,
   writeOffFromSubPartner,
 } from "@/lib/nowpayments.server";
@@ -98,14 +99,8 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         }
 
         // 3. Atomic balance debit; rely on update WHERE balance >= amt for safety.
-        const { error: debitErr, data: debited } = await sb
-          .from("wallets")
-          .update({ balance: floorNowAmount(walletBalance - amt), updated_at: new Date().toISOString() })
-          .eq("user_id", auth.user.id)
-          .gte("balance", amt)
-          .select("balance")
-          .maybeSingle();
-        if (debitErr || !debited) {
+        const debitOk = await debitWallet(sb, auth.user.id, amt, walletBalance);
+        if (!debitOk) {
           return Response.json({ error: "Could not lock balance" }, { status: 409 });
         }
 
@@ -125,10 +120,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
           .single();
         if (wErr || !wRow) {
           // refund
-          await sb
-            .from("wallets")
-            .update({ balance: walletBalance, updated_at: new Date().toISOString() })
-            .eq("user_id", auth.user.id);
+          await refundWallet(sb, auth.user.id, amt);
           return Response.json({ error: "Could not record withdrawal" }, { status: 500 });
         }
 
@@ -173,11 +165,13 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             } catch (e: any) {
               payoutError = String(e?.message ?? "");
               if (/insufficient|not enough|balance/i.test(payoutError)) {
-                const m = payoutError.match(/([0-9]+\.[0-9]+|[0-9]+)/);
-                const parsed = m ? Number(m[1]) : NaN;
+                const parsed = parseProviderAvailableAmount(payoutError, cand);
+                const readback = floorNowAmount(custodyBalances[cand] ?? 0);
                 const next = Number.isFinite(parsed) && parsed > 0 && parsed < tryAmt
                   ? floorNowAmount(parsed)
-                  : floorNowAmount(tryAmt * 0.99);
+                  : readback > 0 && readback < tryAmt
+                    ? readback
+                    : floorNowAmount(tryAmt * 0.99);
                 if (next > 0 && next < tryAmt && !tries.includes(next)) tries.push(next);
               }
               continue;
@@ -217,12 +211,11 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
                 break outer;
               }
               if (/insufficient|not enough|liquidity|balance/i.test(payoutError)) {
-                const m = payoutError.match(/([0-9]+\.[0-9]+|[0-9]+)/);
-                const parsed = m ? Number(m[1]) : NaN;
+                const parsed = parseProviderAvailableAmount(payoutError, cand);
                 const next = Number.isFinite(parsed) && parsed > 0 && parsed < tryAmt
                   ? floorNowAmount(parsed)
                   : floorNowAmount(tryAmt * 0.99);
-                if (!m && next > 0 && next < tryAmt && !tries.includes(next)) tries.push(next);
+                if (next > 0 && next < tryAmt && !tries.includes(next)) tries.push(next);
               }
             }
           }
@@ -317,10 +310,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         }
 
         // Refund and report.
-        await sb
-          .from("wallets")
-          .update({ balance: walletBalance, updated_at: new Date().toISOString() })
-          .eq("user_id", auth.user.id);
+        await refundWallet(sb, auth.user.id, amt);
         await sb
           .from("withdrawals")
           .update({ status: "failed", raw: { error: payoutError } })
@@ -345,10 +335,9 @@ async function processQueuedWithdrawals(userId: string, requestUrl: string) {
   const sb = admin();
   const { data: rows } = await sb
     .from("withdrawals")
-    .select("id, network, address, net_amount, raw")
+    .select("id, network, address, net_amount, nowpayments_payout_id, raw")
     .eq("user_id", userId)
     .eq("status", "processing")
-    .is("nowpayments_payout_id", null)
     .limit(5);
 
   if (!rows?.length) return 0;
@@ -356,6 +345,27 @@ async function processQueuedWithdrawals(userId: string, requestUrl: string) {
   const origin = new URL(requestUrl).origin;
   let processed = 0;
   for (const row of rows as any[]) {
+    if (row.nowpayments_payout_id) {
+      try {
+        const status = await getPayoutStatus(String(row.nowpayments_payout_id));
+        const w = status?.withdrawals?.[0] ?? status?.result?.withdrawals?.[0] ?? status;
+        const mapped = mapPayoutStatus(w?.status ?? status?.status);
+        await sb.rpc("update_withdrawal_status", {
+          _payout_id: String(row.nowpayments_payout_id),
+          _status: mapped,
+          _tx_hash: w?.hash ?? status?.hash ?? null,
+          _raw: { ...(row.raw ?? {}), status_check: status },
+        });
+        processed += 1;
+      } catch (e: any) {
+        await sb
+          .from("withdrawals")
+          .update({ raw: { ...(row.raw ?? {}), last_status_error: String(e?.message ?? e) }, updated_at: new Date().toISOString() })
+          .eq("id", row.id);
+      }
+      continue;
+    }
+
     const amount = floorNowAmount(Number(row.net_amount ?? row.raw?.payout_amount ?? 0));
     if (amount <= 0) continue;
 
@@ -367,8 +377,10 @@ async function processQueuedWithdrawals(userId: string, requestUrl: string) {
         : [];
 
     for (const cand of candidates.filter(Boolean)) {
-      const master = await getMasterBalance().catch(() => ({} as Record<string, number>));
-      if (floorNowAmount(master[cand] ?? 0) + EPSILON < amount) continue;
+      // Do not block purely on /balance. NOWPayments' balance endpoint can lag
+      // or return a different shape while write-off is settling. The real
+      // source of truth is the payout response; if it says liquidity is still
+      // missing, we keep this row queued and try again later.
       try {
         const payout = await createPayout({
           address: row.address,
@@ -400,6 +412,41 @@ async function processQueuedWithdrawals(userId: string, requestUrl: string) {
   return processed;
 }
 
+async function debitWallet(sb: ReturnType<typeof admin>, userId: string, amount: number, fallbackBalance: number) {
+  const rounded = floorNowAmount(amount);
+  try {
+    const { data, error } = await sb.rpc("lock_wallet_balance", { _user_id: userId, _amount: rounded });
+    if (!error) return data !== null && data !== undefined;
+  } catch {
+    // Migration not installed yet; fallback below.
+  }
+
+  const { error, data } = await sb
+    .from("wallets")
+    .update({ balance: floorNowAmount(fallbackBalance - rounded), updated_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .gte("balance", rounded)
+    .select("balance")
+    .maybeSingle();
+  return !error && !!data;
+}
+
+async function refundWallet(sb: ReturnType<typeof admin>, userId: string, amount: number) {
+  const rounded = floorNowAmount(amount);
+  try {
+    const { error } = await sb.rpc("refund_wallet_balance", { _user_id: userId, _amount: rounded });
+    if (!error) return;
+  } catch {
+    // Migration not installed yet; fallback below.
+  }
+
+  const { data: current } = await sb.from("wallets").select("balance").eq("user_id", userId).maybeSingle();
+  await sb
+    .from("wallets")
+    .update({ balance: floorNowAmount(Number(current?.balance ?? 0) + rounded), updated_at: new Date().toISOString() })
+    .eq("user_id", userId);
+}
+
 function floorNowAmount(amount: number) {
   const factor = 100_000_000;
   return Math.floor((amount + Number.EPSILON) * factor) / factor;
@@ -410,6 +457,34 @@ function summarizeBalances(balances: Record<string, number>) {
     .filter(([, v]) => v > 0)
     .map(([k, v]) => `${k}: ${floorNowAmount(v).toFixed(8)}`)
     .join(", ") || "no confirmed funds";
+}
+
+function parseProviderAvailableAmount(message: string, currency: string) {
+  const normalizedCurrency = currency.replace(/[^a-z0-9]/gi, "");
+  const specific = new RegExp(`${normalizedCurrency}[^0-9]{0,40}([0-9]+(?:\\.[0-9]+)?)`, "i").exec(message);
+  if (specific?.[1]) return Number(specific[1]);
+  const holds = /(?:holds|available|balance|custody)[^0-9]{0,80}([0-9]+(?:\.[0-9]+)?)/i.exec(message);
+  if (holds?.[1]) return Number(holds[1]);
+  return NaN;
+}
+
+function mapPayoutStatus(s: string | undefined): string {
+  switch ((s ?? "").toLowerCase()) {
+    case "finished":
+    case "sent":
+    case "completed":
+      return "completed";
+    case "failed":
+    case "rejected":
+    case "rejected_not_checked":
+      return "failed";
+    case "creating":
+    case "new":
+    case "waiting":
+    case "processing":
+    default:
+      return "processing";
+  }
 }
 
 async function waitForMasterLiquidity(currency: string, amount: number) {
@@ -443,7 +518,7 @@ function providerAuthMessage(raw: string) {
     return "Withdrawal provider authorization failed. Please reconnect the live NOWPayments API key, email, and password for the same account that holds custody funds.";
   }
   if (/insufficient balance|not enough/i.test(raw)) {
-    return "Withdrawal provider says the payout balance is still not ready. The wallet was refunded automatically. In NOWPayments, set Withdrawal fee paid by = Receiver and make sure payout 2FA is disabled/automated, then retry.";
+    return "Withdrawal could not start because NOWPayments did not accept the custody write-off for this amount/network. The wallet was refunded automatically. Check that the user's deposit is confirmed in the same network custody balance, then retry.";
   }
   return `Payout failed: ${raw}`;
 }
