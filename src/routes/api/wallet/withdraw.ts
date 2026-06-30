@@ -34,7 +34,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         const net = (body.network ?? "").toLowerCase();
         let currency = NETWORK_TO_CURRENCY[net];
         const addr = (body.address ?? "").trim();
-        const amt = Number(body.amount);
+        const amt = floorNowAmount(Number(body.amount));
 
         if (!currency) return Response.json({ error: "Invalid network" }, { status: 400 });
         if (addr.length < 10) return Response.json({ error: "Invalid address" }, { status: 400 });
@@ -100,7 +100,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         // 3. Atomic balance debit; rely on update WHERE balance >= amt for safety.
         const { error: debitErr, data: debited } = await sb
           .from("wallets")
-          .update({ balance: walletBalance - amt, updated_at: new Date().toISOString() })
+          .update({ balance: floorNowAmount(walletBalance - amt), updated_at: new Date().toISOString() })
           .eq("user_id", auth.user.id)
           .gte("balance", amt)
           .select("balance")
@@ -164,6 +164,12 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
                 payoutError = `NOWPayments write-off was rejected: ${JSON.stringify(writeOff)}`;
                 continue;
               }
+              if (writeOffStatus && /created|waiting|processing|pending/i.test(writeOffStatus)) {
+                movedToMaster = true;
+                sentAmount = tryAmt;
+                payoutError = `WRITE_OFF_PENDING:${cand}:${tryAmt}`;
+                break outer;
+              }
             } catch (e: any) {
               payoutError = String(e?.message ?? "");
               if (/insufficient|not enough|balance/i.test(payoutError)) {
@@ -185,13 +191,26 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
                 amount: tryAmt,
                 currency: cand,
                 ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
-                executeAt: scheduledPayoutTime(),
               });
               sentAmount = tryAmt;
               break outer;
             } catch (e: any) {
               payoutError = String(e?.message ?? "");
               const masterReady = await waitForMasterLiquidity(cand, tryAmt);
+              if (masterReady && /insufficient|not enough|liquidity|balance/i.test(payoutError)) {
+                try {
+                  payoutResult = await createPayout({
+                    address: addr,
+                    amount: tryAmt,
+                    currency: cand,
+                    ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
+                  });
+                  sentAmount = tryAmt;
+                  break outer;
+                } catch (retryError: any) {
+                  payoutError = String(retryError?.message ?? retryError);
+                }
+              }
               if (!masterReady && /insufficient|not enough|liquidity|balance/i.test(payoutError)) {
                 sentAmount = tryAmt;
                 payoutError = `WRITE_OFF_PENDING:${cand}:${tryAmt}`;
@@ -239,7 +258,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
               raw: {
                 queued_for_payout: true,
                 currency: payoutError.split(":")[1],
-                note: "NOWPayments accepted the custody write-off. The payout will be retried after the provider moves funds to the master payout balance.",
+                note: "NOWPayments accepted the custody write-off. The payout will be retried without scheduling after the provider moves funds to payout liquidity.",
                 payout_amount: sentAmount,
               },
               net_amount: sentAmount,
@@ -261,6 +280,39 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             net_amount: sentAmount,
             status: "processing",
             message: "Withdrawal accepted. Your funds were moved from custody and the payout is queued while the provider updates payout liquidity.",
+          });
+        }
+
+        if (movedToMaster && /insufficient|not enough|liquidity|balance/i.test(payoutError)) {
+          await sb
+            .from("withdrawals")
+            .update({
+              status: "processing",
+              raw: {
+                queued_for_payout: true,
+                note: "Custody write-off was accepted, but payout liquidity was not ready. The app will retry the payout without refunding/duplicating the wallet balance.",
+                payout_amount: sentAmount,
+                last_retry_error: payoutError,
+              },
+              net_amount: sentAmount,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", wRow.id);
+          await sb.from("transactions").insert({
+            user_id: auth.user.id,
+            type: "withdraw",
+            amount: amt,
+            network: net,
+            description: `Withdrawal queued ${sentAmount.toFixed(8)} USDT after ${(SERVICE_FEE_RATE * 100).toFixed(0)}% service fee → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
+            reference_id: wRow.id,
+          });
+          return Response.json({
+            ok: true,
+            withdrawal_id: wRow.id,
+            fee,
+            net_amount: sentAmount,
+            status: "processing",
+            message: "Withdrawal is queued. Provider liquidity is updating and the app will retry the payout automatically.",
           });
         }
 
@@ -361,21 +413,16 @@ function summarizeBalances(balances: Record<string, number>) {
 }
 
 async function waitForMasterLiquidity(currency: string, amount: number) {
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 4; i++) {
     try {
       const balances = await getMasterBalance();
       if (floorNowAmount(balances[currency] ?? 0) + EPSILON >= amount) return true;
     } catch (e: any) {
       console.warn("[withdraw] master balance readback failed:", e?.message);
     }
-    await delay(3000);
+    await delay(2000);
   }
   return false;
-}
-
-function scheduledPayoutTime() {
-  // Give NOWPayments time to finish custody write-off before executing payout.
-  return new Date(Date.now() + 15 * 60 * 1000).toISOString();
 }
 
 function delay(ms: number) {

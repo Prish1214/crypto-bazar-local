@@ -129,14 +129,14 @@ function WithdrawPage() {
           </div>
           <div>
             <Label htmlFor="amt">Amount (USDT)</Label>
-            <Input id="amt" type="number" min="0" step="0.01" value={amount}
+            <Input id="amt" type="number" min="0" step="0.00000001" value={amount}
               onChange={(e) => setAmount(e.target.value)} placeholder={String(network.min)} />
             {insufficient && <p className="mt-1 text-xs text-red-500">Insufficient balance</p>}
             {belowMin && <p className="mt-1 text-xs text-amber-600">Below minimum ({network.min} USDT)</p>}
           </div>
 
           <div className="rounded-lg border border-border bg-background p-3 text-sm">
-            <div className="flex justify-between"><span className="text-muted-foreground">Wallet debit</span><span className="font-mono">{amt ? amt.toFixed(2) : "0.00"} USDT</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Wallet debit</span><span className="font-mono">{amt ? fmtUSDT(amt) : "0.00 USDT"}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Service fee (5%)</span><span className="font-mono">-{amt ? serviceFee.toFixed(8) : "0.00000000"} USDT</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Provider/network fees</span><span className="font-mono text-emerald-600">included</span></div>
             <div className="mt-1 border-t border-border pt-1 flex justify-between font-medium"><span>You receive</span><span className="font-mono">{amt ? receiveAmount.toFixed(8) : "0.00000000"} USDT</span></div>

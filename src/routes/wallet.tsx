@@ -110,7 +110,7 @@ function WalletPage() {
                   <div className="text-[11px] text-muted-foreground">{new Date(t.created_at).toLocaleString()}</div>
                 </div>
                 <div className={`font-mono ${["deposit", "escrow_release", "trade"].includes(t.type) ? "text-primary" : "text-muted-foreground"}`}>
-                  {Number(t.amount).toFixed(2)}
+                  {fmtUSDT(t.amount)}
                 </div>
               </div>
             ))}
