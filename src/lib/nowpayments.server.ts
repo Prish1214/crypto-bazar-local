@@ -203,8 +203,11 @@ export async function createPayout(opts: {
       ],
     }),
   });
-  const w = j.withdrawals?.[0] ?? j.result?.withdrawals?.[0];
-  const payoutId = String(w?.id ?? j.id ?? "");
+  const r = j.result ?? j;
+  const w = r.withdrawals?.[0] ?? j.withdrawals?.[0];
+  // Store the batch id when available because NOWPayments status/IPN endpoints
+  // commonly refer to the batch, while the item id is kept in raw.withdrawals.
+  const payoutId = String(r.id ?? j.id ?? w?.batch_withdrawal_id ?? w?.id ?? "");
   if (!payoutId) throw new Error("NOWPayments did not return a payout id");
   return { payoutId, raw: j };
 }
