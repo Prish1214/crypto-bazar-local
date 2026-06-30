@@ -216,7 +216,13 @@ export async function createPayout(opts: {
 export async function getPayoutStatus(payoutId: string): Promise<any> {
   // The official JS mass-payout client uses x-api-key only for this endpoint;
   // keep JWT off the request to avoid false auth failures on status polling.
-  return np<any>(`/payout/${encodeURIComponent(payoutId)}`, { method: "GET" });
+  try {
+    return await np<any>(`/payout/${encodeURIComponent(payoutId)}`, { method: "GET" });
+  } catch (e: any) {
+    if (!/401|403|unauthori[sz]ed|access denied/i.test(String(e?.message ?? e))) throw e;
+    const token = await getJwt();
+    return np<any>(`/payout/${encodeURIComponent(payoutId)}`, { method: "GET", auth: token });
+  }
 }
 
 function parseBalanceResponse(input: any): Record<string, number> {
