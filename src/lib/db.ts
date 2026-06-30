@@ -161,7 +161,12 @@ function getTyped() { return supabase; }
 
 export function fmtUSDT(n: number | string) {
   const v = typeof n === "string" ? parseFloat(n) : n;
-  return `${v.toFixed(2)} USDT`;
+  if (!Number.isFinite(v)) return "0.00 USDT";
+  const formatted = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8,
+  }).format(v);
+  return `${formatted} USDT`;
 }
 export function fmtFiat(n: number | string, ccy = "INR") {
   const v = typeof n === "string" ? parseFloat(n) : n;

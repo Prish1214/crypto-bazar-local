@@ -4,7 +4,7 @@ import { Loader2, ArrowRight } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import { db, type Deal, type Transaction } from "@/lib/db";
+import { db, fmtUSDT, type Deal, type Transaction } from "@/lib/db";
 
 export const Route = createFileRoute("/transactions")({
   head: () => ({ meta: [{ title: "History — CryptoBazar" }] }),
@@ -76,7 +76,7 @@ function History() {
                   {t.description && <div className="text-[11px] text-muted-foreground">{t.description}</div>}
                 </div>
                 <div className={`font-mono ${["deposit","escrow_release","trade"].includes(t.type) ? "text-primary" : "text-muted-foreground"}`}>
-                  {Number(t.amount).toFixed(2)}
+                  {fmtUSDT(t.amount)}
                 </div>
               </div>
             ))}

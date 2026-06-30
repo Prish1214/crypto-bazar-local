@@ -37,9 +37,9 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
         // Deposit payload
         const npId = String(payload.payment_id ?? payload.id ?? "");
         const status = String(payload.payment_status ?? "").toLowerCase();
-        const actuallyPaid = Number(payload.outcome_amount ?? payload.actually_paid ?? payload.pay_amount ?? 0);
+        const creditedAmount = pickDepositCreditAmount(payload);
         const address = payload.pay_address ?? payload.payin_address;
-        if (!npId || !address || actuallyPaid <= 0) {
+        if (!npId || !address || creditedAmount <= 0) {
           return Response.json({ ok: true, skipped: true });
         }
         if (!["finished", "confirmed", "completed", "partially_paid"].includes(status)) {
@@ -48,7 +48,7 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
             {
               user_id: payload._user_id ?? null,
               nowpayments_payment_id: npId,
-              amount: actuallyPaid,
+              amount: creditedAmount,
               network: payload.network ?? guessNetwork(payload.pay_currency),
               status: status || "pending",
               raw: payload,
@@ -68,17 +68,31 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
 
         await sb.rpc("credit_deposit", {
           _user_id: da.user_id,
-          _amount: actuallyPaid,
+          _amount: creditedAmount,
           _network: da.network,
           _tx_hash: payload.hash ?? payload.tx_hash ?? "",
           _nowpayments_payment_id: npId,
           _raw: payload,
         });
-        return Response.json({ ok: true, credited: actuallyPaid });
+        return Response.json({ ok: true, credited: creditedAmount });
       },
     },
   },
 });
+
+function pickDepositCreditAmount(payload: any): number {
+  // For open custody deposit addresses, `amount/pay_amount` can be the large
+  // notional ceiling used when creating the address. `actually_paid` is the
+  // user's real on-chain deposit; fall back to outcome only if needed.
+  const candidates = [payload.actually_paid, payload.outcome_amount, payload.pay_amount];
+  for (const value of candidates) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0 && n < 100000) {
+      return Math.floor((n + Number.EPSILON) * 100_000_000) / 100_000_000;
+    }
+  }
+  return 0;
+}
 
 function mapPayoutStatus(s: string | undefined): string {
   switch ((s ?? "").toLowerCase()) {
