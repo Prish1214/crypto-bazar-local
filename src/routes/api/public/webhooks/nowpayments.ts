@@ -84,15 +84,14 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
 });
 
 function pickDepositCreditAmount(payload: any): number {
-  // For open custody deposit addresses, `amount/pay_amount` can be the large
-  // notional ceiling used when creating the address. `actually_paid` is the
-  // user's real on-chain deposit; fall back to outcome only if needed.
-  const candidates = [payload.actually_paid, payload.outcome_amount, payload.pay_amount];
-  for (const value of candidates) {
-    const n = Number(value);
-    if (Number.isFinite(n) && n > 0 && n < 100000) {
-      return Math.floor((n + Number.EPSILON) * 100_000_000) / 100_000_000;
-    }
+  // Permanent custody addresses are created with a large notional `amount`
+  // ceiling. NOWPayments may echo that ceiling back as `amount`,
+  // `pay_amount`, or `price_amount`; using those fields is what can create
+  // fake wallet balances in the thousands. Only credit the real on-chain paid
+  // value. If it is not present yet, skip and wait for the next final IPN.
+  const n = Number(payload.actually_paid ?? payload.actual_paid ?? payload.paid_amount);
+  if (Number.isFinite(n) && n > 0 && n < 100000) {
+    return Math.floor((n + Number.EPSILON) * 100_000_000) / 100_000_000;
   }
   return 0;
 }

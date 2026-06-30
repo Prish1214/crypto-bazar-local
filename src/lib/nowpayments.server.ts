@@ -152,26 +152,13 @@ export async function getSubPartnerBalance(
     method: "GET",
     auth: token,
   });
-  const r = j.result ?? j;
-  const out: Record<string, number> = {};
-  // API returns { balances: { usdttrc20: { amount, pendingAmount }, ... } }
-  const balances = r.balances ?? r;
-  for (const [k, v] of Object.entries<any>(balances)) {
-    if (v && typeof v === "object") out[k.toLowerCase()] = Number(v.amount ?? 0);
-    else if (typeof v === "number") out[k.toLowerCase()] = v;
-  }
-  return out;
+  return parseBalanceResponse(j);
 }
 
 /** Fetch the master payout balances. Returns { [currency]: amount }. */
 export async function getMasterBalance(): Promise<Record<string, number>> {
   const j = await np<any>("/balance", { method: "GET" });
-  const out: Record<string, number> = {};
-  for (const [k, v] of Object.entries<any>(j ?? {})) {
-    if (v && typeof v === "object") out[k.toLowerCase()] = Number(v.amount ?? 0);
-    else if (typeof v === "number") out[k.toLowerCase()] = v;
-  }
-  return out;
+  return parseBalanceResponse(j);
 }
 
 /** Move funds from a sub-partner custody balance up to the master account.
@@ -206,12 +193,12 @@ export async function createPayout(opts: {
     method: "POST",
     auth: token,
     body: JSON.stringify({
-      ipn_callback_url: opts.ipnCallbackUrl,
       withdrawals: [
         {
           address: opts.address,
           currency: opts.currency,
           amount: opts.amount,
+          ipn_callback_url: opts.ipnCallbackUrl,
         },
       ],
     }),
@@ -220,6 +207,50 @@ export async function createPayout(opts: {
   const payoutId = String(w?.id ?? j.id ?? "");
   if (!payoutId) throw new Error("NOWPayments did not return a payout id");
   return { payoutId, raw: j };
+}
+
+/** Fetch a payout/batch status directly from NOWPayments. */
+export async function getPayoutStatus(payoutId: string): Promise<any> {
+  // The official JS mass-payout client uses x-api-key only for this endpoint;
+  // keep JWT off the request to avoid false auth failures on status polling.
+  return np<any>(`/payout/${encodeURIComponent(payoutId)}`, { method: "GET" });
+}
+
+function parseBalanceResponse(input: any): Record<string, number> {
+  const out: Record<string, number> = {};
+  const root = input?.result ?? input?.data ?? input;
+  const balances = root?.balances ?? root?.balance ?? root;
+
+  const add = (currency: unknown, amount: unknown) => {
+    const key = normalizeCurrencyKey(String(currency ?? ""));
+    const value = Number(amount ?? 0);
+    if (!key || !Number.isFinite(value)) return;
+    out[key] = (out[key] ?? 0) + value;
+  };
+
+  if (Array.isArray(balances)) {
+    for (const item of balances) {
+      add(
+        item?.currency ?? item?.ticker ?? item?.symbol ?? item?.name,
+        item?.amount ?? item?.balance ?? item?.available ?? item?.available_amount,
+      );
+    }
+    return out;
+  }
+
+  for (const [k, v] of Object.entries<any>(balances ?? {})) {
+    if (v && typeof v === "object") {
+      const currency = v.currency ?? v.ticker ?? v.symbol ?? k;
+      add(currency, v.amount ?? v.balance ?? v.available ?? v.available_amount);
+    } else {
+      add(k, v);
+    }
+  }
+  return out;
+}
+
+function normalizeCurrencyKey(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 /** Estimate network fee (best-effort; not all currencies supported). */
