@@ -40,6 +40,11 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
 
         // Deposit payload
         const npId = String(payload.payment_id ?? payload.id ?? "");
+        const txHash = String(payload.hash ?? payload.tx_hash ?? payload.txid ?? "");
+        // Users reuse one custody address. Some NOWPayments custody IPNs keep
+        // the same payment_id for later deposits, so idempotency must include
+        // the blockchain tx hash when it is available.
+        const depositKey = txHash ? `${npId}:${txHash}` : npId;
         const status = String(payload.payment_status ?? "").toLowerCase();
         const creditedAmount = pickDepositCreditAmount(payload);
         const address = payload.pay_address ?? payload.payin_address;
@@ -62,7 +67,7 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
           await sb.from("deposits").upsert(
             {
               user_id: da.user_id,
-              nowpayments_payment_id: npId,
+              nowpayments_payment_id: depositKey,
               amount: creditedAmount,
               network: da.network,
               status: status || "pending",
@@ -77,8 +82,8 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
           _user_id: da.user_id,
           _amount: creditedAmount,
           _network: da.network,
-          _tx_hash: payload.hash ?? payload.tx_hash ?? "",
-          _nowpayments_payment_id: npId,
+          _tx_hash: txHash,
+          _nowpayments_payment_id: depositKey,
           _raw: payload,
         });
         return Response.json({ ok: true, credited: creditedAmount });
