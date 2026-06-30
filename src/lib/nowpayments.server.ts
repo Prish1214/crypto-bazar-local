@@ -199,7 +199,6 @@ export async function createPayout(opts: {
   amount: number;
   currency: string;
   ipnCallbackUrl?: string;
-  executeAt?: string;
   subPartnerId?: string; // accepted but ignored — payout always draws from master
 }): Promise<{ payoutId: string; raw: any }> {
   const token = await getJwt();
@@ -208,7 +207,6 @@ export async function createPayout(opts: {
     auth: token,
     body: JSON.stringify({
       ipn_callback_url: opts.ipnCallbackUrl,
-      ...(opts.executeAt ? { execute_at: opts.executeAt, interval: "ONETIME" } : {}),
       withdrawals: [
         {
           address: opts.address,
