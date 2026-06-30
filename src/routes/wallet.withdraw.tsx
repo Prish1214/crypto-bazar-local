@@ -162,11 +162,12 @@ function WithdrawPage() {
                 <div key={w.id} className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-xs">
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 font-medium capitalize">
-                      {statusIcon(w.status)} {String(w.status).replace("_", " ")}
+                      {statusIcon(displayWithdrawalStatus(w))} {withdrawalStatusLabel(w)}
                     </div>
                     <div className="truncate text-muted-foreground">
                       {w.network?.toUpperCase()} · {String(w.address).slice(0, 8)}…{String(w.address).slice(-6)}
                     </div>
+                    {w.tx_hash && <div className="truncate text-[10px] text-muted-foreground">Tx {String(w.tx_hash).slice(0, 10)}…{String(w.tx_hash).slice(-8)}</div>}
                   </div>
                   <div className="text-right font-mono">
                     <div>{Number(w.net_amount ?? 0).toFixed(8)} USDT</div>
@@ -200,4 +201,15 @@ function statusIcon(status: string) {
   if (status === "completed") return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />;
   if (status === "failed" || status === "rejected") return <XCircle className="h-3.5 w-3.5 text-red-600" />;
   return <Clock3 className="h-3.5 w-3.5 text-amber-600" />;
+}
+
+function displayWithdrawalStatus(w: any) {
+  return w.status === "completed" && !w.tx_hash ? "processing" : String(w.status ?? "processing");
+}
+
+function withdrawalStatusLabel(w: any) {
+  const status = displayWithdrawalStatus(w);
+  if (status === "completed") return "Sent on-chain";
+  if (status === "processing") return "Processing payout";
+  return status.replace("_", " ");
 }

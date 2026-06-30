@@ -193,6 +193,7 @@ export async function createPayout(opts: {
     method: "POST",
     auth: token,
     body: JSON.stringify({
+      ipn_callback_url: opts.ipnCallbackUrl,
       withdrawals: [
         {
           address: opts.address,
