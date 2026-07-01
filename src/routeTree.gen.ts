@@ -22,6 +22,8 @@ import { Route as ChatIndexRouteImport } from './routes/chat.index'
 import { Route as WalletWithdrawRouteImport } from './routes/wallet.withdraw'
 import { Route as WalletTransferRouteImport } from './routes/wallet.transfer'
 import { Route as WalletDepositRouteImport } from './routes/wallet.deposit'
+import { Route as SettingsDealCodeRouteImport } from './routes/settings.deal-code'
+import { Route as OnboardingDealCodeRouteImport } from './routes/onboarding.deal-code'
 import { Route as MerchantUserIdRouteImport } from './routes/merchant.$userId'
 import { Route as ListingsNewRouteImport } from './routes/listings.new'
 import { Route as DealsDealIdRouteImport } from './routes/deals.$dealId'
@@ -30,6 +32,11 @@ import { Route as DealsNewListingIdRouteImport } from './routes/deals.new.$listi
 import { Route as ApiWalletWithdrawRouteImport } from './routes/api/wallet/withdraw'
 import { Route as ApiWalletTransferRouteImport } from './routes/api/wallet/transfer'
 import { Route as ApiWalletDepositAddressRouteImport } from './routes/api/wallet/deposit-address'
+import { Route as ApiDealsReleaseRouteImport } from './routes/api/deals/release'
+import { Route as ApiDealCodeSetRouteImport } from './routes/api/deal-code/set'
+import { Route as ApiDealCodeRequestOtpRouteImport } from './routes/api/deal-code/request-otp'
+import { Route as ApiDealCodeChangeRouteImport } from './routes/api/deal-code/change'
+import { Route as ApiDealCodeBiometricRouteImport } from './routes/api/deal-code/biometric'
 import { Route as ApiPublicWebhooksNowpaymentsRouteImport } from './routes/api/public/webhooks/nowpayments'
 
 const WalletRoute = WalletRouteImport.update({
@@ -97,6 +104,16 @@ const WalletDepositRoute = WalletDepositRouteImport.update({
   path: '/deposit',
   getParentRoute: () => WalletRoute,
 } as any)
+const SettingsDealCodeRoute = SettingsDealCodeRouteImport.update({
+  id: '/deal-code',
+  path: '/deal-code',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const OnboardingDealCodeRoute = OnboardingDealCodeRouteImport.update({
+  id: '/onboarding/deal-code',
+  path: '/onboarding/deal-code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MerchantUserIdRoute = MerchantUserIdRouteImport.update({
   id: '/merchant/$userId',
   path: '/merchant/$userId',
@@ -137,6 +154,31 @@ const ApiWalletDepositAddressRoute = ApiWalletDepositAddressRouteImport.update({
   path: '/api/wallet/deposit-address',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDealsReleaseRoute = ApiDealsReleaseRouteImport.update({
+  id: '/api/deals/release',
+  path: '/api/deals/release',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDealCodeSetRoute = ApiDealCodeSetRouteImport.update({
+  id: '/api/deal-code/set',
+  path: '/api/deal-code/set',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDealCodeRequestOtpRoute = ApiDealCodeRequestOtpRouteImport.update({
+  id: '/api/deal-code/request-otp',
+  path: '/api/deal-code/request-otp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDealCodeChangeRoute = ApiDealCodeChangeRouteImport.update({
+  id: '/api/deal-code/change',
+  path: '/api/deal-code/change',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDealCodeBiometricRoute = ApiDealCodeBiometricRouteImport.update({
+  id: '/api/deal-code/biometric',
+  path: '/api/deal-code/biometric',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWebhooksNowpaymentsRoute =
   ApiPublicWebhooksNowpaymentsRouteImport.update({
     id: '/api/public/webhooks/nowpayments',
@@ -149,19 +191,26 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/marketplace': typeof MarketplaceRoute
-  '/settings': typeof SettingsRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
   '/chat/$conversationId': typeof ChatConversationIdRoute
   '/deals/$dealId': typeof DealsDealIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/merchant/$userId': typeof MerchantUserIdRoute
+  '/onboarding/deal-code': typeof OnboardingDealCodeRoute
+  '/settings/deal-code': typeof SettingsDealCodeRoute
   '/wallet/deposit': typeof WalletDepositRoute
   '/wallet/transfer': typeof WalletTransferRoute
   '/wallet/withdraw': typeof WalletWithdrawRoute
   '/chat/': typeof ChatIndexRoute
   '/deals/': typeof DealsIndexRoute
   '/listings/': typeof ListingsIndexRoute
+  '/api/deal-code/biometric': typeof ApiDealCodeBiometricRoute
+  '/api/deal-code/change': typeof ApiDealCodeChangeRoute
+  '/api/deal-code/request-otp': typeof ApiDealCodeRequestOtpRoute
+  '/api/deal-code/set': typeof ApiDealCodeSetRoute
+  '/api/deals/release': typeof ApiDealsReleaseRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
   '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
@@ -173,19 +222,26 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/marketplace': typeof MarketplaceRoute
-  '/settings': typeof SettingsRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
   '/chat/$conversationId': typeof ChatConversationIdRoute
   '/deals/$dealId': typeof DealsDealIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/merchant/$userId': typeof MerchantUserIdRoute
+  '/onboarding/deal-code': typeof OnboardingDealCodeRoute
+  '/settings/deal-code': typeof SettingsDealCodeRoute
   '/wallet/deposit': typeof WalletDepositRoute
   '/wallet/transfer': typeof WalletTransferRoute
   '/wallet/withdraw': typeof WalletWithdrawRoute
   '/chat': typeof ChatIndexRoute
   '/deals': typeof DealsIndexRoute
   '/listings': typeof ListingsIndexRoute
+  '/api/deal-code/biometric': typeof ApiDealCodeBiometricRoute
+  '/api/deal-code/change': typeof ApiDealCodeChangeRoute
+  '/api/deal-code/request-otp': typeof ApiDealCodeRequestOtpRoute
+  '/api/deal-code/set': typeof ApiDealCodeSetRoute
+  '/api/deals/release': typeof ApiDealsReleaseRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
   '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
@@ -198,19 +254,26 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/marketplace': typeof MarketplaceRoute
-  '/settings': typeof SettingsRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
   '/chat/$conversationId': typeof ChatConversationIdRoute
   '/deals/$dealId': typeof DealsDealIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/merchant/$userId': typeof MerchantUserIdRoute
+  '/onboarding/deal-code': typeof OnboardingDealCodeRoute
+  '/settings/deal-code': typeof SettingsDealCodeRoute
   '/wallet/deposit': typeof WalletDepositRoute
   '/wallet/transfer': typeof WalletTransferRoute
   '/wallet/withdraw': typeof WalletWithdrawRoute
   '/chat/': typeof ChatIndexRoute
   '/deals/': typeof DealsIndexRoute
   '/listings/': typeof ListingsIndexRoute
+  '/api/deal-code/biometric': typeof ApiDealCodeBiometricRoute
+  '/api/deal-code/change': typeof ApiDealCodeChangeRoute
+  '/api/deal-code/request-otp': typeof ApiDealCodeRequestOtpRoute
+  '/api/deal-code/set': typeof ApiDealCodeSetRoute
+  '/api/deals/release': typeof ApiDealsReleaseRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
   '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
@@ -231,12 +294,19 @@ export interface FileRouteTypes {
     | '/deals/$dealId'
     | '/listings/new'
     | '/merchant/$userId'
+    | '/onboarding/deal-code'
+    | '/settings/deal-code'
     | '/wallet/deposit'
     | '/wallet/transfer'
     | '/wallet/withdraw'
     | '/chat/'
     | '/deals/'
     | '/listings/'
+    | '/api/deal-code/biometric'
+    | '/api/deal-code/change'
+    | '/api/deal-code/request-otp'
+    | '/api/deal-code/set'
+    | '/api/deals/release'
     | '/api/wallet/deposit-address'
     | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
@@ -255,12 +325,19 @@ export interface FileRouteTypes {
     | '/deals/$dealId'
     | '/listings/new'
     | '/merchant/$userId'
+    | '/onboarding/deal-code'
+    | '/settings/deal-code'
     | '/wallet/deposit'
     | '/wallet/transfer'
     | '/wallet/withdraw'
     | '/chat'
     | '/deals'
     | '/listings'
+    | '/api/deal-code/biometric'
+    | '/api/deal-code/change'
+    | '/api/deal-code/request-otp'
+    | '/api/deal-code/set'
+    | '/api/deals/release'
     | '/api/wallet/deposit-address'
     | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
@@ -279,12 +356,19 @@ export interface FileRouteTypes {
     | '/deals/$dealId'
     | '/listings/new'
     | '/merchant/$userId'
+    | '/onboarding/deal-code'
+    | '/settings/deal-code'
     | '/wallet/deposit'
     | '/wallet/transfer'
     | '/wallet/withdraw'
     | '/chat/'
     | '/deals/'
     | '/listings/'
+    | '/api/deal-code/biometric'
+    | '/api/deal-code/change'
+    | '/api/deal-code/request-otp'
+    | '/api/deal-code/set'
+    | '/api/deals/release'
     | '/api/wallet/deposit-address'
     | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
@@ -297,16 +381,22 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   MarketplaceRoute: typeof MarketplaceRoute
-  SettingsRoute: typeof SettingsRoute
+  SettingsRoute: typeof SettingsRouteWithChildren
   TransactionsRoute: typeof TransactionsRoute
   WalletRoute: typeof WalletRouteWithChildren
   ChatConversationIdRoute: typeof ChatConversationIdRoute
   DealsDealIdRoute: typeof DealsDealIdRoute
   ListingsNewRoute: typeof ListingsNewRoute
   MerchantUserIdRoute: typeof MerchantUserIdRoute
+  OnboardingDealCodeRoute: typeof OnboardingDealCodeRoute
   ChatIndexRoute: typeof ChatIndexRoute
   DealsIndexRoute: typeof DealsIndexRoute
   ListingsIndexRoute: typeof ListingsIndexRoute
+  ApiDealCodeBiometricRoute: typeof ApiDealCodeBiometricRoute
+  ApiDealCodeChangeRoute: typeof ApiDealCodeChangeRoute
+  ApiDealCodeRequestOtpRoute: typeof ApiDealCodeRequestOtpRoute
+  ApiDealCodeSetRoute: typeof ApiDealCodeSetRoute
+  ApiDealsReleaseRoute: typeof ApiDealsReleaseRoute
   ApiWalletDepositAddressRoute: typeof ApiWalletDepositAddressRoute
   ApiWalletTransferRoute: typeof ApiWalletTransferRoute
   ApiWalletWithdrawRoute: typeof ApiWalletWithdrawRoute
@@ -407,6 +497,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletDepositRouteImport
       parentRoute: typeof WalletRoute
     }
+    '/settings/deal-code': {
+      id: '/settings/deal-code'
+      path: '/deal-code'
+      fullPath: '/settings/deal-code'
+      preLoaderRoute: typeof SettingsDealCodeRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/onboarding/deal-code': {
+      id: '/onboarding/deal-code'
+      path: '/onboarding/deal-code'
+      fullPath: '/onboarding/deal-code'
+      preLoaderRoute: typeof OnboardingDealCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/merchant/$userId': {
       id: '/merchant/$userId'
       path: '/merchant/$userId'
@@ -463,6 +567,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWalletDepositAddressRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/deals/release': {
+      id: '/api/deals/release'
+      path: '/api/deals/release'
+      fullPath: '/api/deals/release'
+      preLoaderRoute: typeof ApiDealsReleaseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/deal-code/set': {
+      id: '/api/deal-code/set'
+      path: '/api/deal-code/set'
+      fullPath: '/api/deal-code/set'
+      preLoaderRoute: typeof ApiDealCodeSetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/deal-code/request-otp': {
+      id: '/api/deal-code/request-otp'
+      path: '/api/deal-code/request-otp'
+      fullPath: '/api/deal-code/request-otp'
+      preLoaderRoute: typeof ApiDealCodeRequestOtpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/deal-code/change': {
+      id: '/api/deal-code/change'
+      path: '/api/deal-code/change'
+      fullPath: '/api/deal-code/change'
+      preLoaderRoute: typeof ApiDealCodeChangeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/deal-code/biometric': {
+      id: '/api/deal-code/biometric'
+      path: '/api/deal-code/biometric'
+      fullPath: '/api/deal-code/biometric'
+      preLoaderRoute: typeof ApiDealCodeBiometricRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/webhooks/nowpayments': {
       id: '/api/public/webhooks/nowpayments'
       path: '/api/public/webhooks/nowpayments'
@@ -472,6 +611,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface SettingsRouteChildren {
+  SettingsDealCodeRoute: typeof SettingsDealCodeRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsDealCodeRoute: SettingsDealCodeRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
 
 interface WalletRouteChildren {
   WalletDepositRoute: typeof WalletDepositRoute
@@ -493,16 +644,22 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   MarketplaceRoute: MarketplaceRoute,
-  SettingsRoute: SettingsRoute,
+  SettingsRoute: SettingsRouteWithChildren,
   TransactionsRoute: TransactionsRoute,
   WalletRoute: WalletRouteWithChildren,
   ChatConversationIdRoute: ChatConversationIdRoute,
   DealsDealIdRoute: DealsDealIdRoute,
   ListingsNewRoute: ListingsNewRoute,
   MerchantUserIdRoute: MerchantUserIdRoute,
+  OnboardingDealCodeRoute: OnboardingDealCodeRoute,
   ChatIndexRoute: ChatIndexRoute,
   DealsIndexRoute: DealsIndexRoute,
   ListingsIndexRoute: ListingsIndexRoute,
+  ApiDealCodeBiometricRoute: ApiDealCodeBiometricRoute,
+  ApiDealCodeChangeRoute: ApiDealCodeChangeRoute,
+  ApiDealCodeRequestOtpRoute: ApiDealCodeRequestOtpRoute,
+  ApiDealCodeSetRoute: ApiDealCodeSetRoute,
+  ApiDealsReleaseRoute: ApiDealsReleaseRoute,
   ApiWalletDepositAddressRoute: ApiWalletDepositAddressRoute,
   ApiWalletTransferRoute: ApiWalletTransferRoute,
   ApiWalletWithdrawRoute: ApiWalletWithdrawRoute,

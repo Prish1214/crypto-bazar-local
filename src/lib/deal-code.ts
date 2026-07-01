@@ -36,8 +36,7 @@ export function isBiometricSupported(): boolean {
 export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
   if (!isBiometricSupported()) return false;
   try {
-    // @ts-expect-error - method exists on modern browsers
-    return await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();
+    return await (window.PublicKeyCredential as any).isUserVerifyingPlatformAuthenticatorAvailable?.();
   } catch { return false; }
 }
 

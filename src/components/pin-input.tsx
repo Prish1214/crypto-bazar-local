@@ -40,7 +40,7 @@ export function PinInput({ value, onChange, length = 6, autoFocus, disabled, mas
       {Array.from({ length }).map((_, i) => (
         <input
           key={i}
-          ref={(el) => (refs.current[i] = el)}
+          ref={(el) => { refs.current[i] = el; }}
           inputMode="numeric"
           autoComplete="one-time-code"
           maxLength={1}
