@@ -16,6 +16,17 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
       GET: async ({ request }) => {
         const auth = await userFromRequest(request);
         if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
+        const url = new URL(request.url);
+        if (url.searchParams.get("estimate")) {
+          const net = (url.searchParams.get("network") ?? "").toLowerCase();
+          const amt = Number(url.searchParams.get("amount") ?? 0);
+          const currency = NETWORK_TO_CURRENCY[net];
+          if (!currency || !Number.isFinite(amt) || amt <= 0) {
+            return Response.json({ fee: null });
+          }
+          const fee = await estimateFee(currency, amt);
+          return Response.json({ fee });
+        }
         const processed = await processQueuedWithdrawals(auth.user.id, request.url);
         return Response.json({ ok: true, processed });
       },
