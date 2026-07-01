@@ -160,10 +160,21 @@ function WithdrawPage() {
 
           <div className="rounded-lg border border-border bg-background p-3 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Wallet debit</span><span className="font-mono">{amt ? fmtUSDT(amt) : "0.00 USDT"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Service fee (5%)</span><span className="font-mono">-{amt ? serviceFee.toFixed(8) : "0.00000000"} USDT</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Provider/network fees</span><span className="font-mono text-emerald-600">included</span></div>
-            <div className="mt-1 border-t border-border pt-1 flex justify-between font-medium"><span>You receive</span><span className="font-mono">{amt ? receiveAmount.toFixed(8) : "0.00000000"} USDT</span></div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Network fee ({network.chain})</span>
+              <span className="font-mono">
+                {amt ? (feeLoading ? "estimating…" : networkFee != null ? `-${networkFee.toFixed(8)} USDT` : "shown by network") : "0.00000000 USDT"}
+              </span>
+            </div>
+            <div className="mt-1 border-t border-border pt-1 flex justify-between font-medium">
+              <span>You receive</span>
+              <span className="font-mono">
+                {amt ? (networkFee != null ? `${receiveAmount.toFixed(8)} USDT` : `~${amt.toFixed(8)} USDT`) : "0.00000000 USDT"}
+              </span>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">Only the on-chain network fee is deducted. No platform service fee.</p>
           </div>
+
 
           <Button disabled={busy || insufficient || belowMin || !amt} onClick={submit} variant="hero" className="w-full">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Request Withdrawal"}
