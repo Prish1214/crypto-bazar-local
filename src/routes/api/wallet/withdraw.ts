@@ -3,6 +3,7 @@ import { userFromRequest, admin } from "@/lib/supabase.server";
 import {
   NETWORK_TO_CURRENCY,
   createPayout,
+  estimateFee,
   getMasterBalance,
   getPayoutStatus,
   getSubPartnerBalance,
@@ -15,6 +16,17 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
       GET: async ({ request }) => {
         const auth = await userFromRequest(request);
         if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
+        const url = new URL(request.url);
+        if (url.searchParams.get("estimate")) {
+          const net = (url.searchParams.get("network") ?? "").toLowerCase();
+          const amt = Number(url.searchParams.get("amount") ?? 0);
+          const currency = NETWORK_TO_CURRENCY[net];
+          if (!currency || !Number.isFinite(amt) || amt <= 0) {
+            return Response.json({ fee: null });
+          }
+          const fee = await estimateFee(currency, amt);
+          return Response.json({ fee });
+        }
         const processed = await processQueuedWithdrawals(auth.user.id, request.url);
         return Response.json({ ok: true, processed });
       },
@@ -290,7 +302,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             type: "withdraw",
             amount: amt,
             network: net,
-            description: `Withdrawal ${sentAmount.toFixed(8)} USDT after ${(SERVICE_FEE_RATE * 100).toFixed(0)}% service fee → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
+            description: `Withdrawal ${sentAmount.toFixed(8)} USDT → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
             reference_id: wRow.id,
           });
           return Response.json({ ok: true, withdrawal_id: wRow.id, fee, net_amount: sentAmount });
@@ -317,7 +329,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             type: "withdraw",
             amount: amt,
             network: net,
-            description: `Withdrawal queued ${sentAmount.toFixed(8)} USDT after ${(SERVICE_FEE_RATE * 100).toFixed(0)}% service fee → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
+            description: `Withdrawal queued ${sentAmount.toFixed(8)} USDT → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
             reference_id: wRow.id,
           });
           return Response.json({
@@ -351,7 +363,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
             type: "withdraw",
             amount: amt,
             network: net,
-            description: `Withdrawal queued ${sentAmount.toFixed(8)} USDT after ${(SERVICE_FEE_RATE * 100).toFixed(0)}% service fee → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
+            description: `Withdrawal queued ${sentAmount.toFixed(8)} USDT → ${addr.slice(0, 6)}…${addr.slice(-4)}`,
             reference_id: wRow.id,
           });
           return Response.json({
@@ -377,7 +389,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
 });
 
 const EPSILON = 1e-8;
-const SERVICE_FEE_RATE = 0.05;
+const SERVICE_FEE_RATE = 0;
 
 const CURRENCY_ALIASES: Record<string, string[]> = {
   usdttrc20: ["usdttrc20", "usdttron"],

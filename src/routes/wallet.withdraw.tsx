@@ -30,6 +30,8 @@ function WithdrawPage() {
   const [address, setAddress] = useState("");
   const [busy, setBusy] = useState(false);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [networkFee, setNetworkFee] = useState<number | null>(null);
+  const [feeLoading, setFeeLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -50,8 +52,27 @@ function WithdrawPage() {
   }, [user?.id, session?.access_token]);
 
   const amt = parseFloat(amount || "0");
-  const serviceFee = Math.floor((amt * 0.05 + Number.EPSILON) * 100_000_000) / 100_000_000;
-  const receiveAmount = Math.max(0, Math.floor(((amt - serviceFee) + Number.EPSILON) * 100_000_000) / 100_000_000);
+
+  useEffect(() => {
+    if (!amt || amt <= 0) { setNetworkFee(null); return; }
+    let cancel = false;
+    setFeeLoading(true);
+    const t = window.setTimeout(async () => {
+      try {
+        const token = session?.access_token ?? (await supabase.auth.getSession()).data.session?.access_token;
+        if (!token) return;
+        const r = await fetch(`/api/wallet/withdraw?estimate=1&network=${network.id}&amount=${amt}`, { headers: { Authorization: `Bearer ${token}` } });
+        const j = await r.json().catch(() => ({}));
+        if (!cancel) setNetworkFee(typeof j.fee === "number" ? j.fee : null);
+      } finally {
+        if (!cancel) setFeeLoading(false);
+      }
+    }, 350);
+    return () => { cancel = true; window.clearTimeout(t); };
+  }, [amt, network.id, session?.access_token]);
+
+  const fee = networkFee ?? 0;
+  const receiveAmount = Math.max(0, Math.floor(((amt - fee) + Number.EPSILON) * 100_000_000) / 100_000_000);
   const insufficient = wallet ? amt > Number(wallet.balance) : false;
   const belowMin = amt > 0 && amt < network.min;
 
@@ -139,10 +160,21 @@ function WithdrawPage() {
 
           <div className="rounded-lg border border-border bg-background p-3 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Wallet debit</span><span className="font-mono">{amt ? fmtUSDT(amt) : "0.00 USDT"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Service fee (5%)</span><span className="font-mono">-{amt ? serviceFee.toFixed(8) : "0.00000000"} USDT</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Provider/network fees</span><span className="font-mono text-emerald-600">included</span></div>
-            <div className="mt-1 border-t border-border pt-1 flex justify-between font-medium"><span>You receive</span><span className="font-mono">{amt ? receiveAmount.toFixed(8) : "0.00000000"} USDT</span></div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Network fee ({network.chain})</span>
+              <span className="font-mono">
+                {amt ? (feeLoading ? "estimating…" : networkFee != null ? `-${networkFee.toFixed(8)} USDT` : "shown by network") : "0.00000000 USDT"}
+              </span>
+            </div>
+            <div className="mt-1 border-t border-border pt-1 flex justify-between font-medium">
+              <span>You receive</span>
+              <span className="font-mono">
+                {amt ? (networkFee != null ? `${receiveAmount.toFixed(8)} USDT` : `~${amt.toFixed(8)} USDT`) : "0.00000000 USDT"}
+              </span>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">Only the on-chain network fee is deducted. No platform service fee.</p>
           </div>
+
 
           <Button disabled={busy || insufficient || belowMin || !amt} onClick={submit} variant="hero" className="w-full">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Request Withdrawal"}
