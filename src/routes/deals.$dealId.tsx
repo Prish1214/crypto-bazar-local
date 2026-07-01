@@ -293,6 +293,13 @@ function DealRoom() {
           )}
         </div>
       </div>
+      <DealCodeReleaseDialog
+        open={releaseOpen}
+        onOpenChange={setReleaseOpen}
+        dealId={dealId}
+        amountLabel={fmtUSDT(Number(deal.amount_usdt) - Number(deal.fee_usdt))}
+        onReleased={onReleased}
+      />
     </PageShell>
   );
 }
