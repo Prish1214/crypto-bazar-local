@@ -26,6 +26,7 @@ import { ChatPanel } from "@/components/deal/chat-panel";
 import { MutualQRVerification } from "@/components/deal/qr-verification";
 import { DisputeButton } from "@/components/deal/dispute-button";
 import { DealDetailsDialog } from "@/components/deal/deal-details-dialog";
+import { DealCodeReleaseDialog } from "@/components/deal/deal-code-release-dialog";
 
 export const Route = createFileRoute("/deals/$dealId")({
   head: () => ({ meta: [{ title: "Deal Room — CryptoBazar" }] }),
@@ -163,14 +164,13 @@ function DealRoom() {
     } as any, "Buyer marked cash as handed over.");
   };
 
-  const releaseEscrow = async () => {
-    const amt = Number(deal.amount_usdt);
-    const fee = Number(deal.fee_usdt);
+  const [releaseOpen, setReleaseOpen] = useState(false);
+  const releaseEscrow = async () => { setReleaseOpen(true); };
+  const onReleased = async () => {
+    const amt = Number(deal!.amount_usdt);
+    const fee = Number(deal!.fee_usdt);
     const net = amt - fee;
-    const { error } = await (db as any).rpc("complete_deal_release", { _deal_id: dealId });
-    if (error) { toast.error(error.message ?? "Escrow release failed"); return; }
     await sendSystemMessage(dealId, user.id, `Escrow released — ${fmtUSDT(net)} sent to buyer. Trade completed.`);
-    toast.success("Escrow released and deal completed");
     await load();
   };
 
@@ -293,6 +293,13 @@ function DealRoom() {
           )}
         </div>
       </div>
+      <DealCodeReleaseDialog
+        open={releaseOpen}
+        onOpenChange={setReleaseOpen}
+        dealId={dealId}
+        amountLabel={fmtUSDT(Number(deal.amount_usdt) - Number(deal.fee_usdt))}
+        onReleased={onReleased}
+      />
     </PageShell>
   );
 }

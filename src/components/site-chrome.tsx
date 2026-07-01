@@ -200,12 +200,19 @@ export function PageShell({ children }: { children: ReactNode }) {
 
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [dealCodeSet, setDealCodeSet] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user) { setDealCodeSet(null); return; }
+    db.from("profiles").select("deal_code_set_at").eq("id", user.id).maybeSingle()
+      .then(({ data }) => setDealCodeSet(!!data?.deal_code_set_at));
+  }, [user?.id]);
+
   if (loading) {
     return (
       <PageShell>
-        <div className="glass-panel rounded-2xl p-12 text-center text-muted-foreground">
-          Loading…
-        </div>
+        <div className="glass-panel rounded-2xl p-12 text-center text-muted-foreground">Loading…</div>
       </PageShell>
     );
   }
@@ -214,14 +221,24 @@ export function RequireAuth({ children }: { children: ReactNode }) {
       <PageShell>
         <div className="glass-panel rounded-2xl p-12 text-center">
           <h2 className="font-display text-xl font-semibold">Sign in required</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            You need an account to access this page.
-          </p>
+          <p className="mt-2 text-sm text-muted-foreground">You need an account to access this page.</p>
           <div className="mt-5">
-            <Link to="/auth">
-              <Button variant="hero">Sign in / Sign up</Button>
-            </Link>
+            <Link to="/auth"><Button variant="hero">Sign in / Sign up</Button></Link>
           </div>
+        </div>
+      </PageShell>
+    );
+  }
+  // Gate: force first-time users to create their Deal Code before using the app.
+  const isOnboarding = pathname.startsWith("/onboarding/deal-code");
+  if (dealCodeSet === false && !isOnboarding) {
+    if (typeof window !== "undefined") {
+      window.location.replace("/onboarding/deal-code");
+    }
+    return (
+      <PageShell>
+        <div className="glass-panel rounded-2xl p-12 text-center text-muted-foreground">
+          Redirecting to Deal Code setup…
         </div>
       </PageShell>
     );
