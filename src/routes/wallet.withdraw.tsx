@@ -30,6 +30,8 @@ function WithdrawPage() {
   const [address, setAddress] = useState("");
   const [busy, setBusy] = useState(false);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [networkFee, setNetworkFee] = useState<number | null>(null);
+  const [feeLoading, setFeeLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -50,8 +52,27 @@ function WithdrawPage() {
   }, [user?.id, session?.access_token]);
 
   const amt = parseFloat(amount || "0");
-  const serviceFee = Math.floor((amt * 0.05 + Number.EPSILON) * 100_000_000) / 100_000_000;
-  const receiveAmount = Math.max(0, Math.floor(((amt - serviceFee) + Number.EPSILON) * 100_000_000) / 100_000_000);
+
+  useEffect(() => {
+    if (!amt || amt <= 0) { setNetworkFee(null); return; }
+    let cancel = false;
+    setFeeLoading(true);
+    const t = window.setTimeout(async () => {
+      try {
+        const token = session?.access_token ?? (await supabase.auth.getSession()).data.session?.access_token;
+        if (!token) return;
+        const r = await fetch(`/api/wallet/withdraw?estimate=1&network=${network.id}&amount=${amt}`, { headers: { Authorization: `Bearer ${token}` } });
+        const j = await r.json().catch(() => ({}));
+        if (!cancel) setNetworkFee(typeof j.fee === "number" ? j.fee : null);
+      } finally {
+        if (!cancel) setFeeLoading(false);
+      }
+    }, 350);
+    return () => { cancel = true; window.clearTimeout(t); };
+  }, [amt, network.id, session?.access_token]);
+
+  const fee = networkFee ?? 0;
+  const receiveAmount = Math.max(0, Math.floor(((amt - fee) + Number.EPSILON) * 100_000_000) / 100_000_000);
   const insufficient = wallet ? amt > Number(wallet.balance) : false;
   const belowMin = amt > 0 && amt < network.min;
 
