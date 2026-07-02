@@ -231,6 +231,7 @@ function AuthPage() {
             </button>
           </div>
         </div>
+        )}
 
         <p className="mt-6 text-center text-xs text-muted-foreground/70">
           By continuing you agree to trade responsibly and follow your local laws.
