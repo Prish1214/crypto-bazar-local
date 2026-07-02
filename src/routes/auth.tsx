@@ -29,10 +29,25 @@ function AuthPage() {
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pendingVerification, setPendingVerification] = useState<string | null>(null);
+  const [justVerified, setJustVerified] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && user) navigate({ to: "/" });
-  }, [user, authLoading, navigate]);
+    // Detect verification callback (?verified=1 or Supabase hash tokens)
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const hash = window.location.hash || "";
+    if (params.get("verified") === "1" || hash.includes("type=signup") || hash.includes("access_token")) {
+      setJustVerified(true);
+      setMode("signin");
+      // Clean the URL
+      window.history.replaceState({}, "", "/auth");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading && user && !justVerified) navigate({ to: "/" });
+  }, [user, authLoading, navigate, justVerified]);
 
   // Live username availability check
   useEffect(() => {
