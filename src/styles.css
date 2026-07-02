@@ -46,7 +46,7 @@
 }
 
 :root {
-  --radius: 0.875rem;
+  --radius: 0.75rem;
 
   /* CryptoBazar — professional light fintech */
   --background: oklch(0.985 0.003 240);

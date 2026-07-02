@@ -1,14 +1,14 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
-  Wallet as WalletIcon, ArrowDownToLine, ArrowUpFromLine,
-  ArrowLeftRight, Lock, Loader2,
+  ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, Lock, Loader2,
+  Eye, EyeOff, TrendingUp,
 } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
-import { buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { db, ensureWallet, fmtUSDT, type Transaction, type Wallet } from "@/lib/db";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/wallet")({
   head: () => ({ meta: [{ title: "Wallet — CryptoBazar" }] }),
@@ -26,6 +26,7 @@ function WalletPage() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -34,13 +35,11 @@ function WalletPage() {
         const w = await ensureWallet(user.id);
         setWallet(w);
         const { data: t } = await db.from("transactions").select("*")
-          .eq("user_id", user.id).order("created_at", { ascending: false }).limit(15);
+          .eq("user_id", user.id).order("created_at", { ascending: false }).limit(20);
         setTxs((t ?? []) as Transaction[]);
       } catch (e: any) {
         toast.error(e.message ?? "Wallet load failed");
-      } finally {
-        setLoading(false);
-      }
+      } finally { setLoading(false); }
     })();
   }, [user?.id]);
 
@@ -55,71 +54,85 @@ function WalletPage() {
   }
 
   const actions = [
-    { to: "/wallet/deposit",  label: "Deposit",  icon: ArrowDownToLine, variant: "hero"  as const, desc: "Top up via NOWPayments" },
-    { to: "/wallet/withdraw", label: "Withdraw", icon: ArrowUpFromLine, variant: "glass" as const, desc: "Send USDT to your wallet" },
-    { to: "/wallet/transfer", label: "Transfer", icon: ArrowLeftRight,  variant: "glass" as const, desc: "Send to another username" },
+    { to: "/wallet/deposit",  label: "Deposit",  icon: ArrowDownToLine },
+    { to: "/wallet/withdraw", label: "Withdraw", icon: ArrowUpFromLine },
+    { to: "/wallet/transfer", label: "Transfer", icon: ArrowLeftRight },
   ];
+
+  const mask = (v: string | number) => hidden ? "••••••" : fmtUSDT(v);
 
   return (
     <PageShell>
-      <h1 className="mb-6 font-display text-3xl font-bold">Wallet</h1>
-
-      <div className="grid gap-5 lg:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-card p-7 shadow-sm lg:col-span-2">
-          <div className="mb-1 inline-flex items-center gap-2 text-xs text-muted-foreground">
-            <WalletIcon className="h-3.5 w-3.5" /> Available balance
+      {/* Balance hero */}
+      <section className="relative overflow-hidden rounded-2xl border border-border bg-[image:var(--gradient-primary)] p-5 text-primary-foreground shadow-[var(--shadow-glow)] md:p-7">
+        <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium uppercase tracking-wide text-primary-foreground/80">Total balance</span>
+            <button onClick={() => setHidden(!hidden)} className="rounded-md p-1.5 text-primary-foreground/80 hover:bg-white/10">
+              {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
           </div>
-          <div className="font-display text-5xl font-bold text-gradient-primary">
-            {fmtUSDT(wallet.balance)}
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="font-display text-3xl font-bold tracking-tight md:text-5xl">{mask(wallet.balance)}</span>
+            <span className="text-sm font-medium text-primary-foreground/80">USDT</span>
           </div>
-          <div className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Lock className="h-3 w-3" /> {fmtUSDT(wallet.escrow_balance)} locked in escrow
+          <div className="mt-1 inline-flex items-center gap-1.5 text-xs text-primary-foreground/80">
+            <Lock className="h-3 w-3" /> {mask(wallet.escrow_balance)} in escrow
           </div>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            {actions.map((a) => (
-              <Link
-                key={a.to}
-                to={a.to}
-                className="group block h-full rounded-xl border border-border bg-background p-4 transition hover:border-primary/50 hover:shadow-md"
-              >
-                <div className="h-full">
-                  <span className={buttonVariants({ variant: a.variant, size: "sm", className: "w-full" })}>
-                    <a.icon className="h-4 w-4" /> {a.label}
-                  </span>
-                  <p className="mt-2 text-xs text-muted-foreground">{a.desc}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-          <p className="mt-4 text-[11px] text-muted-foreground">
-            Deposits and withdrawals will route through NOWPayments once
-            connected. Transfers move USDT instantly between CryptoBazar
-            accounts.
-          </p>
         </div>
+      </section>
 
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <h3 className="font-display text-lg font-semibold">Recent activity</h3>
-          <div className="mt-4 space-y-2">
-            {txs.length === 0 && <p className="text-sm text-muted-foreground">No transactions yet.</p>}
-            {txs.map((t) => (
-              <div key={t.id} className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm">
-                <div>
-                  <div className="font-medium capitalize">{t.type.replace("_", " ")}</div>
-                  <div className="text-[11px] text-muted-foreground">{new Date(t.created_at).toLocaleString()}</div>
+      {/* Quick actions */}
+      <section className="mt-3 grid grid-cols-3 gap-2 md:gap-3">
+        {actions.map((a) => (
+          <Link
+            key={a.to}
+            to={a.to}
+            className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-card py-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md active:scale-[0.98]"
+          >
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+              <a.icon className="h-4 w-4" />
+            </span>
+            <span className="text-xs font-semibold">{a.label}</span>
+          </Link>
+        ))}
+      </section>
+
+      {/* Recent activity */}
+      <section className="mt-4 rounded-2xl border border-border bg-card shadow-sm">
+        <header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+          <h3 className="font-display text-sm font-semibold">Recent activity</h3>
+          <Link to="/transactions" className="text-xs font-medium text-primary hover:underline">See all</Link>
+        </header>
+        <div className="divide-y divide-border/60">
+          {txs.length === 0 && (
+            <p className="px-4 py-10 text-center text-sm text-muted-foreground">No transactions yet.</p>
+          )}
+          {txs.map((t) => {
+            const positive = ["deposit", "escrow_release", "trade", "transfer_in"].includes(t.type);
+            return (
+              <div key={t.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className={cn(
+                    "grid h-8 w-8 shrink-0 place-items-center rounded-full",
+                    positive ? "bg-success/10 text-success" : "bg-muted text-muted-foreground",
+                  )}>
+                    <TrendingUp className={cn("h-3.5 w-3.5", !positive && "rotate-180")} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium capitalize">{t.type.replace(/_/g, " ")}</div>
+                    <div className="text-[11px] text-muted-foreground">{new Date(t.created_at).toLocaleString()}</div>
+                  </div>
                 </div>
-                <div className={`font-mono ${["deposit", "escrow_release", "trade"].includes(t.type) ? "text-primary" : "text-muted-foreground"}`}>
-                  {fmtUSDT(t.amount)}
+                <div className={cn("shrink-0 font-mono text-sm font-semibold", positive ? "text-success" : "text-foreground")}>
+                  {positive ? "+" : "−"}{fmtUSDT(t.amount)}
                 </div>
               </div>
-            ))}
-          </div>
-          <Link to="/transactions" className="mt-4 block text-center text-xs text-primary hover:underline">
-            View full history →
-          </Link>
+            );
+          })}
         </div>
-      </div>
+      </section>
     </PageShell>
   );
 }
