@@ -115,6 +115,46 @@ function AuthPage() {
           <ArrowLeft className="h-4 w-4" /> Back to home
         </Link>
 
+        {pendingVerification ? (
+          <div className="glass-strong rounded-2xl p-7 text-center shadow-[var(--shadow-elevated)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+              <MailCheck className="h-7 w-7 text-primary" />
+            </div>
+            <h1 className="mt-4 font-display text-2xl font-bold">Check your email</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              We sent a verification link to <span className="font-medium text-foreground">{pendingVerification}</span>.
+              Click it to verify your account, then come back to sign in.
+            </p>
+            <div className="mt-6 flex flex-col gap-2">
+              <Button variant="hero" onClick={() => { setPendingVerification(null); setMode("signin"); }}>
+                I've verified — sign in
+              </Button>
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={async () => {
+                  const { error } = await supabase.auth.resend({ type: "signup", email: pendingVerification });
+                  if (error) toast.error(error.message); else toast.success("Verification email resent");
+                }}
+              >
+                Resend verification email
+              </button>
+            </div>
+          </div>
+        ) : justVerified ? (
+          <div className="glass-strong rounded-2xl p-7 text-center shadow-[var(--shadow-elevated)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100">
+              <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+            </div>
+            <h1 className="mt-4 font-display text-2xl font-bold">You're verified!</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Your account has been created successfully. Sign in below to start trading.
+            </p>
+            <Button variant="hero" className="mt-6 w-full" onClick={() => setJustVerified(false)}>
+              Continue to sign in
+            </Button>
+          </div>
+        ) : (
         <div className="glass-strong rounded-2xl p-7 shadow-[var(--shadow-elevated)]">
           <div className="mb-6 flex flex-col items-center text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[image:var(--gradient-primary)] shadow-[var(--shadow-glow)]">
