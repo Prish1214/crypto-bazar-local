@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Coins, Loader2, ArrowLeft } from "lucide-react";
+import { Coins, Loader2, ArrowLeft, MailCheck, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -29,10 +29,25 @@ function AuthPage() {
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pendingVerification, setPendingVerification] = useState<string | null>(null);
+  const [justVerified, setJustVerified] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && user) navigate({ to: "/" });
-  }, [user, authLoading, navigate]);
+    // Detect verification callback (?verified=1 or Supabase hash tokens)
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const hash = window.location.hash || "";
+    if (params.get("verified") === "1" || hash.includes("type=signup") || hash.includes("access_token")) {
+      setJustVerified(true);
+      setMode("signin");
+      // Clean the URL
+      window.history.replaceState({}, "", "/auth");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading && user && !justVerified) navigate({ to: "/" });
+  }, [user, authLoading, navigate, justVerified]);
 
   // Live username availability check
   useEffect(() => {
@@ -64,7 +79,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: `${window.location.origin}/auth?verified=1`,
             data: { full_name: fullName, city, username: u },
           },
         });
@@ -73,7 +88,12 @@ function AuthPage() {
         if (data.user) {
           await supabase.from("profiles").update({ username: u, full_name: fullName, city }).eq("id", data.user.id);
         }
-        toast.success("Account created — check your email if confirmation is required.");
+        // If Supabase returned a session immediately, email confirmation is disabled → go straight in.
+        if (data.session) {
+          toast.success("Account created!");
+        } else {
+          setPendingVerification(email);
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -95,6 +115,46 @@ function AuthPage() {
           <ArrowLeft className="h-4 w-4" /> Back to home
         </Link>
 
+        {pendingVerification ? (
+          <div className="glass-strong rounded-2xl p-7 text-center shadow-[var(--shadow-elevated)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+              <MailCheck className="h-7 w-7 text-primary" />
+            </div>
+            <h1 className="mt-4 font-display text-2xl font-bold">Check your email</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              We sent a verification link to <span className="font-medium text-foreground">{pendingVerification}</span>.
+              Click it to verify your account, then come back to sign in.
+            </p>
+            <div className="mt-6 flex flex-col gap-2">
+              <Button variant="hero" onClick={() => { setPendingVerification(null); setMode("signin"); }}>
+                I've verified — sign in
+              </Button>
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={async () => {
+                  const { error } = await supabase.auth.resend({ type: "signup", email: pendingVerification });
+                  if (error) toast.error(error.message); else toast.success("Verification email resent");
+                }}
+              >
+                Resend verification email
+              </button>
+            </div>
+          </div>
+        ) : justVerified ? (
+          <div className="glass-strong rounded-2xl p-7 text-center shadow-[var(--shadow-elevated)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100">
+              <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+            </div>
+            <h1 className="mt-4 font-display text-2xl font-bold">You're verified!</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Your account has been created successfully. Sign in below to start trading.
+            </p>
+            <Button variant="hero" className="mt-6 w-full" onClick={() => setJustVerified(false)}>
+              Continue to sign in
+            </Button>
+          </div>
+        ) : (
         <div className="glass-strong rounded-2xl p-7 shadow-[var(--shadow-elevated)]">
           <div className="mb-6 flex flex-col items-center text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[image:var(--gradient-primary)] shadow-[var(--shadow-glow)]">
@@ -171,6 +231,7 @@ function AuthPage() {
             </button>
           </div>
         </div>
+        )}
 
         <p className="mt-6 text-center text-xs text-muted-foreground/70">
           By continuing you agree to trade responsibly and follow your local laws.
