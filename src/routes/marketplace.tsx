@@ -81,76 +81,70 @@ function Marketplace() {
 
   return (
     <PageShell>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl font-bold">Marketplace</h1>
-          <p className="text-sm text-muted-foreground">
+      {/* Header */}
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-display text-xl font-bold tracking-tight md:text-2xl">Marketplace</h1>
+          <p className="truncate text-xs text-muted-foreground">
             {tab === "sell" ? "Buy USDT from local merchants" : "Sell USDT to local buyers"}
           </p>
         </div>
         <Link to="/listings/new">
-          <Button variant="hero">+ Create listing</Button>
+          <Button variant="hero" size="sm">+ New</Button>
         </Link>
       </div>
 
-      <div className="glass-panel mb-5 flex flex-col gap-3 rounded-2xl p-4 md:flex-row md:items-center">
-        <div className="inline-flex rounded-lg bg-secondary/40 p-1">
-          <button
-            onClick={() => setTab("sell")}
-            className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${tab === "sell" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-          >
-            Buy USDT
-          </button>
-          <button
-            onClick={() => setTab("buy")}
-            className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${tab === "buy" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-          >
-            Sell USDT
-          </button>
-        </div>
-        <div className="relative flex-1">
+      {/* Tabs (Binance-style segmented) */}
+      <div className="mb-3 grid grid-cols-2 rounded-xl bg-secondary p-1">
+        <button
+          onClick={() => setTab("sell")}
+          className={`rounded-lg py-2 text-sm font-semibold transition ${tab === "sell" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`}
+        >Buy USDT</button>
+        <button
+          onClick={() => setTab("buy")}
+          className={`rounded-lg py-2 text-sm font-semibold transition ${tab === "buy" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`}
+        >Sell USDT</button>
+      </div>
+
+      {/* Filters */}
+      <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_200px]">
+        <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search merchant, notes…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <Input className="h-10 pl-9" placeholder="Search merchant, notes…" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
-        <div className="relative md:w-56">
+        <div className="relative">
           <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} />
+          <Input className="h-10 pl-9" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} />
         </div>
       </div>
       {myCity && (
-        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
           <span>
-            Showing listings in <span className="font-medium text-foreground">{city || "all cities"}</span>
-            {city && city.toLowerCase() === myCity.toLowerCase() && " (your city)"}
+            <span className="font-medium text-foreground">{city || "All cities"}</span>
+            {city && city.toLowerCase() === myCity.toLowerCase() && " · your city"}
           </span>
           {city ? (
-            <button onClick={() => setCity("")} className="font-medium text-primary hover:underline">
-              Show all cities
-            </button>
+            <button onClick={() => setCity("")} className="font-medium text-primary hover:underline">Show all</button>
           ) : (
-            <button onClick={() => setCity(myCity)} className="font-medium text-primary hover:underline">
-              Show only {myCity}
-            </button>
+            <button onClick={() => setCity(myCity)} className="font-medium text-primary hover:underline">Only {myCity}</button>
           )}
         </div>
       )}
 
       {loading ? (
-        <div className="glass-panel grid place-items-center rounded-2xl p-16 text-muted-foreground">
+        <div className="grid place-items-center rounded-2xl border border-border bg-card p-16 text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="glass-panel rounded-2xl p-16 text-center">
-          <ArrowDownUp className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-          <h3 className="font-display text-lg font-semibold">No listings yet</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Be the first — create a listing for your city.
-          </p>
+        <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
+          <ArrowDownUp className="mx-auto mb-3 h-7 w-7 text-muted-foreground" />
+          <h3 className="font-display text-base font-semibold">No listings yet</h3>
+          <p className="mt-1 text-xs text-muted-foreground">Be the first — create a listing for your city.</p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-2 md:grid-cols-2 md:gap-3 lg:grid-cols-3">
           {filtered.map((l) => (
-            <ListingCard key={l.id} listing={l} disabled={!user || user.id === l.user_id} />
+            <ListingRow key={l.id} listing={l} disabled={!user || user.id === l.user_id} />
           ))}
         </div>
       )}
@@ -158,58 +152,52 @@ function Marketplace() {
   );
 }
 
-function ListingCard({ listing, disabled }: { listing: Listing; disabled: boolean }) {
+function ListingRow({ listing, disabled }: { listing: Listing; disabled: boolean }) {
   const p = listing.profiles;
   return (
-    <div className="glass-panel group rounded-2xl p-5 transition hover:border-primary/40 hover:shadow-[var(--shadow-glow)]">
-      <div className="mb-3 flex items-center justify-between">
-        <Link to="/merchant/$userId" params={{ userId: listing.user_id }} className="flex items-center gap-2 hover:opacity-80">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-semibold uppercase">
+    <div className="group flex flex-col rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md">
+      {/* Merchant row */}
+      <div className="flex items-center justify-between gap-2">
+        <Link to="/merchant/$userId" params={{ userId: listing.user_id }} className="flex min-w-0 items-center gap-2 hover:opacity-80">
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold uppercase text-primary">
             {(p?.full_name ?? p?.username ?? "U")[0]}
           </div>
-          <div>
-            <div className="flex items-center gap-1 text-sm font-medium">
-              {p?.full_name ?? p?.username ?? "Merchant"}
-              {p?.verified && <ShieldCheck className="h-3.5 w-3.5 text-primary" />}
+          <div className="min-w-0">
+            <div className="flex items-center gap-1 truncate text-sm font-semibold">
+              <span className="truncate">{p?.full_name ?? p?.username ?? "Merchant"}</span>
+              {p?.verified && <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-primary" />}
             </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Star className="h-3 w-3 fill-warning text-warning" /> {Number(p?.rating ?? 0).toFixed(1)} · {p?.completed_trades ?? 0} trades
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Star className="h-2.5 w-2.5 fill-warning text-warning" /> {Number(p?.rating ?? 0).toFixed(1)} · {p?.completed_trades ?? 0} trades
             </div>
           </div>
         </Link>
-        <Badge variant="outline" className="border-primary/30 text-primary">
-          {listing.type === "sell" ? "Selling" : "Buying"}
+        <Badge variant="outline" className={`shrink-0 border-primary/30 text-[10px] ${listing.type === "sell" ? "text-success" : "text-primary"}`}>
+          {listing.type === "sell" ? "SELL" : "BUY"}
         </Badge>
       </div>
 
-      <div className="my-4 flex items-baseline gap-2">
-        <span className="font-display text-2xl font-bold text-gradient-primary">
-          {fmtFiat(listing.price_per_usdt)}
-        </span>
-        <span className="text-xs text-muted-foreground">/ USDT</span>
+      {/* Price + meta */}
+      <div className="mt-3 flex items-end justify-between gap-3">
+        <div>
+          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Price</div>
+          <div className="font-display text-xl font-bold text-foreground">
+            {fmtFiat(listing.price_per_usdt)}
+            <span className="ml-1 text-[10px] font-medium text-muted-foreground">/USDT</span>
+          </div>
+        </div>
+        <div className="text-right text-[11px] leading-tight text-muted-foreground">
+          <div><span className="text-foreground">{Number(listing.available_amount).toFixed(0)}</span> available</div>
+          <div>{Number(listing.min_amount).toFixed(0)}–{Number(listing.max_amount).toFixed(0)} limit</div>
+          <div className="inline-flex items-center gap-0.5"><MapPin className="h-2.5 w-2.5" /> {listing.city}</div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <Info label="Available" value={`${Number(listing.available_amount).toFixed(0)} USDT`} />
-        <Info label="Limits" value={`${Number(listing.min_amount).toFixed(0)} - ${Number(listing.max_amount).toFixed(0)}`} />
-        <Info label="City" value={listing.city} />
-        <Info label="Meet" value={listing.meeting_location ?? "—"} />
-      </div>
-
-      <Link to="/deals/new/$listingId" params={{ listingId: listing.id }} className="mt-5 block">
-        <Button className="w-full" variant={disabled ? "outline" : "hero"} disabled={disabled}>
+      <Link to="/deals/new/$listingId" params={{ listingId: listing.id }} className="mt-3">
+        <Button className="w-full" variant={disabled ? "outline" : "hero"} disabled={disabled} size="sm">
           {listing.type === "sell" ? "Buy now" : "Sell now"}
         </Button>
       </Link>
-    </div>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="glass-strong rounded-lg px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="mt-0.5 truncate font-medium">{value}</div>
     </div>
   );
 }
