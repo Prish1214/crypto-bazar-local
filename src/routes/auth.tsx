@@ -79,7 +79,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: `${window.location.origin}/auth?verified=1`,
             data: { full_name: fullName, city, username: u },
           },
         });
@@ -88,7 +88,12 @@ function AuthPage() {
         if (data.user) {
           await supabase.from("profiles").update({ username: u, full_name: fullName, city }).eq("id", data.user.id);
         }
-        toast.success("Account created — check your email if confirmation is required.");
+        // If Supabase returned a session immediately, email confirmation is disabled → go straight in.
+        if (data.session) {
+          toast.success("Account created!");
+        } else {
+          setPendingVerification(email);
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
