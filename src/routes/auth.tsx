@@ -46,7 +46,7 @@ function AuthPage() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && user && !justVerified) navigate({ to: "/" });
+    if (!authLoading && user && !justVerified) navigate({ to: "/wallet" });
   }, [user, authLoading, navigate, justVerified]);
 
   // Live username availability check
@@ -91,6 +91,7 @@ function AuthPage() {
         // If Supabase returned a session immediately, email confirmation is disabled → go straight in.
         if (data.session) {
           toast.success("Account created!");
+          navigate({ to: "/wallet" });
         } else {
           setPendingVerification(email);
         }
@@ -98,6 +99,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
+        navigate({ to: "/wallet" });
       }
     } catch (err: any) {
       toast.error(err?.message ?? "Authentication failed");

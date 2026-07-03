@@ -48,6 +48,17 @@
 :root {
   --radius: 0.75rem;
 
+  /* Centralized product tokens */
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
+  --space-screen-x: clamp(0.75rem, 2.2vw, 1.25rem);
+  --space-screen-y: clamp(0.75rem, 2vw, 1.5rem);
+  --space-card: clamp(1rem, 2vw, 1.25rem);
+  --space-card-compact: 0.875rem;
+  --tap-target: 2.75rem;
+  --font-size-caption: 0.6875rem;
+  --font-size-ui: 0.8125rem;
+
   /* CryptoBazar — professional light fintech */
   --background: oklch(0.985 0.003 240);
   --foreground: oklch(0.18 0.02 250);
@@ -173,4 +184,31 @@
     linear-gradient(oklch(0.5 0.02 250 / 0.06) 1px, transparent 1px),
     linear-gradient(90deg, oklch(0.5 0.02 250 / 0.06) 1px, transparent 1px);
   background-size: 48px 48px;
+}
+
+@utility app-card {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+}
+
+@utility app-card-compact {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  padding: var(--space-card-compact);
+  box-shadow: var(--shadow-card);
+}
+
+@utility app-sticky-action {
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  border: 1px solid var(--color-border);
+  background: color-mix(in oklab, var(--color-card) 94%, transparent);
+  box-shadow: var(--shadow-elevated);
+  backdrop-filter: blur(18px) saturate(145%);
+}
+
+@utility app-section-gap {
+  gap: var(--space-screen-y);
 }

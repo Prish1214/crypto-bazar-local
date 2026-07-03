@@ -32,7 +32,7 @@ export const Route = createFileRoute("/api/deals/release")({
         if (vErr) return Response.json({ error: vErr.message }, { status: 500 });
         if (!ok) return Response.json({ error: "Incorrect Deal Code" }, { status: 401 });
 
-        const { error: rErr } = await sb.rpc("complete_deal_release", { _deal_id: dealId });
+        const { error: rErr } = await auth.client.rpc("complete_deal_release", { _deal_id: dealId });
         if (rErr) return Response.json({ error: rErr.message }, { status: 500 });
         return Response.json({ ok: true });
       },
