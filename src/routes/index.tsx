@@ -1,10 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import {
   Shield, MapPin, Lock, Zap, Star, ArrowRight, CheckCircle2,
   Coins, MessageSquare, Camera, Users, TrendingUp, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -61,6 +63,13 @@ function Step({ n, title, desc, icon: Icon }: { n: string; title: string; desc: 
 }
 
 function Landing() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && user) navigate({ to: "/wallet", replace: true });
+  }, [loading, user, navigate]);
+
   return (
     <div className="min-h-screen px-4">
       <SiteHeader />
