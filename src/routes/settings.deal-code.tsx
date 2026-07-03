@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   disableBiometric, enableBiometric, isBiometricEnrolledLocally,
-  isPlatformAuthenticatorAvailable, refreshCachedCode,
+  isPlatformAuthenticatorAvailable,
 } from "@/lib/deal-code";
 import { toast } from "sonner";
 
@@ -19,12 +19,13 @@ export const Route = createFileRoute("/settings/deal-code")({
 
 function SettingsDealCode() {
   const { user, session } = useAuth();
-  const [stage, setStage] = useState<"idle" | "otp" | "new" | "confirm" | "biometric">("idle");
+  const [stage, setStage] = useState<"idle" | "otp" | "new" | "confirm">("idle");
   const [otp, setOtp] = useState("");
   const [newCode, setNewCode] = useState("");
   const [confirm, setConfirm] = useState("");
   const [bioCode, setBioCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [bioMode, setBioMode] = useState(false);
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioEnrolled, setBioEnrolled] = useState(false);
   const [email, setEmail] = useState("");
@@ -86,7 +87,7 @@ function SettingsDealCode() {
       await enableBiometric(user.id, bioCode);
       setBioEnrolled(true);
       setBioCode("");
-      setStage("idle");
+      setBioMode(false);
       await fetch("/api/deal-code/biometric", {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` },
         body: JSON.stringify({ enabled: true }),
@@ -168,18 +169,6 @@ function SettingsDealCode() {
             </div>
           )}
 
-          {stage === "biometric" && (
-            <div className="mt-5 space-y-3">
-              <p className="text-sm text-muted-foreground">Enter your current 6-digit Deal Code to link biometric unlock on this device.</p>
-              <PinInput value={bioCode} onChange={setBioCode} autoFocus masked />
-              <div className="flex gap-2">
-                <Button variant="ghost" className="flex-1" onClick={() => { setBioCode(""); setStage("idle"); }}>Cancel</Button>
-                <Button variant="hero" className="flex-1" disabled={busy || bioCode.length !== 6} onClick={enrollBiometric}>
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enable"}
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="app-card-compact">
@@ -204,9 +193,21 @@ function SettingsDealCode() {
             <div className="flex items-center gap-2"><LockKeyhole className="h-4 w-4 text-primary" /> Use Deal Code or biometric at release</div>
           </div>
           {bioAvailable && (
-            <Button variant={bioEnrolled ? "outline" : "hero"} className="mt-4 w-full" onClick={bioEnrolled ? disableDeviceBiometric : () => setStage("biometric")}>
+            <Button variant={bioEnrolled ? "outline" : "hero"} className="mt-4 w-full" onClick={bioEnrolled ? disableDeviceBiometric : () => setBioMode(true)}>
               {bioEnrolled ? "Disable biometric on this device" : (<><Fingerprint className="h-4 w-4" /> Enable biometric</>)}
             </Button>
+          )}
+          {bioMode && !bioEnrolled && (
+            <div className="mt-4 space-y-3 rounded-[var(--radius-card)] border border-primary/20 bg-primary/5 p-3">
+              <p className="text-sm text-muted-foreground">Enter your current 6-digit Deal Code to link biometric unlock on this device.</p>
+              <PinInput value={bioCode} onChange={setBioCode} autoFocus masked />
+              <div className="flex gap-2">
+                <Button variant="ghost" className="flex-1" onClick={() => { setBioCode(""); setBioMode(false); }}>Cancel</Button>
+                <Button variant="hero" className="flex-1" disabled={busy || bioCode.length !== 6} onClick={enrollBiometric}>
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enable"}
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       </div>
