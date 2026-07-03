@@ -18,7 +18,7 @@ import {
 } from "@/lib/db";
 import { toast } from "sonner";
 import {
-  ProgressTimeline, DealInfoCard, TrustHeader,
+  ProgressTimeline, DealInfoCard, TrustHeader, CompactDealSteps, EscrowProgressCard,
   MeetingCard, ArrivalCheckIn,
   CashHandoverPanel, SellerConfirmPanel,
 } from "@/components/deal/panels";
@@ -203,44 +203,53 @@ function DealRoom() {
   }
 
   // ----- ACTIVE DEAL — mobile-first single column, sticky CTA -----
-  const PrimaryAction = renderPrimaryAction({
+  const actionProps = {
     deal, isBuyer, isSeller, isOwner, bothQRVerified,
     onAccept: () => respond("accept"),
     onDecline: () => respond("decline"),
     onPropose: proposeMeeting, onAcceptMeeting: acceptMeeting, onRejectMeeting: rejectMeeting,
     onArrive: checkIn, onQR: markQRVerified,
     onCash: submitCashHandover, onConfirm: releaseEscrow,
-  });
+  };
+  const PrimaryAction = renderPrimaryAction(actionProps);
 
   return (
     <PageShell>
-      {/* Sticky status header */}
-      <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-border bg-background/95 px-4 py-3 backdrop-blur md:mx-0 md:rounded-2xl md:border md:bg-card md:px-5 md:py-4 md:shadow-sm">
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-primary/30 font-mono text-[10px] text-primary">{deal.deal_code ?? "—"}</Badge>
-          <Badge className="text-[10px] uppercase">{deal.status.replace(/_/g, " ")}</Badge>
-          {deal.locked_at && <Badge variant="secondary" className="gap-1 text-[10px]"><Lock className="h-3 w-3" /> LOCKED</Badge>}
-          {deal.status === "disputed" && <Badge variant="destructive" className="gap-1 text-[10px]"><AlertOctagon className="h-3 w-3" /> Review</Badge>}
+      <div className="sticky top-0 z-20 -mx-3 mb-3 border-b border-border bg-background/95 px-3 py-2.5 backdrop-blur md:mx-0 md:rounded-[var(--radius-card)] md:border md:bg-card md:px-4 md:py-4 md:shadow-sm">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <Badge variant="outline" className="border-primary/30 font-mono text-[10px] text-primary">{deal.deal_code ?? "—"}</Badge>
+              <Badge className="text-[10px] uppercase">{deal.status.replace(/_/g, " ")}</Badge>
+              {deal.locked_at && <Badge variant="secondary" className="gap-1 text-[10px]"><Lock className="h-3 w-3" /> Locked</Badge>}
+              {deal.status === "disputed" && <Badge variant="destructive" className="gap-1 text-[10px]"><AlertOctagon className="h-3 w-3" /> Review</Badge>}
+            </div>
+            <h1 className="mt-1 truncate font-display text-base font-bold tracking-tight sm:text-xl">
+              {isBuyer ? "Buying" : "Selling"} {fmtUSDT(deal.amount_usdt)}
+            </h1>
+          </div>
+          <div className="shrink-0 text-right">
+            <div className="text-[10px] uppercase text-muted-foreground">Total</div>
+            <div className="font-mono text-sm font-semibold text-primary">{fmtFiat(deal.total_fiat)}</div>
+          </div>
         </div>
-        <h1 className="mt-1.5 truncate font-display text-base font-bold tracking-tight sm:text-xl">
-          {isBuyer ? "Buying" : "Selling"} {fmtUSDT(deal.amount_usdt)} · {fmtFiat(deal.total_fiat)}
-        </h1>
-        <p className="text-xs font-medium text-primary">{nextAction}</p>
+        <div className="mt-2"><CompactDealSteps deal={deal} /></div>
+        <p className="mt-2 text-xs font-medium text-primary">{nextAction}</p>
       </div>
 
-      <div className="space-y-3 pb-28 md:pb-4">
-        {/* Deal info */}
-        <DealInfoCard deal={deal} />
+      <div className="space-y-3 pb-[24rem] md:pb-4">
+        <EscrowProgressCard deal={deal} />
 
         {/* Counterparty */}
         <TrustHeader counter={counter} />
 
-        {/* Primary action card */}
         {PrimaryAction && (
-          <div className="rounded-2xl border-2 border-primary/40 bg-primary/[0.04] p-1 shadow-sm">
-            <div className="rounded-xl bg-card p-4">{PrimaryAction}</div>
+          <div className="hidden rounded-[var(--radius-card)] border-2 border-primary/40 bg-primary/[0.04] p-1 shadow-sm md:block">
+            <div className="rounded-[var(--radius-control)] bg-card p-4">{PrimaryAction}</div>
           </div>
         )}
+
+        <DealInfoCard deal={deal} />
 
         {/* Live meeting countdown — only when relevant */}
         {!terminal && deal.meeting_at && deal.meeting_status === "confirmed" &&
@@ -293,6 +302,13 @@ function DealRoom() {
           )}
         </div>
       </div>
+      {PrimaryAction && (
+        <div className="fixed inset-x-0 bottom-[calc(3.35rem+env(safe-area-inset-bottom))] z-30 px-3 md:hidden">
+          <div className="app-sticky-action mx-auto max-h-[54vh] max-w-lg overflow-y-auto p-3">
+            {renderPrimaryAction(actionProps)}
+          </div>
+        </div>
+      )}
       <DealCodeReleaseDialog
         open={releaseOpen}
         onOpenChange={setReleaseOpen}
