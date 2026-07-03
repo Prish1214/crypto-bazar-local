@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, Save, Shield, ChevronRight, LogOut, LayoutDashboard, Mail } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
@@ -12,8 +12,14 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — CryptoBazar" }] }),
-  component: () => <RequireAuth><Settings /></RequireAuth>,
+  component: SettingsRoute,
 });
+
+function SettingsRoute() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/settings") return <RequireAuth><Outlet /></RequireAuth>;
+  return <RequireAuth><Settings /></RequireAuth>;
+}
 
 function Settings() {
   const { user, signOut } = useAuth();

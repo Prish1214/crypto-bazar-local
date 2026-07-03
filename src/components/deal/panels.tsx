@@ -1,4 +1,4 @@
-import { Lock, ShieldCheck, Star, Clock, MapPin, CheckCircle2, Circle } from "lucide-react";
+import { Lock, ShieldCheck, Star, Clock, MapPin, CheckCircle2, Circle, Banknote, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,11 +21,78 @@ export const TIMELINE: { key: string; label: string; match: (d: Deal) => boolean
   { key: "completed",   label: "Trade Completed",      match: (d) => d.status === "completed" },
 ];
 
+const COMPACT_STEPS = [
+  { key: "escrow", label: "Escrow", match: (d: Deal) => !!d.locked_at || ["escrow_funded","meeting_proposed","meeting_scheduled","locked","arrived","verified","cash_sent","confirmed","completed"].includes(d.status) },
+  { key: "meet", label: "Meet", match: (d: Deal) => !!d.meeting_at && d.meeting_status === "confirmed" },
+  { key: "verify", label: "Verify", match: (d: Deal) => !!d.buyer_qr_verified_at && !!d.seller_qr_verified_at },
+  { key: "cash", label: "Cash", match: (d: Deal) => !!d.cash_handover_at },
+  { key: "release", label: "Release", match: (d: Deal) => d.status === "completed" },
+];
+
+export function CompactDealSteps({ deal }: { deal: Deal }) {
+  const states = COMPACT_STEPS.map((s) => ({ ...s, done: s.match(deal) }));
+  const firstOpen = states.findIndex((s) => !s.done);
+  const activeIdx = firstOpen === -1 ? states.length - 1 : firstOpen;
+  return (
+    <div className="grid grid-cols-5 gap-1.5">
+      {states.map((s, idx) => {
+        const active = idx === activeIdx;
+        return (
+          <div key={s.key} className="min-w-0">
+            <div className={`h-1.5 rounded-full ${s.done ? "bg-success" : active ? "bg-primary" : "bg-border"}`} />
+            <div className={`mt-1 truncate text-center text-[10px] font-semibold ${s.done ? "text-success" : active ? "text-primary" : "text-muted-foreground"}`}>
+              {s.label}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function EscrowProgressCard({ deal }: { deal: Deal }) {
+  const locked = !!deal.locked_at && deal.status !== "cancelled";
+  const released = deal.status === "completed";
+  const net = Number(deal.amount_usdt) - Number(deal.fee_usdt ?? 0);
+  return (
+    <div className="app-card-compact">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-xs font-semibold uppercase text-primary">
+            <Lock className="h-3.5 w-3.5" /> Escrow progress
+          </div>
+          <div className="mt-1 truncate font-display text-lg font-bold">{fmtUSDT(deal.amount_usdt)}</div>
+          <p className="text-[11px] text-muted-foreground">
+            {released ? `${fmtUSDT(net)} released to buyer` : locked ? "Funds locked until seller confirms cash" : "Waiting for seller acceptance"}
+          </p>
+        </div>
+        <div className={`grid h-10 w-10 place-items-center rounded-[var(--radius-control)] ${released ? "bg-success/10 text-success" : locked ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
+          {released ? <Send className="h-5 w-5" /> : locked ? <ShieldCheck className="h-5 w-5" /> : <Banknote className="h-5 w-5" />}
+        </div>
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[11px]">
+        <div className="rounded-[var(--radius-control)] bg-secondary/60 p-2">
+          <div className="font-semibold">Locked</div>
+          <div className={locked ? "text-success" : "text-muted-foreground"}>{locked ? "Yes" : "Pending"}</div>
+        </div>
+        <div className="rounded-[var(--radius-control)] bg-secondary/60 p-2">
+          <div className="font-semibold">Fee</div>
+          <div className="font-mono text-muted-foreground">{fmtUSDT(deal.fee_usdt)}</div>
+        </div>
+        <div className="rounded-[var(--radius-control)] bg-secondary/60 p-2">
+          <div className="font-semibold">Buyer gets</div>
+          <div className="font-mono text-primary">{fmtUSDT(net)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ProgressTimeline({ deal }: { deal: Deal }) {
   const states = TIMELINE.map((t) => ({ ...t, done: t.match(deal) }));
   const activeIdx = states.findIndex((s) => !s.done);
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <div className="p-1">
       <h3 className="font-display text-sm font-semibold tracking-tight">Deal Progress</h3>
       <ol className="mt-4 space-y-3">
         {states.map((s, i) => {
@@ -83,12 +150,12 @@ export function EscrowStatusCard({ deal }: { deal: Deal }) {
 // ---------- Deal Info Card ----------
 export function DealInfoCard({ deal }: { deal: Deal }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <div className="app-card-compact">
       <div className="flex items-center justify-between">
         <h3 className="font-display text-sm font-semibold tracking-tight">Deal Information</h3>
         <span className="rounded-md bg-secondary px-2 py-0.5 font-mono text-xs">{deal.deal_code ?? "—"}</span>
       </div>
-      <dl className="mt-4 space-y-2 text-sm">
+      <dl className="mt-3 space-y-2 text-sm">
         <Row label="Amount" value={fmtUSDT(deal.amount_usdt)} />
         <Row label="Locked Rate" value={fmtFiat(deal.price_per_usdt)} />
         <Row label="Total Value" value={fmtFiat(deal.total_fiat)} accent />
@@ -98,7 +165,7 @@ export function DealInfoCard({ deal }: { deal: Deal }) {
         )}
       </dl>
       {deal.locked_at && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg bg-secondary/50 px-3 py-2 text-xs">
+        <div className="mt-3 flex items-center gap-2 rounded-[var(--radius-control)] bg-secondary/50 px-3 py-2 text-xs">
           <Lock className="h-3.5 w-3.5 text-primary" />
           <span className="font-medium">DEAL LOCKED</span>
           <span className="text-muted-foreground">— no modifications allowed</span>
@@ -123,7 +190,7 @@ export function TrustHeader({ counter }: { counter: Profile | null | undefined }
   const score = trustScore(counter);
   const t = trustLabel(score);
   return (
-    <Link to="/merchant/$userId" params={{ userId: counter.id }} className="block rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/40">
+    <Link to="/merchant/$userId" params={{ userId: counter.id }} className="app-card-compact block transition hover:border-primary/40">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-wider text-muted-foreground">Counterparty</div>
@@ -148,7 +215,7 @@ export function TrustHeader({ counter }: { counter: Profile | null | undefined }
 }
 function Stat({ label, value }: { label: string; value: any }) {
   return (
-    <div className="rounded-lg bg-secondary/40 px-2 py-1.5">
+    <div className="rounded-[var(--radius-control)] bg-secondary/40 px-2 py-1.5">
       <div className="font-display text-sm font-semibold">{value}</div>
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
     </div>
@@ -174,7 +241,7 @@ export function MeetingCard({
 
   if (deal.meeting_status === "confirmed" && deal.meeting_at) {
     return (
-      <div className="rounded-2xl border border-emerald-600/30 bg-emerald-50/50 p-5 shadow-sm dark:bg-emerald-950/20">
+      <div className="rounded-[var(--radius-card)] border border-success/30 bg-success/10 p-4 shadow-sm">
         <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
           <Clock className="h-4 w-4" /> Meeting Confirmed
         </div>
@@ -185,7 +252,7 @@ export function MeetingCard({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <div className="rounded-[var(--radius-card)] border border-border bg-card p-4 shadow-sm">
       <h3 className="font-display text-sm font-semibold tracking-tight">Meeting Scheduler</h3>
       {canRespond ? (
         <>
@@ -243,14 +310,14 @@ export function ArrivalCheckIn({
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <div className="rounded-[var(--radius-card)] border border-border bg-card p-4 shadow-sm">
       <h3 className="font-display text-sm font-semibold tracking-tight">Arrival Check-In</h3>
       <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs">
-        <div className={`rounded-lg border px-2 py-2 ${deal.buyer_arrived_at ? "border-emerald-600/30 bg-emerald-50/50 text-emerald-700 dark:bg-emerald-950/20" : "border-border"}`}>
+        <div className={`rounded-[var(--radius-control)] border px-2 py-2 ${deal.buyer_arrived_at ? "border-success/30 bg-success/10 text-success" : "border-border"}`}>
           <div className="font-semibold">Buyer</div>
           <div>{deal.buyer_arrived_at ? "Arrived" : "Pending"}</div>
         </div>
-        <div className={`rounded-lg border px-2 py-2 ${deal.seller_arrived_at ? "border-emerald-600/30 bg-emerald-50/50 text-emerald-700 dark:bg-emerald-950/20" : "border-border"}`}>
+        <div className={`rounded-[var(--radius-control)] border px-2 py-2 ${deal.seller_arrived_at ? "border-success/30 bg-success/10 text-success" : "border-border"}`}>
           <div className="font-semibold">Seller</div>
           <div>{deal.seller_arrived_at ? "Arrived" : "Pending"}</div>
         </div>
@@ -308,14 +375,14 @@ export function CashHandoverPanel({
   const [busy, setBusy] = useState(false);
   if (deal.cash_handover_at) {
     return (
-      <div className="rounded-2xl border border-emerald-600/30 bg-emerald-50/50 p-5 text-sm dark:bg-emerald-950/20">
+      <div className="rounded-[var(--radius-card)] border border-success/30 bg-success/10 p-4 text-sm">
         <div className="font-semibold text-emerald-700">Cash handed over</div>
         <div className="text-xs text-muted-foreground">{new Date(deal.cash_handover_at).toLocaleString()}</div>
       </div>
     );
   }
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <div className="rounded-[var(--radius-card)] border border-border bg-card p-4 shadow-sm">
       <h3 className="font-display text-sm font-semibold tracking-tight">Cash Handover</h3>
       <p className="mt-1 text-xs text-muted-foreground">Hand the cash over, then capture a live photo as proof.</p>
       <div className="mt-3 space-y-3">
@@ -340,14 +407,14 @@ export function SellerConfirmPanel({
   const [busy, setBusy] = useState(false);
   if (deal.seller_confirmed_at) {
     return (
-      <div className="rounded-2xl border border-emerald-600/30 bg-emerald-50/50 p-5 text-sm dark:bg-emerald-950/20">
+      <div className="rounded-[var(--radius-card)] border border-success/30 bg-success/10 p-4 text-sm">
         <div className="font-semibold text-emerald-700">Cash receipt confirmed</div>
         <div className="text-xs text-muted-foreground">Escrow released to buyer.</div>
       </div>
     );
   }
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <div className="rounded-[var(--radius-card)] border border-border bg-card p-4 shadow-sm">
       <h3 className="font-display text-sm font-semibold tracking-tight">Seller Confirmation</h3>
       <p className="mt-1 text-xs text-muted-foreground">The buyer marked cash as handed over.</p>
       {!confirming ? (

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Shield, Fingerprint, Mail, AlertTriangle, Loader2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Shield, Fingerprint, Mail, AlertTriangle, Loader2, CheckCircle2, LockKeyhole, Smartphone } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
 import { PinInput } from "@/components/pin-input";
@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   disableBiometric, enableBiometric, isBiometricEnrolledLocally,
-  isPlatformAuthenticatorAvailable, refreshCachedCode,
+  isPlatformAuthenticatorAvailable,
 } from "@/lib/deal-code";
 import { toast } from "sonner";
 
@@ -23,7 +23,9 @@ function SettingsDealCode() {
   const [otp, setOtp] = useState("");
   const [newCode, setNewCode] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [bioCode, setBioCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [bioMode, setBioMode] = useState(false);
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioEnrolled, setBioEnrolled] = useState(false);
   const [email, setEmail] = useState("");
@@ -68,46 +70,65 @@ function SettingsDealCode() {
     finally { setBusy(false); }
   };
 
-  const toggleBiometric = async () => {
+  const disableDeviceBiometric = async () => {
     if (!user) return;
-    if (bioEnrolled) {
-      disableBiometric(user.id); setBioEnrolled(false);
+    disableBiometric(user.id); setBioEnrolled(false);
+    await fetch("/api/deal-code/biometric", {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` },
+      body: JSON.stringify({ enabled: false }),
+    }).catch(() => null);
+    toast.success("Biometric disabled on this device");
+  };
+
+  const enrollBiometric = async () => {
+    if (!user || !/^\d{6}$/.test(bioCode)) return toast.error("Enter your 6-digit Deal Code");
+    setBusy(true);
+    try {
+      await enableBiometric(user.id, bioCode);
+      setBioEnrolled(true);
+      setBioCode("");
+      setBioMode(false);
       await fetch("/api/deal-code/biometric", {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` },
-        body: JSON.stringify({ enabled: false }),
+        body: JSON.stringify({ enabled: true }),
       }).catch(() => null);
-      toast.success("Biometric disabled on this device");
-      return;
-    }
-    toast("To enable biometric, please rotate your Deal Code first — enter the new code below and we'll enroll it.");
-    setStage("otp"); await requestOtp();
+      toast.success("Biometric enabled on this device");
+    } catch (e: any) { toast.error(e.message); }
+    finally { setBusy(false); }
   };
 
   return (
     <PageShell>
-      <Link to="/settings" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Back to settings
-      </Link>
-      <div className="mx-auto max-w-lg space-y-4">
-        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
+      <div className="mx-auto max-w-lg space-y-3">
+        <Link to="/settings" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> Settings
+        </Link>
+
+        <div className="app-card-compact">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] bg-primary/10 text-primary">
               <Shield className="h-5 w-5" />
             </div>
-            <div>
-              <h1 className="font-display text-xl font-bold">Deal Code</h1>
-              <p className="text-sm text-muted-foreground">6-digit code required to release escrow</p>
+              <div className="min-w-0">
+                <h1 className="truncate font-display text-xl font-bold">Deal Code</h1>
+                <p className="text-sm text-muted-foreground">Required for escrow release</p>
+              </div>
             </div>
+            <span className="rounded-full bg-success/10 px-2 py-1 text-[10px] font-semibold text-success">SECURE</span>
           </div>
-          <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+          <div className="mt-4 flex items-start gap-2 rounded-[var(--radius-control)] border border-warning/40 bg-warning/10 p-3 text-xs text-warning-foreground">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <div>Never share your Deal Code. Staff will never ask for it.</div>
+            <div>Never share your Deal Code with anyone. It is confidential and required to authorize every deal.</div>
           </div>
 
           {stage === "idle" && (
-            <Button variant="outline" className="mt-4 w-full" onClick={requestOtp} disabled={busy}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><Mail className="h-4 w-4" /> Change Deal Code (email OTP)</>)}
-            </Button>
+            <div className="mt-4 grid gap-2">
+              <Button variant="hero" className="w-full" onClick={requestOtp} disabled={busy}>
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><Mail className="h-4 w-4" /> Change Deal Code</>)}
+              </Button>
+              <p className="text-center text-[11px] text-muted-foreground">A one-time OTP will be sent to {email || "your registered email"}.</p>
+            </div>
           )}
 
           {stage === "otp" && (
@@ -147,11 +168,12 @@ function SettingsDealCode() {
               </div>
             </div>
           )}
+
         </div>
 
-        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+        <div className="app-card-compact">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
+            <div className="grid h-11 w-11 place-items-center rounded-[var(--radius-control)] bg-primary/10 text-primary">
               <Fingerprint className="h-5 w-5" />
             </div>
             <div className="flex-1">
@@ -166,34 +188,26 @@ function SettingsDealCode() {
             </div>
             {bioEnrolled && <CheckCircle2 className="h-5 w-5 text-emerald-600" />}
           </div>
+          <div className="mt-4 grid gap-2 rounded-[var(--radius-control)] bg-secondary/60 p-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2"><Smartphone className="h-4 w-4 text-primary" /> Device-only enrollment</div>
+            <div className="flex items-center gap-2"><LockKeyhole className="h-4 w-4 text-primary" /> Use Deal Code or biometric at release</div>
+          </div>
           {bioAvailable && (
-            <Button variant={bioEnrolled ? "outline" : "hero"} className="mt-4 w-full"
-              onClick={async () => {
-                if (!user) return;
-                if (bioEnrolled) {
-                  disableBiometric(user.id); setBioEnrolled(false);
-                  await fetch("/api/deal-code/biometric", {
-                    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` },
-                    body: JSON.stringify({ enabled: false }),
-                  }).catch(() => null);
-                  toast.success("Biometric disabled on this device");
-                } else {
-                  toast("Enter your current Deal Code to enroll biometric", { description: "This device only" });
-                  const code = window.prompt("Enter your 6-digit Deal Code to link biometric to this device");
-                  if (!code || !/^\d{6}$/.test(code)) return;
-                  try {
-                    await enableBiometric(user.id, code);
-                    setBioEnrolled(true);
-                    await fetch("/api/deal-code/biometric", {
-                      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` },
-                      body: JSON.stringify({ enabled: true }),
-                    }).catch(() => null);
-                    toast.success("Biometric enabled");
-                  } catch (e: any) { toast.error(e.message); }
-                }
-              }}>
+            <Button variant={bioEnrolled ? "outline" : "hero"} className="mt-4 w-full" onClick={bioEnrolled ? disableDeviceBiometric : () => setBioMode(true)}>
               {bioEnrolled ? "Disable biometric on this device" : (<><Fingerprint className="h-4 w-4" /> Enable biometric</>)}
             </Button>
+          )}
+          {bioMode && !bioEnrolled && (
+            <div className="mt-4 space-y-3 rounded-[var(--radius-card)] border border-primary/20 bg-primary/5 p-3">
+              <p className="text-sm text-muted-foreground">Enter your current 6-digit Deal Code to link biometric unlock on this device.</p>
+              <PinInput value={bioCode} onChange={setBioCode} autoFocus masked />
+              <div className="flex gap-2">
+                <Button variant="ghost" className="flex-1" onClick={() => { setBioCode(""); setBioMode(false); }}>Cancel</Button>
+                <Button variant="hero" className="flex-1" disabled={busy || bioCode.length !== 6} onClick={enrollBiometric}>
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enable"}
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       </div>
