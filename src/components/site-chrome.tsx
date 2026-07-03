@@ -188,7 +188,7 @@ export function PageShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen">
       <DealNotifier />
       <SiteHeader />
-      <main className={cn("mx-auto max-w-7xl px-3 py-4 md:px-5 md:py-6", user && "pb-24 md:pb-6")}>
+      <main className={cn("mx-auto max-w-7xl px-[var(--space-screen-x)] py-[var(--space-screen-y)]", user && "pb-24 md:pb-6")}>
         {children}
       </main>
       <SiteFooter />

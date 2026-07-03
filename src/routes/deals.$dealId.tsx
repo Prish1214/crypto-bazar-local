@@ -359,7 +359,7 @@ function renderPrimaryAction(props: {
 
   // Meeting scheduling phase — only until a meeting is confirmed
   if (
-    ["escrow_funded", "meeting_proposed"].includes(deal.status) ||
+    ["accepted", "escrow_funded", "meeting_proposed"].includes(deal.status) ||
     (deal.status === "meeting_scheduled" && deal.meeting_status !== "confirmed")
   ) {
     return (
