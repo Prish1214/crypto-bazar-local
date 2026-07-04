@@ -61,10 +61,12 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
           payload.outcome_hash ??
           "",
         );
-        // Users reuse one custody address. Some NOWPayments custody IPNs keep
-        // the same payment_id for later deposits, so idempotency must include
-        // the blockchain tx hash when it is available.
-        const depositKey = txHash ? `${npId}:${txHash}` : npId;
+        // Idempotency key MUST be stable across every IPN for the same
+        // deposit. NOWPayments sends multiple IPNs (waiting → confirming →
+        // finished); earlier ones often lack a tx hash while later ones
+        // include it. Keying on `${npId}:${txHash}` when a hash is present
+        // and `npId` otherwise produces TWO different keys for the same
+        // deposit and doubles the credit. Require a tx hash before crediting.
         const status = String(payload.payment_status ?? "").toLowerCase();
         const creditedAmount = pickDepositCreditAmount(payload);
         const address = payload.pay_address ?? payload.payin_address;
@@ -82,12 +84,15 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
           .maybeSingle();
         if (!da) return Response.json({ ok: true, unknown_address: true });
 
-        if (!["finished", "confirmed", "completed", "partially_paid"].includes(status)) {
-          // Just record progress.
+        const isFinal = ["finished", "confirmed", "completed", "partially_paid"].includes(status);
+
+        if (!isFinal) {
+          // Progress-only row, prefixed so it never collides with the final
+          // credited row keyed by tx hash.
           await sb.from("deposits").upsert(
             {
               user_id: da.user_id,
-              nowpayments_payment_id: depositKey,
+              nowpayments_payment_id: `pending:${npId}`,
               amount: creditedAmount,
               network: da.network,
               status: status || "pending",
@@ -97,6 +102,14 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
           );
           return Response.json({ ok: true, status });
         }
+
+        // Final IPN — refuse to credit without an on-chain tx hash. Without
+        // it we cannot build a stable idempotency key, and a later IPN
+        // carrying the hash would credit the same deposit a second time.
+        if (!txHash) {
+          return Response.json({ ok: true, awaiting_tx_hash: true });
+        }
+        const depositKey = `${npId}:${txHash}`;
 
         await sb.rpc("credit_deposit", {
           _user_id: da.user_id,
