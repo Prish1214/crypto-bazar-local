@@ -147,140 +147,143 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
           return Response.json({ error: "Could not record withdrawal" }, { status: 500 });
         }
 
-        // 5. Two-step: write-off custody → master, then payout from master.
-        //    NOWPayments requires payouts to draw from the master balance.
-        //    `write-off` transfers the user's confirmed custody funds up to
-        //    the master account; then `/payout` sends them on-chain.
+        // 5. Payout compensation flow.
+        //    The user must receive exactly `payoutAmount` (the "You receive"
+        //    figure shown on the confirmation screen — wallet debit minus the
+        //    on-chain network fee already netted by NOWPayments). NOWPayments
+        //    custody can hold slightly less than the user's wallet balance
+        //    because of provider deposit fees. We:
+        //      (a) write off whatever custody actually holds (up to
+        //          payoutAmount) into the master reserve,
+        //      (b) let the platform master reserve cover any shortfall so the
+        //          full payoutAmount can leave master, and
+        //      (c) log the reserve top-up internally (invisible to the user).
         const origin = new URL(request.url).origin;
         let payoutResult: { payoutId: string; raw: any } | null = null;
         let payoutError = "";
-        let sentAmount = payoutAmount;
-        let movedToMaster = false;
+        const sentAmount = payoutAmount; // always what the user was promised
         let writeOffRaw: any = null;
-        let payoutSource: "custody_write_off" | "master_reserve" = "custody_write_off";
+        let writeOffCurrency = candidates[0];
+        let writtenOff = 0;
+        let payoutSource: "custody_write_off" | "custody_plus_reserve" | "master_reserve" =
+          "custody_write_off";
 
-        outer: for (const cand of candidates) {
+        // Step A: write-off custody → master, as much as the provider allows,
+        // capped at payoutAmount. Retries shrink the write-off target only —
+        // never the amount the user will receive.
+        writeOffLoop: for (const cand of candidates) {
           const readback = floorNowAmount(custodyBalances[cand] ?? 0);
-          const tries: number[] = [payoutAmount];
-          if (readback > 0 && readback < payoutAmount) tries.push(readback);
-
-          for (let i = 0; i < tries.length && i < 6; i++) {
-            const tryAmt = floorNowAmount(tries[i]);
-            if (tryAmt <= 0) continue;
-            // Step A: write-off from custody to master.
+          let target =
+            readback > 0 ? Math.min(readback, payoutAmount) : payoutAmount;
+          const tried = new Set<number>();
+          for (let i = 0; i < 8 && target > 0; i++) {
+            const tryAmt = floorNowAmount(target);
+            if (tryAmt <= 0 || tried.has(tryAmt)) break;
+            tried.add(tryAmt);
             try {
-              const writeOff = await writeOffFromSubPartner({
+              const wo = await writeOffFromSubPartner({
                 subPartnerId: subId,
                 currency: cand,
                 amount: tryAmt,
               });
-              writeOffRaw = writeOff;
-              const writeOffStatus = String(
-                writeOff?.status ?? writeOff?.result?.status ?? "",
-              ).toLowerCase();
-              if (writeOffStatus && /rejected|failed/i.test(writeOffStatus)) {
-                payoutError = `NOWPayments write-off was rejected: ${JSON.stringify(writeOff)}`;
-                continue;
-              }
-              if (writeOffStatus && /created|waiting|processing|pending/i.test(writeOffStatus)) {
-                movedToMaster = true;
-                sentAmount = tryAmt;
-                payoutError = `WRITE_OFF_PENDING:${cand}:${tryAmt}`;
-                break outer;
-              }
+              writeOffRaw = wo;
+              writeOffCurrency = cand;
+              writtenOff = tryAmt;
+              break writeOffLoop;
             } catch (e: any) {
               payoutError = String(e?.message ?? "");
-              console.warn("[withdraw] custody write-off failed", {
-                user_id: auth.user.id,
-                network: net,
-                currency: cand,
-                amount: tryAmt,
-                custody: summarizeBalances(custodyBalances),
-                message: payoutError.slice(0, 400),
-              });
-              if (/insufficient|not enough|balance/i.test(payoutError)) {
-                const parsed = parseProviderAvailableAmount(payoutError, cand);
-                const readback = floorNowAmount(custodyBalances[cand] ?? 0);
-                const next = Number.isFinite(parsed) && parsed > 0 && parsed < tryAmt
+              if (!/insufficient|not enough|balance/i.test(payoutError)) break;
+              const parsed = parseProviderAvailableAmount(payoutError, cand);
+              target =
+                Number.isFinite(parsed) && parsed > 0 && parsed < tryAmt
                   ? floorNowAmount(parsed)
-                  : readback > 0 && readback < tryAmt
-                    ? readback
-                    : floorNowAmount(tryAmt * 0.99);
-                if (next > 0 && next < tryAmt && !tries.includes(next)) tries.push(next);
-              }
-              continue;
+                  : floorNowAmount(tryAmt * 0.9);
             }
-            movedToMaster = true;
+          }
+        }
 
-            // Step B: payout from master to destination address.
-            try {
-              payoutResult = await createPayout({
-                address: addr,
-                amount: tryAmt,
-                currency: cand,
-                ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
-              });
-              sentAmount = tryAmt;
-              break outer;
-            } catch (e: any) {
-              payoutError = String(e?.message ?? "");
-              const masterReady = await waitForMasterLiquidity(cand, tryAmt);
-              if (masterReady && /insufficient|not enough|liquidity|balance/i.test(payoutError)) {
+        const shortfall = floorNowAmount(Math.max(0, payoutAmount - writtenOff));
+        payoutSource =
+          writtenOff >= payoutAmount
+            ? "custody_write_off"
+            : writtenOff > 0
+              ? "custody_plus_reserve"
+              : "master_reserve";
+
+        // Step B: wait a moment for the write-off to settle into master, then
+        // pay the FULL payoutAmount from master. If master is short by
+        // `shortfall`, that gap is covered by the platform reserve.
+        let masterBalancesSnapshot: Record<string, number> = {};
+        try {
+          masterBalancesSnapshot = await getMasterBalance();
+        } catch {}
+        if (writtenOff > 0) {
+          await waitForMasterLiquidity(writeOffCurrency, payoutAmount);
+        }
+
+        const payoutCandidates = [
+          writeOffCurrency,
+          ...candidates.filter((c) => c !== writeOffCurrency),
+        ];
+        for (const cand of payoutCandidates) {
+          try {
+            payoutResult = await createPayout({
+              address: addr,
+              amount: payoutAmount,
+              currency: cand,
+              ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
+            });
+            writeOffCurrency = cand;
+            break;
+          } catch (e: any) {
+            payoutError = String(e?.message ?? "");
+            if (/insufficient|not enough|liquidity|balance/i.test(payoutError)) {
+              const ready = await waitForMasterLiquidity(cand, payoutAmount);
+              if (ready) {
                 try {
                   payoutResult = await createPayout({
                     address: addr,
-                    amount: tryAmt,
+                    amount: payoutAmount,
                     currency: cand,
                     ipnCallbackUrl: `${origin}/api/public/webhooks/nowpayments`,
                   });
-                  sentAmount = tryAmt;
-                  break outer;
+                  writeOffCurrency = cand;
+                  break;
                 } catch (retryError: any) {
                   payoutError = String(retryError?.message ?? retryError);
                 }
               }
-              if (!masterReady && /insufficient|not enough|liquidity|balance/i.test(payoutError)) {
-                sentAmount = tryAmt;
-                payoutError = `WRITE_OFF_PENDING:${cand}:${tryAmt}`;
-                break outer;
-              }
-              if (/insufficient|not enough|liquidity|balance/i.test(payoutError)) {
-                const parsed = parseProviderAvailableAmount(payoutError, cand);
-                const next = Number.isFinite(parsed) && parsed > 0 && parsed < tryAmt
-                  ? floorNowAmount(parsed)
-                  : floorNowAmount(tryAmt * 0.99);
-                if (next > 0 && next < tryAmt && !tries.includes(next)) tries.push(next);
-              }
             }
           }
         }
 
-        // If the custody write-off endpoint rejects the sub-partner movement,
-        // still allow the withdrawal when the master payout reserve already has
-        // enough same-network USDT. This is the practical production path for
-        // small/user withdrawals: the app debits the user wallet once, pays from
-        // master liquidity, and records the failed custody attempt for admin
-        // reconciliation instead of blocking the user forever.
-        if (!payoutResult && !movedToMaster && /insufficient|not enough|balance/i.test(payoutError)) {
-          const reserve = await tryMasterReservePayout({
-            address: addr,
-            amount: payoutAmount,
-            candidates,
-            origin,
-          });
-          if (reserve.payoutResult) {
-            payoutResult = reserve.payoutResult;
-            sentAmount = reserve.sentAmount;
-            payoutSource = "master_reserve";
-            writeOffRaw = {
-              failed_write_off_error: payoutError,
-              custody_balances: custodyBalances,
-              master_balances: reserve.masterBalances,
-            };
-          } else if (reserve.error) {
-            payoutError = `${payoutError} | master reserve payout failed: ${reserve.error}`;
+        // Record the reserve top-up internally so accounting can reconcile
+        // the master balance drawdown against user wallet debits. Best-effort:
+        // if the migration hasn't been applied yet, keep the info on the
+        // withdrawal row's raw payload.
+        if (payoutResult && shortfall > 0) {
+          try {
+            await sb.from("reserve_adjustments").insert({
+              user_id: auth.user.id,
+              withdrawal_id: wRow.id,
+              currency: writeOffCurrency,
+              network: net,
+              amount: shortfall,
+              reason: "custody_shortfall",
+              custody_available: writtenOff,
+              payout_amount: payoutAmount,
+              raw: {
+                custody_balances: custodyBalances,
+                master_balances: masterBalancesSnapshot,
+                last_write_off_error: payoutError || null,
+              },
+            });
+          } catch (e: any) {
+            console.warn("[withdraw] reserve_adjustments insert failed:", e?.message);
           }
         }
+
+        const movedToMaster = writtenOff > 0;
 
         if (payoutResult) {
           await sb
