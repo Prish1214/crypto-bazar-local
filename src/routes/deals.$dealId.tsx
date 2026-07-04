@@ -30,8 +30,33 @@ import { DealCodeReleaseDialog } from "@/components/deal/deal-code-release-dialo
 
 export const Route = createFileRoute("/deals/$dealId")({
   head: () => ({ meta: [{ title: "Deal Room — CryptoBazar" }] }),
+  // Deal rooms are user-scoped and hydrate entirely on the client
+  // (auth session lives in localStorage). SSR would 500 with no session.
+  ssr: false,
   component: () => <RequireAuth><DealRoom /></RequireAuth>,
+  errorComponent: ({ error, reset }) => (
+    <PageShell>
+      <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
+        <h1 className="font-display text-2xl font-bold tracking-tight">Deal room hit an error</h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{error?.message ?? "Something went wrong loading this deal."}</p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Button variant="hero" onClick={reset}>Try again</Button>
+          <Link to="/deals"><Button variant="outline">Back to deals</Button></Link>
+        </div>
+      </div>
+    </PageShell>
+  ),
+  notFoundComponent: () => (
+    <PageShell>
+      <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
+        <h1 className="font-display text-2xl font-bold tracking-tight">Deal not found</h1>
+        <p className="mt-2 text-sm text-muted-foreground">This deal doesn't exist or you don't have access.</p>
+        <Link to="/deals" className="mt-5 inline-block"><Button variant="hero">Back to deals</Button></Link>
+      </div>
+    </PageShell>
+  ),
 });
+
 
 const TERMINAL: DealStatus[] = ["completed", "cancelled"];
 
