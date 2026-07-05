@@ -30,6 +30,20 @@ function SettingsDealCode() {
   const [bioEnrolled, setBioEnrolled] = useState(false);
   const [email, setEmail] = useState("");
 
+  const [email, setEmail] = useState("");
+  const [resendIn, setResendIn] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startCountdown = () => {
+    setResendIn(60);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setResendIn((s) => (s <= 1 ? 0 : s - 1));
+    }, 1000);
+  };
+
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+
   useEffect(() => {
     setEmail(user?.email ?? "");
     if (user) setBioEnrolled(isBiometricEnrolledLocally(user.id));
