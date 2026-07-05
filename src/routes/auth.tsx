@@ -1,11 +1,12 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Coins, Loader2, ArrowLeft, MailCheck, CheckCircle2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Coins, Loader2, ArrowLeft, MailCheck, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PinInput } from "@/components/pin-input";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -29,25 +30,26 @@ function AuthPage() {
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
-  const [pendingVerification, setPendingVerification] = useState<string | null>(null);
-  const [justVerified, setJustVerified] = useState(false);
+  const [otpStage, setOtpStage] = useState<null | { email: string; profile?: { username: string; full_name: string; city: string } }>(null);
+  const [otp, setOtp] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [resendIn, setResendIn] = useState(60);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    // Detect verification callback (?verified=1 or Supabase hash tokens)
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const hash = window.location.hash || "";
-    if (params.get("verified") === "1" || hash.includes("type=signup") || hash.includes("access_token")) {
-      setJustVerified(true);
-      setMode("signin");
-      // Clean the URL
-      window.history.replaceState({}, "", "/auth");
-    }
-  }, []);
+    if (!authLoading && user && !otpStage) navigate({ to: "/wallet" });
+  }, [user, authLoading, navigate, otpStage]);
 
+  // Countdown for Resend OTP
   useEffect(() => {
-    if (!authLoading && user && !justVerified) navigate({ to: "/wallet" });
-  }, [user, authLoading, navigate, justVerified]);
+    if (!otpStage) return;
+    setResendIn(60);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setResendIn((s) => (s <= 1 ? 0 : s - 1));
+    }, 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [otpStage?.email]);
 
   // Live username availability check
   useEffect(() => {
@@ -79,21 +81,23 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth?verified=1`,
+            // No magic link — email template should include {{ .Token }}
+            emailRedirectTo: undefined,
             data: { full_name: fullName, city, username: u },
           },
         });
         if (error) throw error;
-        // Ensure profile reflects chosen username even if trigger fell back
-        if (data.user) {
-          await supabase.from("profiles").update({ username: u, full_name: fullName, city }).eq("id", data.user.id);
-        }
-        // If Supabase returned a session immediately, email confirmation is disabled → go straight in.
+        // If Supabase returned a session immediately (confirmation disabled), skip OTP.
         if (data.session) {
+          if (data.user) {
+            await supabase.from("profiles").update({ username: u, full_name: fullName, city }).eq("id", data.user.id);
+          }
           toast.success("Account created!");
           navigate({ to: "/wallet" });
         } else {
-          setPendingVerification(email);
+          setOtp("");
+          setOtpStage({ email, profile: { username: u, full_name: fullName, city } });
+          toast.success("We sent a 6-digit code to your email");
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -108,6 +112,41 @@ function AuthPage() {
     }
   };
 
+  const verifyOtp = async () => {
+    if (!otpStage || otp.length !== 6) return;
+    setVerifying(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: otpStage.email,
+        token: otp,
+        type: "signup",
+      });
+      if (error) throw error;
+      if (data.user && otpStage.profile) {
+        await supabase.from("profiles").update({
+          username: otpStage.profile.username,
+          full_name: otpStage.profile.full_name,
+          city: otpStage.profile.city,
+        }).eq("id", data.user.id);
+      }
+      toast.success("Email verified — welcome!");
+      setOtpStage(null);
+      navigate({ to: "/wallet" });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Invalid or expired code");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const resendOtp = async () => {
+    if (!otpStage || resendIn > 0) return;
+    const { error } = await supabase.auth.resend({ type: "signup", email: otpStage.email });
+    if (error) return toast.error(error.message);
+    toast.success("New code sent");
+    setResendIn(60);
+  };
+
   return (
     <div className="relative min-h-screen px-4 py-10">
       <div className="grid-bg pointer-events-none absolute inset-0 -z-10 opacity-30 [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]" />
@@ -117,44 +156,51 @@ function AuthPage() {
           <ArrowLeft className="h-4 w-4" /> Back to home
         </Link>
 
-        {pendingVerification ? (
-          <div className="glass-strong rounded-2xl p-7 text-center shadow-[var(--shadow-elevated)]">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-              <MailCheck className="h-7 w-7 text-primary" />
+        {otpStage ? (
+          <div className="glass-strong rounded-2xl p-6 sm:p-7 shadow-[var(--shadow-elevated)]">
+            <div className="flex flex-col items-center text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+                <MailCheck className="h-7 w-7 text-primary" />
+              </div>
+              <h1 className="mt-4 font-display text-2xl font-bold">Verify your email</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Enter the 6-digit code we sent to
+                <br />
+                <span className="font-medium text-foreground">{otpStage.email}</span>
+              </p>
             </div>
-            <h1 className="mt-4 font-display text-2xl font-bold">Check your email</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              We sent a verification link to <span className="font-medium text-foreground">{pendingVerification}</span>.
-              Click it to verify your account, then come back to sign in.
-            </p>
-            <div className="mt-6 flex flex-col gap-2">
-              <Button variant="hero" onClick={() => { setPendingVerification(null); setMode("signin"); }}>
-                I've verified — sign in
-              </Button>
+
+            <div className="mt-6">
+              <PinInput value={otp} onChange={setOtp} autoFocus />
+            </div>
+
+            <Button
+              variant="hero"
+              size="lg"
+              className="mt-6 w-full"
+              onClick={verifyOtp}
+              disabled={verifying || otp.length !== 6}
+            >
+              {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><ShieldCheck className="h-4 w-4" /> Verify & continue</>)}
+            </Button>
+
+            <div className="mt-4 flex items-center justify-between text-xs">
               <button
                 type="button"
-                className="text-xs text-muted-foreground hover:text-foreground"
-                onClick={async () => {
-                  const { error } = await supabase.auth.resend({ type: "signup", email: pendingVerification });
-                  if (error) toast.error(error.message); else toast.success("Verification email resent");
-                }}
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => { setOtpStage(null); setOtp(""); }}
               >
-                Resend verification email
+                ← Use a different email
+              </button>
+              <button
+                type="button"
+                disabled={resendIn > 0}
+                onClick={resendOtp}
+                className="font-medium text-primary disabled:text-muted-foreground disabled:cursor-not-allowed"
+              >
+                {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
               </button>
             </div>
-          </div>
-        ) : justVerified ? (
-          <div className="glass-strong rounded-2xl p-7 text-center shadow-[var(--shadow-elevated)]">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100">
-              <CheckCircle2 className="h-8 w-8 text-emerald-600" />
-            </div>
-            <h1 className="mt-4 font-display text-2xl font-bold">You're verified!</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Your account has been created successfully. Sign in below to start trading.
-            </p>
-            <Button variant="hero" className="mt-6 w-full" onClick={() => setJustVerified(false)}>
-              Continue to sign in
-            </Button>
           </div>
         ) : (
         <div className="glass-strong rounded-2xl p-7 shadow-[var(--shadow-elevated)]">

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Shield, Fingerprint, Mail, AlertTriangle, Loader2, CheckCircle2, LockKeyhole, Smartphone } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, Shield, Fingerprint, Mail, AlertTriangle, Loader2, CheckCircle2, LockKeyhole, Smartphone, MailCheck } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
 import { PinInput } from "@/components/pin-input";
@@ -29,6 +29,18 @@ function SettingsDealCode() {
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioEnrolled, setBioEnrolled] = useState(false);
   const [email, setEmail] = useState("");
+  const [resendIn, setResendIn] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startCountdown = () => {
+    setResendIn(60);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setResendIn((s) => (s <= 1 ? 0 : s - 1));
+    }, 1000);
+  };
+
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
   useEffect(() => {
     setEmail(user?.email ?? "");
@@ -47,7 +59,9 @@ function SettingsDealCode() {
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || "Failed to send OTP");
       toast.success(`OTP sent to ${j.email ?? email}`);
+      setOtp("");
       setStage("otp");
+      startCountdown();
     } catch (e: any) { toast.error(e.message); }
     finally { setBusy(false); }
   };
@@ -133,12 +147,25 @@ function SettingsDealCode() {
 
           {stage === "otp" && (
             <div className="mt-5 space-y-3">
-              <p className="text-sm text-muted-foreground">We sent a 6-digit code to <b>{email}</b>. Enter it below.</p>
-              <PinInput value={otp} onChange={setOtp} autoFocus />
-              <div className="flex gap-2">
-                <Button variant="ghost" className="flex-1" onClick={() => setStage("idle")}>Cancel</Button>
-                <Button variant="hero" className="flex-1" disabled={otp.length !== 6} onClick={() => setStage("new")}>Next</Button>
+              <div className="flex flex-col items-center gap-2 text-center">
+                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+                  <MailCheck className="h-6 w-6" />
+                </div>
+                <p className="text-sm text-muted-foreground">We sent a 6-digit code to<br /><b className="text-foreground">{email}</b></p>
               </div>
+              <PinInput value={otp} onChange={setOtp} autoFocus />
+              <div className="flex items-center justify-between text-xs">
+                <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setStage("idle")}>Cancel</button>
+                <button
+                  type="button"
+                  disabled={resendIn > 0 || busy}
+                  onClick={requestOtp}
+                  className="font-medium text-primary disabled:text-muted-foreground disabled:cursor-not-allowed"
+                >
+                  {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+                </button>
+              </div>
+              <Button variant="hero" className="w-full" disabled={otp.length !== 6} onClick={() => setStage("new")}>Verify & continue</Button>
             </div>
           )}
 
