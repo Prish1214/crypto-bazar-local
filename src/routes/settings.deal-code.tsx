@@ -59,7 +59,9 @@ function SettingsDealCode() {
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || "Failed to send OTP");
       toast.success(`OTP sent to ${j.email ?? email}`);
+      setOtp("");
       setStage("otp");
+      startCountdown();
     } catch (e: any) { toast.error(e.message); }
     finally { setBusy(false); }
   };
