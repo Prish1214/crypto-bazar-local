@@ -29,8 +29,6 @@ function SettingsDealCode() {
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioEnrolled, setBioEnrolled] = useState(false);
   const [email, setEmail] = useState("");
-
-  const [email, setEmail] = useState("");
   const [resendIn, setResendIn] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
