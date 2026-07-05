@@ -70,6 +70,7 @@ function DealRoom() {
   const [hasReview, setHasReview] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [releaseOpen, setReleaseOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -189,7 +190,6 @@ function DealRoom() {
     } as any, "Buyer marked cash as handed over.");
   };
 
-  const [releaseOpen, setReleaseOpen] = useState(false);
   const releaseEscrow = async () => { setReleaseOpen(true); };
   const onReleased = async () => {
     const amt = Number(deal!.amount_usdt);
