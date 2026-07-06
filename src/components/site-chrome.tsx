@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   Shield, Coins, Users, Store, Wallet, ListOrdered, Handshake,
   ReceiptText, Settings as SettingsIcon, LayoutDashboard, MessageSquare,
-  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DealNotifier } from "@/components/deal-notifier";
