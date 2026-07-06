@@ -1,9 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Send, Image as ImageIcon, MapPin, Lock, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Send, Image as ImageIcon, MapPin, Lock, Loader2, Check, CheckCheck, Plus } from "lucide-react";
 import { RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { encryptForConversation, decryptForConversation } from "@/lib/private-chat";
@@ -31,55 +30,38 @@ interface PrivateMessage {
   created_at: string;
 }
 
-interface Conversation {
-  id: string;
-  user_a: string;
-  user_b: string;
-}
-
-interface Profile {
-  id: string;
-  username: string | null;
-  full_name: string | null;
-  avatar_url: string | null;
-}
+interface Conversation { id: string; user_a: string; user_b: string }
+interface Profile { id: string; username: string | null; full_name: string | null; avatar_url: string | null }
 
 function ChatThread() {
   const { conversationId } = Route.useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [conv, setConv] = useState<Conversation | null>(null);
   const [other, setOther] = useState<Profile | null>(null);
   const [messages, setMessages] = useState<PrivateMessage[]>([]);
   const [decrypted, setDecrypted] = useState<Record<string, string>>({});
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showActions, setShowActions] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load conversation + messages
   useEffect(() => {
     if (!user) return;
     let mounted = true;
     (async () => {
       const { data: c, error: cErr } = await supabase
         .from("private_conversations")
-        .select("id,user_a,user_b")
-        .eq("id", conversationId)
-        .maybeSingle();
-      if (cErr || !c) {
-        toast.error("Conversation not found");
-        navigate({ to: "/chat" });
-        return;
-      }
+        .select("id,user_a,user_b").eq("id", conversationId).maybeSingle();
+      if (cErr || !c) { toast.error("Conversation not found"); navigate({ to: "/chat" }); return; }
       const otherId = (c as any).user_a === user.id ? (c as any).user_b : (c as any).user_a;
       const [{ data: p }, { data: ms }] = await Promise.all([
         supabase.from("profiles").select("id,username,full_name,avatar_url").eq("id", otherId).maybeSingle(),
         supabase.from("private_messages").select("*").eq("conversation_id", conversationId).order("created_at", { ascending: true }),
       ]);
       if (!mounted) return;
-      setConv(c as Conversation);
       setOther((p as Profile) ?? null);
       setMessages((ms ?? []) as PrivateMessage[]);
       setLoading(false);
@@ -87,8 +69,7 @@ function ChatThread() {
 
     const ch = supabase
       .channel(`pc-${conversationId}`)
-      .on(
-        "postgres_changes",
+      .on("postgres_changes",
         { event: "INSERT", schema: "public", table: "private_messages", filter: `conversation_id=eq.${conversationId}` },
         (payload) => {
           setMessages((prev) => {
@@ -97,13 +78,10 @@ function ChatThread() {
             return [...prev, m];
           });
         },
-      )
-      .subscribe();
-
+      ).subscribe();
     return () => { mounted = false; supabase.removeChannel(ch); };
   }, [conversationId, user?.id]);
 
-  // Decrypt text messages
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -113,17 +91,21 @@ function ChatThread() {
           updates[m.id] = await decryptForConversation(conversationId, m.content);
         }
       }
-      if (!cancelled && Object.keys(updates).length) {
-        setDecrypted((p) => ({ ...p, ...updates }));
-      }
+      if (!cancelled && Object.keys(updates).length) setDecrypted((p) => ({ ...p, ...updates }));
     })();
     return () => { cancelled = true; };
   }, [messages, conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Autoscroll
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
+
+  // Auto-grow textarea
+  useEffect(() => {
+    const el = taRef.current; if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 140) + "px";
+  }, [text]);
 
   const send = async () => {
     if (!text.trim() || !user) return;
@@ -133,22 +115,17 @@ function ChatThread() {
     try {
       const enc = await encryptForConversation(conversationId, clean);
       const { error } = await supabase.from("private_messages").insert({
-        conversation_id: conversationId,
-        sender_id: user.id,
-        content: enc,
-        kind: "text",
+        conversation_id: conversationId, sender_id: user.id, content: enc, kind: "text",
       } as any);
       if (error) throw error;
       setText("");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Send failed");
-    } finally {
-      setSending(false);
-    }
+    } catch (e: any) { toast.error(e?.message ?? "Send failed"); }
+    finally { setSending(false); }
   };
 
   const sendImage = async (file: File) => {
     if (!user) return;
+    setShowActions(false);
     try {
       const ext = file.name.split(".").pop() ?? "jpg";
       const path = `${user.id}/${conversationId}/${Date.now()}.${ext}`;
@@ -156,150 +133,223 @@ function ChatThread() {
       if (upErr) throw upErr;
       const { data } = await supabase.storage.from("chat-attachments").createSignedUrl(path, 60 * 60 * 24 * 30);
       await supabase.from("private_messages").insert({
-        conversation_id: conversationId,
-        sender_id: user.id,
-        content: file.name,
-        kind: "image",
+        conversation_id: conversationId, sender_id: user.id, content: file.name, kind: "image",
         attachment_url: data?.signedUrl ?? null,
       } as any);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Upload failed");
-    }
+    } catch (e: any) { toast.error(e?.message ?? "Upload failed"); }
   };
 
   const shareLocation = () => {
     if (!user) return;
+    setShowActions(false);
     if (!navigator.geolocation) return toast.error("Geolocation unavailable");
     navigator.geolocation.getCurrentPosition(async (pos) => {
       await supabase.from("private_messages").insert({
-        conversation_id: conversationId,
-        sender_id: user.id,
-        content: "Shared live location",
-        kind: "location",
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
+        conversation_id: conversationId, sender_id: user.id, content: "Shared live location",
+        kind: "location", lat: pos.coords.latitude, lng: pos.coords.longitude,
       } as any);
     }, () => toast.error("Could not get location"));
   };
 
+  // Group by day; compute last "seen" message from other side to imply delivered/read for my messages
+  const grouped = useMemo(() => groupByDay(messages), [messages]);
+  const lastOtherIdx = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) if (messages[i].sender_id !== user?.id) return i;
+    return -1;
+  }, [messages, user?.id]);
+
   return (
-    <div className="flex h-[100dvh] flex-col bg-background">
+    <div className="flex h-[100dvh] flex-col bg-[#0f172a] text-slate-100">
       {/* Header */}
-      <header className="flex items-center gap-3 border-b border-border bg-card px-3 py-3 shadow-sm">
+      <header className="flex items-center gap-3 border-b border-white/5 bg-[#111a2e]/95 px-3 py-3 backdrop-blur-md">
         <Link to="/chat">
-          <Button variant="ghost" size="icon" className="h-9 w-9">
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-200 hover:bg-white/5 hover:text-white">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <Avatar profile={other} />
+        <Avatar profile={other} ring />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold">@{other?.username ?? "loading"}</div>
-          <div className="inline-flex items-center gap-1 text-[10px] text-emerald-600">
+          <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-emerald-400">
             <Lock className="h-3 w-3" /> End-to-end encrypted
           </div>
         </div>
       </header>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-secondary/20 px-3 py-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
         {loading ? (
-          <div className="grid h-full place-items-center text-sm text-muted-foreground">
+          <div className="grid h-full place-items-center text-sm text-slate-400">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : messages.length === 0 ? (
           <div className="grid h-full place-items-center px-6 text-center">
             <div>
-              <Lock className="mx-auto h-8 w-8 text-muted-foreground/40" />
-              <p className="mt-3 text-sm font-medium">Say hello to @{other?.username}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Messages are encrypted. Never share OTPs or banking passwords.
-              </p>
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white/5">
+                <Lock className="h-6 w-6 text-slate-400" />
+              </div>
+              <p className="mt-4 text-sm font-medium">Say hello to @{other?.username}</p>
+              <p className="mt-1 text-xs text-slate-400">Messages are encrypted. Never share OTPs or banking passwords.</p>
             </div>
           </div>
         ) : (
-          messages.map((m) => (
-            <Bubble
-              key={m.id}
-              m={m}
-              mine={m.sender_id === user?.id}
-              displayText={
-                m.kind === "text"
-                  ? decrypted[m.id] ?? (m.content.startsWith("pc:v1:") ? "…" : m.content)
-                  : m.content
-              }
-            />
+          grouped.map((g) => (
+            <div key={g.label} className="space-y-1.5">
+              <div className="my-3 flex items-center justify-center">
+                <span className="rounded-full bg-white/5 px-3 py-1 text-[10px] font-medium tracking-wide text-slate-400">
+                  {g.label}
+                </span>
+              </div>
+              {g.items.map((m, i) => {
+                const globalIdx = messages.indexOf(m);
+                const mine = m.sender_id === user?.id;
+                const prev = g.items[i - 1];
+                const next = g.items[i + 1];
+                const groupedTop = prev && prev.sender_id === m.sender_id;
+                const groupedBottom = next && next.sender_id === m.sender_id;
+                const seen = mine && lastOtherIdx > globalIdx; // other user sent something after → treat as read
+                return (
+                  <Bubble
+                    key={m.id}
+                    m={m}
+                    mine={mine}
+                    groupedTop={!!groupedTop}
+                    groupedBottom={!!groupedBottom}
+                    seen={seen}
+                    displayText={
+                      m.kind === "text"
+                        ? decrypted[m.id] ?? (m.content.startsWith("pc:v1:") ? "…" : m.content)
+                        : m.content
+                    }
+                  />
+                );
+              })}
+            </div>
           ))
         )}
       </div>
 
       {/* Composer */}
-      <div className="border-t border-border bg-card px-2 py-2 pb-[env(safe-area-inset-bottom,0)]">
+      <div className="border-t border-white/5 bg-[#111a2e] px-2 pt-2"
+           style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}>
+        {showActions && (
+          <div className="mb-2 flex gap-2 px-1 animate-fade-in">
+            <QuickAction icon={ImageIcon} label="Photo" onClick={() => fileRef.current?.click()} />
+            <QuickAction icon={MapPin} label="Location" onClick={shareLocation} />
+          </div>
+        )}
         <div className="flex items-end gap-1.5">
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) sendImage(f); e.target.value = ""; }}
-          />
-          <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={() => fileRef.current?.click()} title="Send image">
-            <ImageIcon className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={shareLocation} title="Share live location">
-            <MapPin className="h-5 w-5" />
-          </Button>
-          <Input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), send())}
-            placeholder="Message"
-            className="h-10 flex-1 rounded-full bg-secondary"
-          />
-          <Button variant="hero" size="icon" className="h-10 w-10 shrink-0 rounded-full" onClick={send} disabled={sending || !text.trim()}>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) sendImage(f); e.target.value = ""; }} />
+          <button
+            type="button"
+            onClick={() => setShowActions((v) => !v)}
+            className={`grid h-10 w-10 shrink-0 place-items-center rounded-full transition-all ${showActions ? "rotate-45 bg-primary text-primary-foreground" : "bg-white/5 text-slate-300"}`}
+            aria-label="Attach"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
+          <div className="flex flex-1 items-end rounded-3xl bg-white/5 px-3 py-1.5">
+            <textarea
+              ref={taRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+              rows={1}
+              placeholder="Message"
+              className="max-h-[140px] w-full resize-none bg-transparent py-1.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={send}
+            disabled={sending || !text.trim()}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-all disabled:opacity-50 active:scale-95"
+            aria-label="Send"
+          >
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          </Button>
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function Bubble({ m, mine, displayText }: { m: PrivateMessage; mine: boolean; displayText: string }) {
+function QuickAction({ icon: Icon, label, onClick }: { icon: any; label: string; onClick: () => void }) {
   return (
-    <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm shadow-sm ${mine ? "bg-primary text-primary-foreground" : "bg-card"}`}>
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center gap-1 rounded-2xl bg-white/5 px-4 py-2.5 text-[11px] text-slate-200 transition hover:bg-white/10 active:scale-95"
+    >
+      <Icon className="h-5 w-5 text-primary" />
+      {label}
+    </button>
+  );
+}
+
+function Bubble({
+  m, mine, displayText, groupedTop, groupedBottom, seen,
+}: { m: PrivateMessage; mine: boolean; displayText: string; groupedTop: boolean; groupedBottom: boolean; seen: boolean }) {
+  const radius = mine
+    ? `rounded-2xl ${groupedTop ? "rounded-tr-md" : ""} ${groupedBottom ? "rounded-br-md" : ""}`
+    : `rounded-2xl ${groupedTop ? "rounded-tl-md" : ""} ${groupedBottom ? "rounded-bl-md" : ""}`;
+  return (
+    <div className={`flex ${mine ? "justify-end" : "justify-start"} ${groupedTop ? "mt-0.5" : "mt-1.5"} animate-fade-in`}>
+      <div
+        className={`max-w-[78%] px-3.5 py-2 text-[14px] leading-snug ${radius} ${
+          mine ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" : "bg-white/8 text-slate-100"
+        }`}
+        style={!mine ? { background: "rgba(255,255,255,0.06)" } : undefined}
+      >
         {m.kind === "image" && m.attachment_url && (
           <a href={m.attachment_url} target="_blank" rel="noreferrer">
             <img src={m.attachment_url} alt="" className="mb-1 max-h-64 rounded-lg" />
           </a>
         )}
         {m.kind === "location" && m.lat != null && m.lng != null && (
-          <a
-            className={`inline-flex items-center gap-1 underline ${mine ? "text-primary-foreground" : "text-primary"}`}
-            href={`https://maps.google.com/?q=${m.lat},${m.lng}`}
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a className={`inline-flex items-center gap-1 underline ${mine ? "text-primary-foreground" : "text-primary"}`}
+             href={`https://maps.google.com/?q=${m.lat},${m.lng}`} target="_blank" rel="noreferrer">
             <MapPin className="h-3.5 w-3.5" /> View on map
           </a>
         )}
         {m.kind === "text" && <div className="whitespace-pre-wrap break-words">{displayText}</div>}
-        <div className={`mt-0.5 text-right text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-          {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        <div className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-slate-400"}`}>
+          <span>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+          {mine && (seen
+            ? <CheckCheck className="h-3 w-3 text-sky-200" />
+            : <Check className="h-3 w-3" />)}
         </div>
       </div>
     </div>
   );
 }
 
-function Avatar({ profile }: { profile: Profile | null }) {
+function Avatar({ profile, ring = false }: { profile: Profile | null; ring?: boolean }) {
   const initial = (profile?.username || profile?.full_name || "?").slice(0, 1).toUpperCase();
+  const ringCls = ring ? "ring-2 ring-primary/40" : "";
   if (profile?.avatar_url) {
-    return <img src={profile.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />;
+    return <img src={profile.avatar_url} alt="" className={`h-9 w-9 rounded-full object-cover ${ringCls}`} />;
   }
   return (
-    <div className="grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+    <div className={`grid h-9 w-9 place-items-center rounded-full bg-primary/20 text-sm font-semibold text-primary ${ringCls}`}>
       {initial}
     </div>
   );
+}
+
+function groupByDay(messages: PrivateMessage[]) {
+  const groups: { label: string; items: PrivateMessage[] }[] = [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const yest = new Date(today); yest.setDate(yest.getDate() - 1);
+  for (const m of messages) {
+    const d = new Date(m.created_at); const day = new Date(d); day.setHours(0, 0, 0, 0);
+    let label: string;
+    if (day.getTime() === today.getTime()) label = "Today";
+    else if (day.getTime() === yest.getTime()) label = "Yesterday";
+    else label = d.toLocaleDateString([], { month: "short", day: "numeric", year: d.getFullYear() === today.getFullYear() ? undefined : "numeric" });
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) last.items.push(m);
+    else groups.push({ label, items: [m] });
+  }
+  return groups;
 }
