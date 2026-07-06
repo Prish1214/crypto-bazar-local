@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   Shield, Coins, Users, Store, Wallet, ListOrdered, Handshake,
   ReceiptText, Settings as SettingsIcon, LayoutDashboard, MessageSquare,
-  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DealNotifier } from "@/components/deal-notifier";
@@ -133,21 +132,41 @@ export function MobileTabBar() {
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/95 backdrop-blur-lg md:hidden"
-         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-      <div className="mx-auto grid max-w-lg grid-cols-5">
+    <nav
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/90 backdrop-blur-xl md:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
+      <div className="mx-auto grid max-w-lg grid-cols-5 items-end px-2 pt-1.5 pb-1">
         {items.map((n) => {
           const active = pathname === n.to || (n.to !== "/" && pathname.startsWith(n.to));
+          if (n.primary) {
+            return (
+              <Link
+                key={n.to}
+                to={n.to}
+                className="flex flex-col items-center justify-center gap-1 -mt-6"
+                aria-label={n.label}
+              >
+                <div className={cn(
+                  "grid h-14 w-14 place-items-center rounded-full bg-[image:var(--gradient-primary)] text-primary-foreground shadow-[0_10px_30px_-8px_oklch(0.52_0.17_255_/_0.55)] ring-4 ring-background transition-transform active:scale-95",
+                  active && "scale-105",
+                )}>
+                  <n.icon className="h-6 w-6" />
+                </div>
+                <span className={cn("text-[10px] font-semibold", active ? "text-primary" : "text-muted-foreground")}>{n.label}</span>
+              </Link>
+            );
+          }
           return (
             <Link
               key={n.to}
               to={n.to}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
+                "flex flex-col items-center justify-center gap-1 rounded-xl py-1.5 text-[10px] font-medium transition-colors",
                 active ? "text-primary" : "text-muted-foreground",
               )}
             >
-              <n.icon className={cn("h-5 w-5", active && "stroke-[2.5]")} />
+              <n.icon className={cn("h-[22px] w-[22px] transition-transform", active && "stroke-[2.4] scale-110")} />
               <span>{n.label}</span>
             </Link>
           );
@@ -159,7 +178,7 @@ export function MobileTabBar() {
 
 export function SiteFooter() {
   return (
-    <footer className="mx-auto mt-16 max-w-7xl px-4 pb-8 pt-10">
+    <footer className="mx-auto mt-16 hidden max-w-7xl px-4 pb-8 pt-10 md:block">
       <div className="rounded-2xl border border-border bg-card px-5 py-6">
         <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
           <div className="flex items-center gap-2">
@@ -188,7 +207,7 @@ export function PageShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen">
       <DealNotifier />
       <SiteHeader />
-      <main className={cn("mx-auto max-w-7xl px-[var(--space-screen-x)] py-[var(--space-screen-y)]", user && "pb-24 md:pb-6")}>
+      <main className={cn("mx-auto max-w-7xl px-[var(--space-screen-x)] py-[var(--space-screen-y)]", user && "pb-28 md:pb-6")}>
         {children}
       </main>
       <SiteFooter />

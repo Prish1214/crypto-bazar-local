@@ -119,100 +119,103 @@ function ChatInbox() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold">Private Chat</h1>
-          <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Lock className="h-3 w-3" /> End-to-end encrypted · separate from deal rooms
-          </p>
-        </div>
+      <div className="mb-5">
+        <h1 className="font-display text-[26px] font-bold leading-tight">Chats</h1>
+        <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Lock className="h-3 w-3" /> End-to-end encrypted · separate from deal rooms
+        </p>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search users by @username"
-            className="pl-9"
-          />
-        </div>
+      <div className="relative mb-4">
+        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search @username to start chatting"
+          className="h-11 rounded-2xl border-transparent bg-secondary/70 pl-10 text-[14px] focus-visible:border-primary/40 focus-visible:bg-card"
+        />
+      </div>
 
-        {q.trim().length >= 2 && (
-          <div className="mt-3 space-y-1">
-            {searching && <p className="px-2 py-2 text-xs text-muted-foreground">Searching…</p>}
-            {!searching && results.length === 0 && (
-              <p className="px-2 py-2 text-xs text-muted-foreground">No users found for "{q}"</p>
-            )}
+      {q.trim().length >= 2 && (
+        <div className="mb-4 overflow-hidden rounded-2xl border border-border bg-card shadow-sm animate-fade-in">
+          {searching && <p className="px-4 py-3 text-xs text-muted-foreground">Searching…</p>}
+          {!searching && results.length === 0 && (
+            <p className="px-4 py-3 text-xs text-muted-foreground">No users found for "{q}"</p>
+          )}
+          <ul className="divide-y divide-border/60">
             {results.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => startChat(r.id)}
-                disabled={starting === r.id}
-                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors hover:bg-secondary"
+              <li key={r.id}>
+                <button
+                  onClick={() => startChat(r.id)}
+                  disabled={starting === r.id}
+                  className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-secondary/60"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar profile={r} />
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold">@{r.username}</div>
+                      {r.full_name && <div className="truncate text-xs text-muted-foreground">{r.full_name}</div>}
+                    </div>
+                  </div>
+                  {starting === r.id
+                    ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                    : <Button size="sm" variant="ghost" className="shrink-0">Chat</Button>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Recent</h2>
+      {loading ? (
+        <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">Loading…</div>
+      ) : convs.length === 0 ? (
+        <div className="rounded-2xl border border-border bg-card p-10 text-center">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10">
+            <MessageSquare className="h-6 w-6 text-primary" />
+          </div>
+          <p className="mt-4 text-sm font-semibold">No conversations yet</p>
+          <p className="mt-1 text-xs text-muted-foreground">Search a username above to start chatting.</p>
+        </div>
+      ) : (
+        <ul className="space-y-1.5">
+          {convs.map((c) => (
+            <li key={c.id}>
+              <Link
+                to="/chat/$conversationId"
+                params={{ conversationId: c.id }}
+                className="flex items-center gap-3 rounded-2xl border border-transparent bg-card px-3.5 py-3 shadow-sm transition-all hover:border-border hover:shadow-md active:scale-[0.99]"
               >
-                <div className="flex items-center gap-3">
-                  <Avatar profile={r} />
-                  <div>
-                    <div className="text-sm font-medium">@{r.username}</div>
-                    {r.full_name && <div className="text-xs text-muted-foreground">{r.full_name}</div>}
+                <Avatar profile={c.other} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="truncate text-[14px] font-semibold">@{c.other?.username ?? "unknown"}</div>
+                    <div className="shrink-0 text-[10px] font-medium text-muted-foreground">
+                      {formatRelative(c.last_message_at)}
+                    </div>
+                  </div>
+                  <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {c.last_message_preview ?? "Say hello 👋"}
                   </div>
                 </div>
-                {starting === r.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                ) : (
-                  <Button size="sm" variant="ghost">Chat</Button>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="mt-6">
-        <h2 className="px-1 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Conversations</h2>
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-          {loading ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
-          ) : convs.length === 0 ? (
-            <div className="p-8 text-center">
-              <MessageSquare className="mx-auto h-8 w-8 text-muted-foreground/50" />
-              <p className="mt-3 text-sm text-muted-foreground">No conversations yet</p>
-              <p className="mt-1 text-xs text-muted-foreground/70">Search a username above to start chatting.</p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {convs.map((c) => (
-                <li key={c.id}>
-                  <Link
-                    to="/chat/$conversationId"
-                    params={{ conversationId: c.id }}
-                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-secondary/50"
-                  >
-                    <Avatar profile={c.other} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="truncate text-sm font-semibold">
-                          @{c.other?.username ?? "unknown"}
-                        </div>
-                        <div className="shrink-0 text-[10px] text-muted-foreground">
-                          {new Date(c.last_message_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                        </div>
-                      </div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {c.last_message_preview ?? "New conversation"}
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
+}
+
+function formatRelative(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const yest = new Date(now); yest.setDate(yest.getDate() - 1);
+  if (d.toDateString() === yest.toDateString()) return "Yesterday";
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
 function Avatar({ profile }: { profile: { username?: string | null; full_name?: string | null; avatar_url?: string | null } | null | undefined }) {
