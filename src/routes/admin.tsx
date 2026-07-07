@@ -229,14 +229,103 @@ function Admin() {
         <StatCard icon={ShieldCheck} label="Admins" value={adminIds.size.toString()} />
       </div>
 
-      <Tabs defaultValue="disputes">
-        <TabsList className="mb-4 grid w-full grid-cols-2 md:grid-cols-5">
+      <Tabs defaultValue="analytics">
+        <TabsList className="mb-4 grid w-full grid-cols-3 md:grid-cols-6">
+          <TabsTrigger value="analytics"><TrendingUp className="mr-1 h-3.5 w-3.5" />Analytics</TabsTrigger>
           <TabsTrigger value="disputes">Disputes {stats.disputes > 0 && <Badge variant="destructive" className="ml-2">{stats.disputes}</Badge>}</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="listings">Listings</TabsTrigger>
           <TabsTrigger value="deals">Deals</TabsTrigger>
           <TabsTrigger value="txs">Transactions</TabsTrigger>
         </TabsList>
+
+        {/* ANALYTICS */}
+        <TabsContent value="analytics" className="space-y-5">
+          {analyticsErr && (
+            <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-xs text-destructive">
+              Analytics unavailable: {analyticsErr}. Apply <code>docs/schema-v16-admin-analytics.sql</code> in Supabase, then refresh.
+            </div>
+          )}
+          {!analytics && !analyticsErr && (
+            <div className="grid place-items-center rounded-2xl border border-border bg-card p-16"><Loader2 className="h-5 w-5 animate-spin" /></div>
+          )}
+          {analytics && (
+            <>
+              <SectionTitle title="Platform overview" subtitle="All-time totals across CryptoBazar" />
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <BigStat icon={TrendingUp} label="Trading volume" value={fmtUSDT(analytics.trading_volume_usdt)} hint={`${fmtUSDT(analytics.trading_volume_30d)} last 30d`} tone="primary" />
+                <BigStat icon={Handshake} label="Completed deals" value={String(analytics.deals_completed)} hint={`${analytics.deals_cancelled} cancelled · ${analytics.success_rate}% success`} tone="emerald" />
+                <BigStat icon={WalletIcon} label="USDT in escrow" value={fmtUSDT(analytics.escrow_held_usdt)} hint={`${fmtUSDT(analytics.wallet_balance_total)} total in wallets`} tone="sky" />
+                <BigStat icon={LifeBuoy} label="Reserve compensation" value={fmtUSDT(analytics.reserve_comp_total)} hint={`${analytics.reserve_comp_count} top-ups paid`} tone="amber" />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <MiniStat icon={ArrowDownToLine} label="Deposits" value={fmtUSDT(analytics.deposits_total)} hint={`${analytics.deposits_count} txns`} />
+                <MiniStat icon={ArrowUpFromLine} label="Withdrawals" value={fmtUSDT(analytics.withdrawals_total)} hint={`${analytics.withdrawals_count} completed · ${analytics.withdrawals_pending} pending`} />
+                <MiniStat icon={ReceiptText} label="Platform fees" value={fmtUSDT(analytics.fees_collected_usdt)} hint="0.1% on completed deals" />
+                <MiniStat icon={Activity} label="Active users (7d)" value={String(analytics.users_active_7d)} hint={`${analytics.users_verified}/${analytics.users_total} verified`} />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <MiniStat icon={Handshake} label="Active deals" value={String(analytics.deals_active)} hint={`${analytics.deals_total} lifetime`} />
+                <MiniStat icon={ListOrdered} label="Active listings" value={String(analytics.listings_active)} hint={`${analytics.listings_total} lifetime`} />
+                <MiniStat icon={AlertOctagon} label="Open disputes" value={String(analytics.deals_disputed_open)} hint="Awaiting admin action" />
+                <MiniStat icon={Percent} label="Success rate" value={`${analytics.success_rate}%`} hint="Completed ÷ (completed+cancelled)" />
+              </div>
+
+              <SectionTitle title="Merchant leaderboard" subtitle="Top users by trading volume" />
+              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/50 text-left uppercase tracking-wider text-[10px] text-muted-foreground">
+                      <tr>
+                        <th className="p-3">Merchant</th>
+                        <th className="p-3 text-right">Volume</th>
+                        <th className="p-3 text-right">Deals ✓ / ✗</th>
+                        <th className="p-3 text-right">Success</th>
+                        <th className="p-3 text-right">Wallet</th>
+                        <th className="p-3 text-right">Escrow</th>
+                        <th className="p-3 text-right">Deposits</th>
+                        <th className="p-3 text-right">Withdrawals</th>
+                        <th className="p-3">Last deal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(merchants ?? []).map((m, i) => (
+                        <tr key={m.user_id} className="border-t border-border hover:bg-muted/30">
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <span className="grid h-6 w-6 place-items-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">{i + 1}</span>
+                              <div className="min-w-0">
+                                <div className="truncate font-medium">{m.full_name ?? m.username ?? m.user_id.slice(0, 8)}</div>
+                                <div className="truncate text-[10px] text-muted-foreground">@{m.username ?? "—"} · {m.city ?? "—"}</div>
+                              </div>
+                              {m.verified && <ShieldCheck className="h-3 w-3 text-emerald-600" />}
+                            </div>
+                          </td>
+                          <td className="p-3 text-right font-mono font-semibold">{fmtUSDT(m.volume)}</td>
+                          <td className="p-3 text-right font-mono">{m.deals_completed} / {m.deals_cancelled}</td>
+                          <td className="p-3 text-right font-mono">{m.success_rate}%</td>
+                          <td className="p-3 text-right font-mono">{fmtUSDT(m.wallet_balance)}</td>
+                          <td className="p-3 text-right font-mono">{fmtUSDT(m.escrow_balance)}</td>
+                          <td className="p-3 text-right font-mono text-emerald-600">{fmtUSDT(m.deposits)}</td>
+                          <td className="p-3 text-right font-mono text-amber-600">{fmtUSDT(m.withdrawals)}</td>
+                          <td className="p-3 text-[11px] text-muted-foreground whitespace-nowrap">
+                            {m.last_deal_at ? new Date(m.last_deal_at).toLocaleDateString() : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                      {(!merchants || merchants.length === 0) && (
+                        <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">No merchant data yet</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+        </TabsContent>
+
 
         {/* DISPUTES */}
         <TabsContent value="disputes" className="space-y-2">
