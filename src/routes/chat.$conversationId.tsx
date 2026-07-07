@@ -159,18 +159,18 @@ function ChatThread() {
   }, [messages, user?.id]);
 
   return (
-    <div className="flex h-[100dvh] flex-col bg-[#0f172a] text-slate-100">
+    <div className="flex h-[100dvh] flex-col bg-background text-foreground">
       {/* Header */}
-      <header className="flex items-center gap-3 border-b border-white/5 bg-[#111a2e]/95 px-3 py-3 backdrop-blur-md">
+      <header className="flex items-center gap-3 border-b border-border bg-card/95 px-3 py-3 backdrop-blur-md">
         <Link to="/chat">
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-200 hover:bg-white/5 hover:text-white">
+          <Button variant="ghost" size="icon" className="h-9 w-9">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <Avatar profile={other} ring />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold">@{other?.username ?? "loading"}</div>
-          <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-emerald-400">
+          <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-emerald-600">
             <Lock className="h-3 w-3" /> End-to-end encrypted
           </div>
         </div>
@@ -179,24 +179,24 @@ function ChatThread() {
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
         {loading ? (
-          <div className="grid h-full place-items-center text-sm text-slate-400">
+          <div className="grid h-full place-items-center text-sm text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : messages.length === 0 ? (
           <div className="grid h-full place-items-center px-6 text-center">
             <div>
-              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white/5">
-                <Lock className="h-6 w-6 text-slate-400" />
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-secondary">
+                <Lock className="h-6 w-6 text-muted-foreground" />
               </div>
               <p className="mt-4 text-sm font-medium">Say hello to @{other?.username}</p>
-              <p className="mt-1 text-xs text-slate-400">Messages are encrypted. Never share OTPs or banking passwords.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Messages are encrypted. Never share OTPs or banking passwords.</p>
             </div>
           </div>
         ) : (
           grouped.map((g) => (
             <div key={g.label} className="space-y-1.5">
               <div className="my-3 flex items-center justify-center">
-                <span className="rounded-full bg-white/5 px-3 py-1 text-[10px] font-medium tracking-wide text-slate-400">
+                <span className="rounded-full bg-secondary px-3 py-1 text-[10px] font-medium tracking-wide text-muted-foreground">
                   {g.label}
                 </span>
               </div>
@@ -207,7 +207,7 @@ function ChatThread() {
                 const next = g.items[i + 1];
                 const groupedTop = prev && prev.sender_id === m.sender_id;
                 const groupedBottom = next && next.sender_id === m.sender_id;
-                const seen = mine && lastOtherIdx > globalIdx; // other user sent something after → treat as read
+                const seen = mine && lastOtherIdx > globalIdx;
                 return (
                   <Bubble
                     key={m.id}
@@ -230,7 +230,7 @@ function ChatThread() {
       </div>
 
       {/* Composer */}
-      <div className="border-t border-white/5 bg-[#111a2e] px-2 pt-2"
+      <div className="border-t border-border bg-card px-2 pt-2"
            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}>
         {showActions && (
           <div className="mb-2 flex gap-2 px-1 animate-fade-in">
@@ -244,12 +244,12 @@ function ChatThread() {
           <button
             type="button"
             onClick={() => setShowActions((v) => !v)}
-            className={`grid h-10 w-10 shrink-0 place-items-center rounded-full transition-all ${showActions ? "rotate-45 bg-primary text-primary-foreground" : "bg-white/5 text-slate-300"}`}
+            className={`grid h-10 w-10 shrink-0 place-items-center rounded-full transition-all ${showActions ? "rotate-45 bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}
             aria-label="Attach"
           >
             <Plus className="h-5 w-5" />
           </button>
-          <div className="flex flex-1 items-end rounded-3xl bg-white/5 px-3 py-1.5">
+          <div className="flex flex-1 items-end rounded-3xl bg-secondary px-3 py-1.5">
             <textarea
               ref={taRef}
               value={text}
@@ -257,7 +257,7 @@ function ChatThread() {
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
               rows={1}
               placeholder="Message"
-              className="max-h-[140px] w-full resize-none bg-transparent py-1.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+              className="max-h-[140px] w-full resize-none bg-transparent py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
           </div>
           <button
@@ -279,7 +279,7 @@ function QuickAction({ icon: Icon, label, onClick }: { icon: any; label: string;
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center gap-1 rounded-2xl bg-white/5 px-4 py-2.5 text-[11px] text-slate-200 transition hover:bg-white/10 active:scale-95"
+      className="flex flex-col items-center gap-1 rounded-2xl bg-secondary px-4 py-2.5 text-[11px] text-foreground transition hover:bg-secondary/80 active:scale-95"
     >
       <Icon className="h-5 w-5 text-primary" />
       {label}
@@ -297,9 +297,8 @@ function Bubble({
     <div className={`flex ${mine ? "justify-end" : "justify-start"} ${groupedTop ? "mt-0.5" : "mt-1.5"} animate-fade-in`}>
       <div
         className={`max-w-[78%] px-3.5 py-2 text-[14px] leading-snug ${radius} ${
-          mine ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" : "bg-white/8 text-slate-100"
+          mine ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" : "bg-secondary text-foreground"
         }`}
-        style={!mine ? { background: "rgba(255,255,255,0.06)" } : undefined}
       >
         {m.kind === "image" && m.attachment_url && (
           <a href={m.attachment_url} target="_blank" rel="noreferrer">
@@ -313,10 +312,10 @@ function Bubble({
           </a>
         )}
         {m.kind === "text" && <div className="whitespace-pre-wrap break-words">{displayText}</div>}
-        <div className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-slate-400"}`}>
+        <div className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
           <span>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
           {mine && (seen
-            ? <CheckCheck className="h-3 w-3 text-sky-200" />
+            ? <CheckCheck className="h-3 w-3" />
             : <Check className="h-3 w-3" />)}
         </div>
       </div>
