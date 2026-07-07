@@ -279,7 +279,7 @@ function QuickAction({ icon: Icon, label, onClick }: { icon: any; label: string;
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center gap-1 rounded-2xl bg-white/5 px-4 py-2.5 text-[11px] text-slate-200 transition hover:bg-white/10 active:scale-95"
+      className="flex flex-col items-center gap-1 rounded-2xl bg-secondary px-4 py-2.5 text-[11px] text-foreground transition hover:bg-secondary/80 active:scale-95"
     >
       <Icon className="h-5 w-5 text-primary" />
       {label}
