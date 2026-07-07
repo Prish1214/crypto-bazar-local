@@ -179,24 +179,24 @@ function ChatThread() {
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
         {loading ? (
-          <div className="grid h-full place-items-center text-sm text-slate-400">
+          <div className="grid h-full place-items-center text-sm text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : messages.length === 0 ? (
           <div className="grid h-full place-items-center px-6 text-center">
             <div>
-              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white/5">
-                <Lock className="h-6 w-6 text-slate-400" />
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-secondary">
+                <Lock className="h-6 w-6 text-muted-foreground" />
               </div>
               <p className="mt-4 text-sm font-medium">Say hello to @{other?.username}</p>
-              <p className="mt-1 text-xs text-slate-400">Messages are encrypted. Never share OTPs or banking passwords.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Messages are encrypted. Never share OTPs or banking passwords.</p>
             </div>
           </div>
         ) : (
           grouped.map((g) => (
             <div key={g.label} className="space-y-1.5">
               <div className="my-3 flex items-center justify-center">
-                <span className="rounded-full bg-white/5 px-3 py-1 text-[10px] font-medium tracking-wide text-slate-400">
+                <span className="rounded-full bg-secondary px-3 py-1 text-[10px] font-medium tracking-wide text-muted-foreground">
                   {g.label}
                 </span>
               </div>
@@ -207,7 +207,7 @@ function ChatThread() {
                 const next = g.items[i + 1];
                 const groupedTop = prev && prev.sender_id === m.sender_id;
                 const groupedBottom = next && next.sender_id === m.sender_id;
-                const seen = mine && lastOtherIdx > globalIdx; // other user sent something after → treat as read
+                const seen = mine && lastOtherIdx > globalIdx;
                 return (
                   <Bubble
                     key={m.id}
@@ -230,7 +230,7 @@ function ChatThread() {
       </div>
 
       {/* Composer */}
-      <div className="border-t border-white/5 bg-[#111a2e] px-2 pt-2"
+      <div className="border-t border-border bg-card px-2 pt-2"
            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}>
         {showActions && (
           <div className="mb-2 flex gap-2 px-1 animate-fade-in">
@@ -244,12 +244,12 @@ function ChatThread() {
           <button
             type="button"
             onClick={() => setShowActions((v) => !v)}
-            className={`grid h-10 w-10 shrink-0 place-items-center rounded-full transition-all ${showActions ? "rotate-45 bg-primary text-primary-foreground" : "bg-white/5 text-slate-300"}`}
+            className={`grid h-10 w-10 shrink-0 place-items-center rounded-full transition-all ${showActions ? "rotate-45 bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}
             aria-label="Attach"
           >
             <Plus className="h-5 w-5" />
           </button>
-          <div className="flex flex-1 items-end rounded-3xl bg-white/5 px-3 py-1.5">
+          <div className="flex flex-1 items-end rounded-3xl bg-secondary px-3 py-1.5">
             <textarea
               ref={taRef}
               value={text}
@@ -257,7 +257,7 @@ function ChatThread() {
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
               rows={1}
               placeholder="Message"
-              className="max-h-[140px] w-full resize-none bg-transparent py-1.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+              className="max-h-[140px] w-full resize-none bg-transparent py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
           </div>
           <button
