@@ -159,18 +159,18 @@ function ChatThread() {
   }, [messages, user?.id]);
 
   return (
-    <div className="flex h-[100dvh] flex-col bg-[#0f172a] text-slate-100">
+    <div className="flex h-[100dvh] flex-col bg-background text-foreground">
       {/* Header */}
-      <header className="flex items-center gap-3 border-b border-white/5 bg-[#111a2e]/95 px-3 py-3 backdrop-blur-md">
+      <header className="flex items-center gap-3 border-b border-border bg-card/95 px-3 py-3 backdrop-blur-md">
         <Link to="/chat">
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-200 hover:bg-white/5 hover:text-white">
+          <Button variant="ghost" size="icon" className="h-9 w-9">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <Avatar profile={other} ring />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold">@{other?.username ?? "loading"}</div>
-          <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-emerald-400">
+          <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-emerald-600">
             <Lock className="h-3 w-3" /> End-to-end encrypted
           </div>
         </div>
