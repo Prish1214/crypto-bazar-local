@@ -96,6 +96,14 @@ function Admin() {
       activeDeals: aCount ?? 0, disputes: dpCount ?? 0,
       volume, escrowHeld, fees,
     });
+
+    // Analytics (RPC) — surfaced in the Analytics tab.
+    const [a, m] = await Promise.all([
+      db.rpc("admin_analytics" as any),
+      db.rpc("admin_merchant_analytics" as any, { _limit: 100 }),
+    ]);
+    if (a.error) setAnalyticsErr(a.error.message); else { setAnalytics(a.data as any); setAnalyticsErr(null); }
+    if (!m.error) setMerchants((m.data as any) ?? []);
   };
 
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [user?.id]);
