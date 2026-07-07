@@ -42,6 +42,9 @@ function Admin() {
   const [search, setSearch] = useState("");
   const [adjust, setAdjust] = useState<{ user: Profile; amount: string; note: string } | null>(null);
   const [resolveDp, setResolveDp] = useState<{ dp: Dispute; notes: string } | null>(null);
+  const [analytics, setAnalytics] = useState<any | null>(null);
+  const [merchants, setMerchants] = useState<any[] | null>(null);
+  const [analyticsErr, setAnalyticsErr] = useState<string | null>(null);
 
   const refresh = async () => {
     if (!user) return;
