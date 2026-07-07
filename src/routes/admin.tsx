@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Loader2, Users, ListOrdered, Handshake, AlertOctagon, ShieldCheck, ShieldOff,
   Ban, CheckCircle2, Trash2, XCircle, Search, ReceiptText, Wallet as WalletIcon,
-  Crown, Eye,
+  Crown, Eye, TrendingUp, ArrowDownToLine, ArrowUpFromLine, LifeBuoy, Activity, Percent,
 } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
