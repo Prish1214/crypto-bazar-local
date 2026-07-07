@@ -549,3 +549,44 @@ function StatCard({ icon: Icon, label, value, accent }: { icon: any; label: stri
 function Empty({ msg }: { msg: string }) {
   return <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">{msg}</div>;
 }
+
+function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="mt-2">
+      <h2 className="font-display text-lg font-bold tracking-tight">{title}</h2>
+      {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+    </div>
+  );
+}
+
+const TONES: Record<string, string> = {
+  primary: "from-primary/15 to-primary/5 text-primary",
+  emerald: "from-emerald-500/15 to-emerald-500/5 text-emerald-600",
+  sky:     "from-sky-500/15 to-sky-500/5 text-sky-600",
+  amber:   "from-amber-500/15 to-amber-500/5 text-amber-600",
+};
+
+function BigStat({ icon: Icon, label, value, hint, tone = "primary" }: { icon: any; label: string; value: string; hint?: string; tone?: keyof typeof TONES }) {
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${TONES[tone]} p-4 shadow-sm`}>
+      <div className="flex items-start justify-between">
+        <div className="grid h-9 w-9 place-items-center rounded-xl bg-card/60 backdrop-blur"><Icon className="h-4 w-4" /></div>
+      </div>
+      <div className="mt-3 font-display text-2xl font-bold text-foreground">{value}</div>
+      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      {hint && <div className="mt-1 text-[11px] text-muted-foreground">{hint}</div>}
+    </div>
+  );
+}
+
+function MiniStat({ icon: Icon, label, value, hint }: { icon: any; label: string; value: string; hint?: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" /> {label}
+      </div>
+      <div className="mt-1 font-display text-lg font-bold">{value}</div>
+      {hint && <div className="text-[11px] text-muted-foreground">{hint}</div>}
+    </div>
+  );
+}
