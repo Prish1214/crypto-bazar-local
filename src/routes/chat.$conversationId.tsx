@@ -297,9 +297,8 @@ function Bubble({
     <div className={`flex ${mine ? "justify-end" : "justify-start"} ${groupedTop ? "mt-0.5" : "mt-1.5"} animate-fade-in`}>
       <div
         className={`max-w-[78%] px-3.5 py-2 text-[14px] leading-snug ${radius} ${
-          mine ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" : "bg-white/8 text-slate-100"
+          mine ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" : "bg-secondary text-foreground"
         }`}
-        style={!mine ? { background: "rgba(255,255,255,0.06)" } : undefined}
       >
         {m.kind === "image" && m.attachment_url && (
           <a href={m.attachment_url} target="_blank" rel="noreferrer">
@@ -313,10 +312,10 @@ function Bubble({
           </a>
         )}
         {m.kind === "text" && <div className="whitespace-pre-wrap break-words">{displayText}</div>}
-        <div className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-slate-400"}`}>
+        <div className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
           <span>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
           {mine && (seen
-            ? <CheckCheck className="h-3 w-3 text-sky-200" />
+            ? <CheckCheck className="h-3 w-3" />
             : <Check className="h-3 w-3" />)}
         </div>
       </div>
