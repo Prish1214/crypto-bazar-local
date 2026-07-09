@@ -36,7 +36,7 @@ const SLIDES: Slide[] = [
     accent: "from-blue-500 to-indigo-600",
   },
   {
-    icon: MessageCircleLock,
+    icon: Lock,
     eyebrow: "Private chat",
     title: "End-to-end encrypted messaging.",
     desc: "Talk to any user by username. No phone numbers, no leaks — coordinate rates and meet-ups on your terms.",
