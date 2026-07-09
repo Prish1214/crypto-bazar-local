@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import {
-  Shield, MessageCircleLock, QrCode, Wallet, Rocket,
+  Shield, Lock, QrCode, Wallet, Rocket,
   ArrowRight, ChevronLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
