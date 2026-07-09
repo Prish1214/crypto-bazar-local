@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MarketplaceRouteImport } from './routes/marketplace'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -52,6 +53,11 @@ const TransactionsRoute = TransactionsRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MarketplaceRoute = MarketplaceRouteImport.update({
@@ -110,9 +116,9 @@ const SettingsDealCodeRoute = SettingsDealCodeRouteImport.update({
   getParentRoute: () => SettingsRoute,
 } as any)
 const OnboardingDealCodeRoute = OnboardingDealCodeRouteImport.update({
-  id: '/onboarding/deal-code',
-  path: '/onboarding/deal-code',
-  getParentRoute: () => rootRouteImport,
+  id: '/deal-code',
+  path: '/deal-code',
+  getParentRoute: () => OnboardingRoute,
 } as any)
 const MerchantUserIdRoute = MerchantUserIdRouteImport.update({
   id: '/merchant/$userId',
@@ -191,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/marketplace': typeof MarketplaceRoute
+  '/onboarding': typeof OnboardingRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
@@ -222,6 +229,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/marketplace': typeof MarketplaceRoute
+  '/onboarding': typeof OnboardingRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
@@ -254,6 +262,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/marketplace': typeof MarketplaceRoute
+  '/onboarding': typeof OnboardingRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
@@ -287,6 +296,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/marketplace'
+    | '/onboarding'
     | '/settings'
     | '/transactions'
     | '/wallet'
@@ -318,6 +328,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/marketplace'
+    | '/onboarding'
     | '/settings'
     | '/transactions'
     | '/wallet'
@@ -349,6 +360,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/marketplace'
+    | '/onboarding'
     | '/settings'
     | '/transactions'
     | '/wallet'
@@ -381,6 +393,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   MarketplaceRoute: typeof MarketplaceRoute
+  OnboardingRoute: typeof OnboardingRouteWithChildren
   SettingsRoute: typeof SettingsRouteWithChildren
   TransactionsRoute: typeof TransactionsRoute
   WalletRoute: typeof WalletRouteWithChildren
@@ -388,7 +401,6 @@ export interface RootRouteChildren {
   DealsDealIdRoute: typeof DealsDealIdRoute
   ListingsNewRoute: typeof ListingsNewRoute
   MerchantUserIdRoute: typeof MerchantUserIdRoute
-  OnboardingDealCodeRoute: typeof OnboardingDealCodeRoute
   ChatIndexRoute: typeof ChatIndexRoute
   DealsIndexRoute: typeof DealsIndexRoute
   ListingsIndexRoute: typeof ListingsIndexRoute
@@ -425,6 +437,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/marketplace': {
@@ -506,10 +525,10 @@ declare module '@tanstack/react-router' {
     }
     '/onboarding/deal-code': {
       id: '/onboarding/deal-code'
-      path: '/onboarding/deal-code'
+      path: '/deal-code'
       fullPath: '/onboarding/deal-code'
       preLoaderRoute: typeof OnboardingDealCodeRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OnboardingRoute
     }
     '/merchant/$userId': {
       id: '/merchant/$userId'
@@ -612,6 +631,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface OnboardingRouteChildren {
+  OnboardingDealCodeRoute: typeof OnboardingDealCodeRoute
+}
+
+const OnboardingRouteChildren: OnboardingRouteChildren = {
+  OnboardingDealCodeRoute: OnboardingDealCodeRoute,
+}
+
+const OnboardingRouteWithChildren = OnboardingRoute._addFileChildren(
+  OnboardingRouteChildren,
+)
+
 interface SettingsRouteChildren {
   SettingsDealCodeRoute: typeof SettingsDealCodeRoute
 }
@@ -644,6 +675,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   MarketplaceRoute: MarketplaceRoute,
+  OnboardingRoute: OnboardingRouteWithChildren,
   SettingsRoute: SettingsRouteWithChildren,
   TransactionsRoute: TransactionsRoute,
   WalletRoute: WalletRouteWithChildren,
@@ -651,7 +683,6 @@ const rootRouteChildren: RootRouteChildren = {
   DealsDealIdRoute: DealsDealIdRoute,
   ListingsNewRoute: ListingsNewRoute,
   MerchantUserIdRoute: MerchantUserIdRoute,
-  OnboardingDealCodeRoute: OnboardingDealCodeRoute,
   ChatIndexRoute: ChatIndexRoute,
   DealsIndexRoute: DealsIndexRoute,
   ListingsIndexRoute: ListingsIndexRoute,
