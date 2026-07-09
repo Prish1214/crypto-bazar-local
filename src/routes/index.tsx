@@ -72,9 +72,19 @@ function Landing() {
       navigate({ to: "/wallet", replace: true });
       return;
     }
+    // Detect native app (Capacitor) — always show onboarding/auth flow, never the marketing site.
+    const isNative =
+      typeof window !== "undefined" &&
+      (!!(window as any).Capacitor?.isNativePlatform?.() ||
+        /(android|iphone|ipad|ipod).+(capacitor|cryptobazar)/i.test(navigator.userAgent));
     let onboarded = false;
     try { onboarded = localStorage.getItem("cb.onboarded.v1") === "1"; } catch {}
-    if (!onboarded) navigate({ to: "/onboarding", replace: true });
+    if (isNative) {
+      navigate({ to: onboarded ? "/auth" : "/onboarding", replace: true });
+    } else if (!onboarded) {
+      // Web: keep the marketing landing; only auto-route first-time mobile web visitors.
+      // (No redirect — landing page renders below.)
+    }
   }, [loading, user, navigate]);
 
   return (
