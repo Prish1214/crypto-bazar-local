@@ -67,7 +67,14 @@ function Landing() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/wallet", replace: true });
+    if (loading) return;
+    if (user) {
+      navigate({ to: "/wallet", replace: true });
+      return;
+    }
+    let onboarded = false;
+    try { onboarded = localStorage.getItem("cb.onboarded.v1") === "1"; } catch {}
+    if (!onboarded) navigate({ to: "/onboarding", replace: true });
   }, [loading, user, navigate]);
 
   return (
