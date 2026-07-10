@@ -63,10 +63,8 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
         );
         // Idempotency key MUST be stable across every IPN for the same
         // deposit. NOWPayments sends multiple IPNs (waiting → confirming →
-        // finished); earlier ones often lack a tx hash while later ones
-        // include it. Keying on `${npId}:${txHash}` when a hash is present
-        // and `npId` otherwise produces TWO different keys for the same
-        // deposit and doubles the credit. Require a tx hash before crediting.
+        // sending/finished); earlier ones often lack a tx hash while later
+        // ones include it. Always key final crediting by payment id only.
         const status = String(payload.payment_status ?? "").toLowerCase();
         const creditedAmount = pickDepositCreditAmount(payload);
         const address = payload.pay_address ?? payload.payin_address;
@@ -84,7 +82,7 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
           .maybeSingle();
         if (!da) return Response.json({ ok: true, unknown_address: true });
 
-        const isFinal = ["finished", "confirmed", "completed", "partially_paid"].includes(status);
+        const isFinal = ["finished", "confirmed", "completed", "partially_paid", "sending"].includes(status);
 
         if (!isFinal) {
           // Progress-only row, prefixed so it never collides with the final
