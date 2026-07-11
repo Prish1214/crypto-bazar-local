@@ -69,9 +69,19 @@ const SLIDES: Slide[] = [
 
 function OnboardingScreen() {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [index, setIndex] = useState(0);
   const startX = useRef<number | null>(null);
   const total = SLIDES.length;
+
+  // If already signed in, never show slides — jump straight to wallet.
+  useEffect(() => {
+    if (loading) return;
+    if (user) {
+      try { localStorage.setItem(ONBOARDING_KEY, "1"); } catch {}
+      navigate({ to: "/wallet", replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const finish = () => {
     try { localStorage.setItem(ONBOARDING_KEY, "1"); } catch {}
@@ -80,6 +90,7 @@ function OnboardingScreen() {
 
   const next = () => (index < total - 1 ? setIndex(index + 1) : finish());
   const prev = () => index > 0 && setIndex(index - 1);
+
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
