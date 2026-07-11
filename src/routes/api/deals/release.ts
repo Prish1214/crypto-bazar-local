@@ -7,7 +7,10 @@ export const Route = createFileRoute("/api/deals/release")({
     handlers: {
       POST: async ({ request }) => {
         const auth = await userFromRequest(request);
-        if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
+        if (!auth) {
+          console.warn("[deals/release] unauthorized — no valid bearer");
+          return Response.json({ error: "Session expired" }, { status: 401 });
+        }
 
         const body = (await request.json().catch(() => ({}))) as {
           deal_id?: string; code?: string;
@@ -25,15 +28,32 @@ export const Route = createFileRoute("/api/deals/release")({
           return Response.json({ error: "Only the seller can release escrow" }, { status: 403 });
         }
 
+        // Make sure a Deal Code is actually set — otherwise verify_deal_code
+        // just returns false and the user sees a confusing "Incorrect Deal Code".
+        const { data: prof } = await sb
+          .from("profiles").select("deal_code_hash").eq("id", auth.user.id).maybeSingle();
+        if (!prof?.deal_code_hash) {
+          return Response.json(
+            { error: "No Deal Code set yet. Open Settings → Deal Code to set one." },
+            { status: 400 },
+          );
+        }
+
         const { data: ok, error: vErr } = await sb.rpc("verify_deal_code", {
           _user_id: auth.user.id,
           _code: code,
         });
-        if (vErr) return Response.json({ error: vErr.message }, { status: 500 });
+        if (vErr) {
+          console.error("[deals/release] verify_deal_code failed", vErr);
+          return Response.json({ error: vErr.message }, { status: 500 });
+        }
         if (!ok) return Response.json({ error: "Incorrect Deal Code" }, { status: 401 });
 
         const { error: rErr } = await auth.client.rpc("complete_deal_release", { _deal_id: dealId });
-        if (rErr) return Response.json({ error: rErr.message }, { status: 500 });
+        if (rErr) {
+          console.error("[deals/release] complete_deal_release failed", rErr);
+          return Response.json({ error: rErr.message }, { status: 500 });
+        }
         return Response.json({ ok: true });
       },
     },
