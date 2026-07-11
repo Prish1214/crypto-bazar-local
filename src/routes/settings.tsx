@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Save, Shield, ChevronRight, LogOut, LayoutDashboard, Mail } from "lucide-react";
+import { Loader2, Save, Shield, ChevronRight, LogOut, LayoutDashboard, Mail, ListOrdered, ReceiptText } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
