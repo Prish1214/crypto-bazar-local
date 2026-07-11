@@ -31,14 +31,28 @@ export function DealCodeReleaseDialog({
     if (!/^\d{6}$/.test(submittedCode)) return toast.error("Enter your 6-digit Deal Code");
     setBusy(true);
     try {
-      const token = session?.access_token ?? (await supabase.auth.getSession()).data.session?.access_token;
+      // Always pull a fresh access token — the cached session token may be
+      // expired (idle mobile tabs), which would surface as a plain "Unauthorized".
+      let token = (await supabase.auth.getSession()).data.session?.access_token
+        ?? session?.access_token;
+      if (!token) {
+        const refreshed = await supabase.auth.refreshSession();
+        token = refreshed.data.session?.access_token ?? undefined;
+      }
+      if (!token) throw new Error("Your session expired. Please sign in again.");
+
       const r = await fetch("/api/deals/release", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ deal_id: dealId, code: submittedCode }),
       });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.error || "Release failed");
+      if (!r.ok) {
+        if (r.status === 401 && (j.error === "Unauthorized" || j.error === "Session expired")) {
+          throw new Error("Your session expired. Please sign in again and retry.");
+        }
+        throw new Error(j.error || "Release failed");
+      }
       toast.success(`Escrow released — ${amountLabel} sent to buyer`);
       onOpenChange(false);
       await onReleased();
