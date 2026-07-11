@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Save, Shield, ChevronRight, LogOut, LayoutDashboard, Mail } from "lucide-react";
+import { Loader2, Save, Shield, ChevronRight, LogOut, LayoutDashboard, Mail, ListOrdered, ReceiptText } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,11 +75,14 @@ function Settings() {
         </div>
 
         <div className="space-y-2">
+          <SettingsLink to="/listings" icon={ListOrdered} title="My listings" subtitle="Manage your buy & sell offers" />
+          <SettingsLink to="/transactions" icon={ReceiptText} title="Transaction history" subtitle="Deposits, withdrawals, transfers" />
           <SettingsLink to="/settings/deal-code" icon={Shield} title="Deal Code & biometric" subtitle="Change 6-digit release code · Face ID / Fingerprint" />
           {isAdmin && (
             <SettingsLink to="/admin" icon={LayoutDashboard} title="Admin panel" subtitle="Users, disputes, wallet adjustments" />
           )}
         </div>
+
 
         <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
           <h2 className="font-display text-base font-semibold">Profile</h2>

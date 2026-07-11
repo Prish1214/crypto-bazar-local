@@ -1,12 +1,11 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { Coins, Loader2, ArrowLeft, MailCheck, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Coins, Loader2, ArrowLeft, MailCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PinInput } from "@/components/pin-input";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -19,6 +18,8 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+const PENDING_KEY = "cb.pendingProfile.v1";
+
 function AuthPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -30,26 +31,30 @@ function AuthPage() {
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
-  const [otpStage, setOtpStage] = useState<null | { email: string; profile?: { username: string; full_name: string; city: string } }>(null);
-  const [otp, setOtp] = useState("");
-  const [verifying, setVerifying] = useState(false);
-  const [resendIn, setResendIn] = useState(60);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
+  // When session becomes available (fresh login OR magic-link redirect),
+  // apply any pending signup-profile fields and route to wallet.
   useEffect(() => {
-    if (!authLoading && user && !otpStage) navigate({ to: "/wallet" });
-  }, [user, authLoading, navigate, otpStage]);
-
-  // Countdown for Resend OTP
-  useEffect(() => {
-    if (!otpStage) return;
-    setResendIn(60);
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setResendIn((s) => (s <= 1 ? 0 : s - 1));
-    }, 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [otpStage?.email]);
+    if (authLoading || !user) return;
+    (async () => {
+      try {
+        const raw = localStorage.getItem(PENDING_KEY);
+        if (raw) {
+          const p = JSON.parse(raw) as { username?: string; full_name?: string; city?: string };
+          const patch: any = {};
+          if (p.username) patch.username = p.username;
+          if (p.full_name) patch.full_name = p.full_name;
+          if (p.city) patch.city = p.city;
+          if (Object.keys(patch).length) {
+            await supabase.from("profiles").update(patch).eq("id", user.id);
+          }
+          localStorage.removeItem(PENDING_KEY);
+        }
+      } catch {}
+      navigate({ to: "/wallet" });
+    })();
+  }, [user, authLoading, navigate]);
 
   // Live username availability check
   useEffect(() => {
@@ -67,37 +72,36 @@ function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === "signup") {
-      if (usernameStatus !== "available") {
-        toast.error("Pick a unique username (3–20 chars, letters/numbers/underscore).");
-        return;
-      }
+    if (mode === "signup" && usernameStatus !== "available") {
+      toast.error("Pick a unique username (3–20 chars, letters/numbers/underscore).");
+      return;
     }
     setLoading(true);
     try {
       if (mode === "signup") {
         const u = username.trim().toLowerCase();
+        // Cache profile so we can write it after magic-link redirect completes.
+        try {
+          localStorage.setItem(PENDING_KEY, JSON.stringify({ username: u, full_name: fullName, city }));
+        } catch {}
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            // No magic link — email template should include {{ .Token }}
-            emailRedirectTo: undefined,
+            emailRedirectTo: `${window.location.origin}/auth`,
             data: { full_name: fullName, city, username: u },
           },
         });
         if (error) throw error;
-        // If Supabase returned a session immediately (confirmation disabled), skip OTP.
-        if (data.session) {
-          if (data.user) {
-            await supabase.from("profiles").update({ username: u, full_name: fullName, city }).eq("id", data.user.id);
-          }
+        if (data.session && data.user) {
+          // Auto-confirm mode — session immediately available.
+          await supabase.from("profiles").update({ username: u, full_name: fullName, city }).eq("id", data.user.id);
+          localStorage.removeItem(PENDING_KEY);
           toast.success("Account created!");
           navigate({ to: "/wallet" });
         } else {
-          setOtp("");
-          setOtpStage({ email, profile: { username: u, full_name: fullName, city } });
-          toast.success("We sent a 6-digit code to your email");
+          setSentTo(email);
+          toast.success("Check your email to confirm your account");
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -112,39 +116,15 @@ function AuthPage() {
     }
   };
 
-  const verifyOtp = async () => {
-    if (!otpStage || otp.length !== 6) return;
-    setVerifying(true);
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: otpStage.email,
-        token: otp,
-        type: "signup",
-      });
-      if (error) throw error;
-      if (data.user && otpStage.profile) {
-        await supabase.from("profiles").update({
-          username: otpStage.profile.username,
-          full_name: otpStage.profile.full_name,
-          city: otpStage.profile.city,
-        }).eq("id", data.user.id);
-      }
-      toast.success("Email verified — welcome!");
-      setOtpStage(null);
-      navigate({ to: "/wallet" });
-    } catch (err: any) {
-      toast.error(err?.message ?? "Invalid or expired code");
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const resendOtp = async () => {
-    if (!otpStage || resendIn > 0) return;
-    const { error } = await supabase.auth.resend({ type: "signup", email: otpStage.email });
+  const resendConfirmation = async () => {
+    if (!sentTo) return;
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: sentTo,
+      options: { emailRedirectTo: `${window.location.origin}/auth` },
+    });
     if (error) return toast.error(error.message);
-    toast.success("New code sent");
-    setResendIn(60);
+    toast.success("New confirmation link sent");
   };
 
   return (
@@ -156,49 +136,29 @@ function AuthPage() {
           <ArrowLeft className="h-4 w-4" /> Back to home
         </Link>
 
-        {otpStage ? (
+        {sentTo ? (
           <div className="glass-strong rounded-2xl p-6 sm:p-7 shadow-[var(--shadow-elevated)]">
             <div className="flex flex-col items-center text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
                 <MailCheck className="h-7 w-7 text-primary" />
               </div>
-              <h1 className="mt-4 font-display text-2xl font-bold">Verify your email</h1>
+              <h1 className="mt-4 font-display text-2xl font-bold">Confirm your email</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Enter the 6-digit code we sent to
+                We sent a confirmation link to
                 <br />
-                <span className="font-medium text-foreground">{otpStage.email}</span>
+                <span className="font-medium text-foreground">{sentTo}</span>
+              </p>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Open the link on this device — it will sign you in automatically.
               </p>
             </div>
 
-            <div className="mt-6">
-              <PinInput value={otp} onChange={setOtp} autoFocus />
-            </div>
-
-            <Button
-              variant="hero"
-              size="lg"
-              className="mt-6 w-full"
-              onClick={verifyOtp}
-              disabled={verifying || otp.length !== 6}
-            >
-              {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><ShieldCheck className="h-4 w-4" /> Verify & continue</>)}
-            </Button>
-
-            <div className="mt-4 flex items-center justify-between text-xs">
-              <button
-                type="button"
-                className="text-muted-foreground hover:text-foreground"
-                onClick={() => { setOtpStage(null); setOtp(""); }}
-              >
+            <div className="mt-6 flex items-center justify-between text-xs">
+              <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setSentTo(null)}>
                 ← Use a different email
               </button>
-              <button
-                type="button"
-                disabled={resendIn > 0}
-                onClick={resendOtp}
-                className="font-medium text-primary disabled:text-muted-foreground disabled:cursor-not-allowed"
-              >
-                {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+              <button type="button" onClick={resendConfirmation} className="font-medium text-primary">
+                Resend link
               </button>
             </div>
           </div>

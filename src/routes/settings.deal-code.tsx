@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Shield, Fingerprint, Mail, AlertTriangle, Loader2, CheckCircle2, LockKeyhole, Smartphone, MailCheck } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
@@ -14,13 +14,14 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings/deal-code")({
   head: () => ({ meta: [{ title: "Deal Code — Settings — CryptoBazar" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({ rotate: typeof s.rotate === "string" ? s.rotate : undefined }),
   component: () => <RequireAuth><SettingsDealCode /></RequireAuth>,
 });
 
 function SettingsDealCode() {
   const { user, session } = useAuth();
-  const [stage, setStage] = useState<"idle" | "otp" | "new" | "confirm">("idle");
-  const [otp, setOtp] = useState("");
+  const { rotate } = useSearch({ from: "/settings/deal-code" });
+  const [stage, setStage] = useState<"idle" | "sent" | "new" | "confirm">("idle");
   const [newCode, setNewCode] = useState("");
   const [confirm, setConfirm] = useState("");
   const [bioCode, setBioCode] = useState("");
@@ -48,19 +49,25 @@ function SettingsDealCode() {
     isPlatformAuthenticatorAvailable().then(setBioAvailable);
   }, [user?.id]);
 
+  // If the user arrived from a magic link, jump straight to "enter new code".
+  useEffect(() => {
+    if (rotate && stage === "idle") setStage("new");
+  }, [rotate]);
+
   const token = async () => session?.access_token ?? (await supabase.auth.getSession()).data.session?.access_token;
 
-  const requestOtp = async () => {
+  const requestMagicLink = async () => {
     setBusy(true);
     try {
       const r = await fetch("/api/deal-code/request-otp", {
-        method: "POST", headers: { Authorization: `Bearer ${await token()}` },
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` },
+        body: JSON.stringify({ redirect_origin: window.location.origin }),
       });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.error || "Failed to send OTP");
-      toast.success(`OTP sent to ${j.email ?? email}`);
-      setOtp("");
-      setStage("otp");
+      if (!r.ok) throw new Error(j.error || "Failed to send email");
+      toast.success(`Verification link sent to ${j.email ?? email}`);
+      setStage("sent");
       startCountdown();
     } catch (e: any) { toast.error(e.message); }
     finally { setBusy(false); }
@@ -68,18 +75,20 @@ function SettingsDealCode() {
 
   const submit = async () => {
     if (newCode !== confirm) return toast.error("New codes don't match");
+    if (!rotate) return toast.error("Open the verification link from your email first");
     setBusy(true);
     try {
       const r = await fetch("/api/deal-code/change", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` },
-        body: JSON.stringify({ otp, new_code: newCode }),
+        body: JSON.stringify({ nonce: rotate, new_code: newCode }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || "Change failed");
       toast.success("Deal Code updated");
       if (user && bioEnrolled) { disableBiometric(user.id); setBioEnrolled(false); }
-      setStage("idle"); setOtp(""); setNewCode(""); setConfirm("");
+      setStage("idle"); setNewCode(""); setConfirm("");
+      window.history.replaceState(null, "", "/settings/deal-code");
     } catch (e: any) { toast.error(e.message); }
     finally { setBusy(false); }
   };
@@ -138,34 +147,37 @@ function SettingsDealCode() {
 
           {stage === "idle" && (
             <div className="mt-4 grid gap-2">
-              <Button variant="hero" className="w-full" onClick={requestOtp} disabled={busy}>
+              <Button variant="hero" className="w-full" onClick={requestMagicLink} disabled={busy}>
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><Mail className="h-4 w-4" /> Change Deal Code</>)}
               </Button>
-              <p className="text-center text-[11px] text-muted-foreground">A one-time OTP will be sent to {email || "your registered email"}.</p>
+              <p className="text-center text-[11px] text-muted-foreground">
+                We'll email a secure verification link to {email || "your registered email"}.
+              </p>
             </div>
           )}
 
-          {stage === "otp" && (
+          {stage === "sent" && (
             <div className="mt-5 space-y-3">
               <div className="flex flex-col items-center gap-2 text-center">
                 <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
                   <MailCheck className="h-6 w-6" />
                 </div>
-                <p className="text-sm text-muted-foreground">We sent a 6-digit code to<br /><b className="text-foreground">{email}</b></p>
+                <p className="text-sm text-muted-foreground">
+                  Verification link sent to<br /><b className="text-foreground">{email}</b>
+                </p>
+                <p className="text-xs text-muted-foreground">Open the link on this device to continue.</p>
               </div>
-              <PinInput value={otp} onChange={setOtp} autoFocus />
               <div className="flex items-center justify-between text-xs">
                 <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setStage("idle")}>Cancel</button>
                 <button
                   type="button"
                   disabled={resendIn > 0 || busy}
-                  onClick={requestOtp}
+                  onClick={requestMagicLink}
                   className="font-medium text-primary disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
-                  {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+                  {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend link"}
                 </button>
               </div>
-              <Button variant="hero" className="w-full" disabled={otp.length !== 6} onClick={() => setStage("new")}>Verify & continue</Button>
             </div>
           )}
 
@@ -174,7 +186,7 @@ function SettingsDealCode() {
               <p className="text-sm text-muted-foreground">Enter your new 6-digit Deal Code.</p>
               <PinInput value={newCode} onChange={setNewCode} autoFocus />
               <div className="flex gap-2">
-                <Button variant="ghost" className="flex-1" onClick={() => setStage("otp")}>Back</Button>
+                <Button variant="ghost" className="flex-1" onClick={() => setStage("idle")}>Back</Button>
                 <Button variant="hero" className="flex-1" disabled={newCode.length !== 6} onClick={() => setStage("confirm")}>Next</Button>
               </div>
             </div>
