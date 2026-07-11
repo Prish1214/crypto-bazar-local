@@ -5,6 +5,8 @@ import {
   ArrowRight, ChevronLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+
 
 export const Route = createFileRoute("/onboarding")({
   ssr: false,
