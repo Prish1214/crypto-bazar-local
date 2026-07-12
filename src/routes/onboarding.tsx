@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import {
   Shield, Lock, QrCode, Wallet, Rocket,
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/onboarding")({
       { name: "description", content: "Get started with CryptoBazar — the safest way to trade USDT locally." },
     ],
   }),
-  component: OnboardingScreen,
+  component: OnboardingRoute,
 });
 
 const ONBOARDING_KEY = "cb.onboarded.v1";
@@ -66,6 +66,12 @@ const SLIDES: Slide[] = [
     accent: "from-indigo-500 to-blue-600",
   },
 ];
+
+function OnboardingRoute() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/onboarding") return <Outlet />;
+  return <OnboardingScreen />;
+}
 
 function OnboardingScreen() {
   const navigate = useNavigate();
