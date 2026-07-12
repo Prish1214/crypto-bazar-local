@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -219,15 +219,41 @@ export function PageShell({ children }: { children: ReactNode }) {
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
   const [dealCodeSet, setDealCodeSet] = useState<boolean | null>(null);
+  const isOnboarding = pathname.startsWith("/onboarding/deal-code");
 
   useEffect(() => {
+    let cancelled = false;
     if (!user) { setDealCodeSet(null); return; }
-    db.from("profiles").select("deal_code_set_at").eq("id", user.id).maybeSingle()
-      .then(({ data }) => setDealCodeSet(!!data?.deal_code_set_at));
+    (async () => {
+      // Ensure a profile row exists — old accounts predate the signup trigger.
+      const { data, error } = await db.from("profiles")
+        .select("deal_code_set_at").eq("id", user.id).maybeSingle();
+      if (cancelled) return;
+      if (error || !data) {
+        // No row yet — create one so downstream flows (deal code, wallet) work.
+        await db.from("profiles").upsert(
+          { id: user.id, full_name: user.user_metadata?.full_name ?? null },
+          { onConflict: "id" },
+        );
+        if (!cancelled) setDealCodeSet(false);
+        return;
+      }
+      setDealCodeSet(!!data.deal_code_set_at);
+    })();
+    return () => { cancelled = true; };
   }, [user?.id]);
 
-  if (loading) {
+  // Redirect to Deal Code onboarding in an effect (never during render),
+  // and use the router — window.location.replace triggered a full reload
+  // on every render, producing the "page keeps refreshing" loop.
+  useEffect(() => {
+    if (!user || dealCodeSet !== false || isOnboarding) return;
+    navigate({ to: "/onboarding/deal-code", replace: true });
+  }, [user, dealCodeSet, isOnboarding, navigate]);
+
+  if (loading || (user && dealCodeSet === null)) {
     return (
       <PageShell>
         <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">Loading…</div>
@@ -247,13 +273,11 @@ export function RequireAuth({ children }: { children: ReactNode }) {
       </PageShell>
     );
   }
-  const isOnboarding = pathname.startsWith("/onboarding/deal-code");
   if (dealCodeSet === false && !isOnboarding) {
-    if (typeof window !== "undefined") window.location.replace("/onboarding/deal-code");
     return (
       <PageShell>
         <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">
-          Redirecting to Deal Code setup…
+          Setting up your account…
         </div>
       </PageShell>
     );

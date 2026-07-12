@@ -33,8 +33,10 @@ export const Route = createFileRoute("/api/deal-code/set")({
         const now = new Date().toISOString();
         const { error } = await sb
           .from("profiles")
-          .update({ deal_code_hash: hash, deal_code_salt: salt, deal_code_set_at: now, deal_code_updated_at: now })
-          .eq("id", auth.user.id);
+          .upsert(
+            { id: auth.user.id, deal_code_hash: hash, deal_code_salt: salt, deal_code_set_at: now, deal_code_updated_at: now },
+            { onConflict: "id" },
+          );
         if (error) return Response.json({ error: error.message }, { status: 500 });
         return Response.json({ ok: true });
       },
