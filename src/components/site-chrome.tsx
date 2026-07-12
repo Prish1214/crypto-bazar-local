@@ -250,10 +250,8 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   // on every render, producing the "page keeps refreshing" loop.
   useEffect(() => {
     if (!user || dealCodeSet !== false || isOnboarding) return;
-    window.history.replaceState(null, "", "/onboarding/deal-code");
-    // Trigger a soft SPA transition via a hash-free reload of the route tree.
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  }, [user, dealCodeSet, isOnboarding]);
+    navigate({ to: "/onboarding/deal-code", replace: true });
+  }, [user, dealCodeSet, isOnboarding, navigate]);
 
   if (loading || (user && dealCodeSet === null)) {
     return (
