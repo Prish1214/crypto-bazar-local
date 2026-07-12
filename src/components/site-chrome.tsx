@@ -219,6 +219,7 @@ export function PageShell({ children }: { children: ReactNode }) {
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
   const [dealCodeSet, setDealCodeSet] = useState<boolean | null>(null);
   const isOnboarding = pathname.startsWith("/onboarding/deal-code");
 
