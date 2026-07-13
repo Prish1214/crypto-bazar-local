@@ -13,6 +13,7 @@ import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as MeRouteImport } from './routes/me'
 import { Route as MarketplaceRouteImport } from './routes/marketplace'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -58,6 +59,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeRoute = MeRouteImport.update({
+  id: '/me',
+  path: '/me',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MarketplaceRoute = MarketplaceRouteImport.update({
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/marketplace': typeof MarketplaceRoute
+  '/me': typeof MeRoute
   '/onboarding': typeof OnboardingRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
   '/transactions': typeof TransactionsRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/marketplace': typeof MarketplaceRoute
+  '/me': typeof MeRoute
   '/onboarding': typeof OnboardingRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
   '/transactions': typeof TransactionsRoute
@@ -262,6 +270,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/marketplace': typeof MarketplaceRoute
+  '/me': typeof MeRoute
   '/onboarding': typeof OnboardingRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
   '/transactions': typeof TransactionsRoute
@@ -296,6 +305,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/marketplace'
+    | '/me'
     | '/onboarding'
     | '/settings'
     | '/transactions'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/marketplace'
+    | '/me'
     | '/onboarding'
     | '/settings'
     | '/transactions'
@@ -360,6 +371,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/marketplace'
+    | '/me'
     | '/onboarding'
     | '/settings'
     | '/transactions'
@@ -393,6 +405,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   MarketplaceRoute: typeof MarketplaceRoute
+  MeRoute: typeof MeRoute
   OnboardingRoute: typeof OnboardingRouteWithChildren
   SettingsRoute: typeof SettingsRouteWithChildren
   TransactionsRoute: typeof TransactionsRoute
@@ -444,6 +457,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/marketplace': {
@@ -675,6 +695,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   MarketplaceRoute: MarketplaceRoute,
+  MeRoute: MeRoute,
   OnboardingRoute: OnboardingRouteWithChildren,
   SettingsRoute: SettingsRouteWithChildren,
   TransactionsRoute: TransactionsRoute,
@@ -700,13 +721,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

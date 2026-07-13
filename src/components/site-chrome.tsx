@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   Shield, Coins, Users, Store, Wallet, ListOrdered, Handshake,
-  ReceiptText, Settings as SettingsIcon, LayoutDashboard, MessageSquare,
+  ReceiptText, Settings as SettingsIcon, LayoutDashboard, MessageSquare, User as UserIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DealNotifier } from "@/components/deal-notifier";
