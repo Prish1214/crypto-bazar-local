@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   disableBiometric, enableBiometric, isBiometricEnrolledLocally,
-  isPlatformAuthenticatorAvailable,
+  isPlatformAuthenticatorAvailable, refreshCachedCode,
 } from "@/lib/deal-code";
 import { toast } from "sonner";
 
