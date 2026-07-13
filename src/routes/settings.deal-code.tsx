@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   disableBiometric, enableBiometric, isBiometricEnrolledLocally,
-  isPlatformAuthenticatorAvailable,
+  isPlatformAuthenticatorAvailable, refreshCachedCode,
 } from "@/lib/deal-code";
 import { toast } from "sonner";
 
@@ -86,7 +86,8 @@ function SettingsDealCode() {
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || "Change failed");
       toast.success("Deal Code updated");
-      if (user && bioEnrolled) { disableBiometric(user.id); setBioEnrolled(false); }
+      // Keep biometric enrolled on this device — just relink cached code to the new one.
+      if (user && bioEnrolled) refreshCachedCode(user.id, newCode);
       setStage("idle"); setNewCode(""); setConfirm("");
       window.history.replaceState(null, "", "/settings/deal-code");
     } catch (e: any) { toast.error(e.message); }
