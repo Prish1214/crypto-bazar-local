@@ -128,7 +128,7 @@ export function MobileTabBar() {
     { to: "/deals", label: "Deals", icon: Handshake },
     { to: "/wallet", label: "Wallet", icon: Wallet, primary: true },
     { to: "/chat", label: "Chat", icon: MessageSquare },
-    { to: "/settings", label: "Me", icon: SettingsIcon },
+    { to: "/me", label: "Me", icon: UserIcon },
   ];
 
   return (
