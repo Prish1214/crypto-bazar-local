@@ -43,7 +43,9 @@ export const Route = createFileRoute("/api/deal-code/change")({
             deal_code_hash: hash,
             deal_code_salt: salt,
             deal_code_updated_at: new Date().toISOString(),
-            biometric_enabled: false,
+            // biometric_enabled is per-device (WebAuthn credential + local cache).
+            // Rotating the code doesn't invalidate the platform authenticator, and
+            // the current device re-links its cached code via refreshCachedCode().
             deal_code_rotate_nonce: null,
             deal_code_rotate_expires_at: null,
           })
