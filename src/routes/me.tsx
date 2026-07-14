@@ -275,15 +275,18 @@ function MePage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {reviews.map((r) => (
+              {reviews.map((r) => {
+                const rv = reviewers[r.reviewer_id] ?? {};
+                const name = rv.full_name || rv.username || "Anonymous";
+                return (
                 <div key={r.id} className="rounded-2xl border border-border bg-card p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                        {(r.reviewer?.full_name ?? r.reviewer?.username ?? "?").slice(0, 1).toUpperCase()}
+                      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary overflow-hidden">
+                        {rv.avatar_url ? <img src={rv.avatar_url} alt={name} className="h-full w-full object-cover" /> : name.slice(0, 1).toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-medium">{r.reviewer?.full_name ?? r.reviewer?.username ?? "Anonymous"}</div>
+                        <div className="truncate text-sm font-medium">{name}</div>
                         <div className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</div>
                       </div>
                     </div>
@@ -295,7 +298,8 @@ function MePage() {
                   </div>
                   {r.comment && <p className="mt-1.5 text-xs text-muted-foreground">{r.comment}</p>}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Section>
