@@ -4,7 +4,7 @@ import { Shield, Fingerprint, Mail, Smartphone, Key, LogOut, ChevronRight, Check
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/db";
-import { isBiometricAvailable } from "@/lib/deal-code";
+import { isBiometricEnrolledLocally } from "@/lib/deal-code";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/security")({
