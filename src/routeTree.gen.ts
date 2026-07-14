@@ -13,6 +13,7 @@ import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SecurityRouteImport } from './routes/security'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MeRouteImport } from './routes/me'
@@ -62,6 +63,11 @@ const SupportRoute = SupportRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SecurityRoute = SecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -225,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/me': typeof MeRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRouteWithChildren
+  '/security': typeof SecurityRoute
   '/settings': typeof SettingsRouteWithChildren
   '/support': typeof SupportRoute
   '/transactions': typeof TransactionsRoute
@@ -261,6 +268,7 @@ export interface FileRoutesByTo {
   '/me': typeof MeRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRouteWithChildren
+  '/security': typeof SecurityRoute
   '/settings': typeof SettingsRouteWithChildren
   '/support': typeof SupportRoute
   '/transactions': typeof TransactionsRoute
@@ -298,6 +306,7 @@ export interface FileRoutesById {
   '/me': typeof MeRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRouteWithChildren
+  '/security': typeof SecurityRoute
   '/settings': typeof SettingsRouteWithChildren
   '/support': typeof SupportRoute
   '/transactions': typeof TransactionsRoute
@@ -336,6 +345,7 @@ export interface FileRouteTypes {
     | '/me'
     | '/notifications'
     | '/onboarding'
+    | '/security'
     | '/settings'
     | '/support'
     | '/transactions'
@@ -372,6 +382,7 @@ export interface FileRouteTypes {
     | '/me'
     | '/notifications'
     | '/onboarding'
+    | '/security'
     | '/settings'
     | '/support'
     | '/transactions'
@@ -408,6 +419,7 @@ export interface FileRouteTypes {
     | '/me'
     | '/notifications'
     | '/onboarding'
+    | '/security'
     | '/settings'
     | '/support'
     | '/transactions'
@@ -445,6 +457,7 @@ export interface RootRouteChildren {
   MeRoute: typeof MeRoute
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRouteWithChildren
+  SecurityRoute: typeof SecurityRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   SupportRoute: typeof SupportRoute
   TransactionsRoute: typeof TransactionsRoute
@@ -496,6 +509,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/security': {
+      id: '/security'
+      path: '/security'
+      fullPath: '/security'
+      preLoaderRoute: typeof SecurityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -759,6 +779,7 @@ const rootRouteChildren: RootRouteChildren = {
   MeRoute: MeRoute,
   NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRouteWithChildren,
+  SecurityRoute: SecurityRoute,
   SettingsRoute: SettingsRouteWithChildren,
   SupportRoute: SupportRoute,
   TransactionsRoute: TransactionsRoute,
