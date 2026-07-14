@@ -316,8 +316,8 @@ function MePage() {
 
         <Section title="Preferences">
           <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <MenuItem to="/settings" icon={Shield} title="Security" subtitle="Sign-in, sessions & verification" />
-            <MenuItem to="/settings" icon={Bell} title="Notifications" subtitle="Alerts & communication" />
+            <MenuItem to="/security" icon={Shield} title="Security" subtitle="Sign-in, sessions & verification" />
+            <MenuItem to="/notifications" icon={Bell} title="Notifications" subtitle="Alerts & communication" />
             {isAdmin && (
               <MenuItem to="/admin" icon={LayoutDashboard} title="Admin panel" subtitle="Users, disputes, analytics" />
             )}
@@ -326,8 +326,8 @@ function MePage() {
 
         <Section title="Support & Legal">
           <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <MenuItem to="/settings" icon={LifeBuoy} title="Help & support" subtitle="FAQs & contact" />
-            <MenuItem to="/settings" icon={FileText} title="Terms & privacy" subtitle="Legal documents" />
+            <MenuItem to="/support" icon={LifeBuoy} title="Help & support" subtitle="FAQs & contact" />
+            <MenuItem to="/legal" icon={FileText} title="Terms & privacy" subtitle="Legal documents" />
           </div>
         </Section>
 
