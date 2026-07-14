@@ -126,7 +126,7 @@ function MePage() {
   const displayName = p.full_name || p.username || (user.email?.split("@")[0] ?? "User");
   const initial = displayName.slice(0, 1).toUpperCase();
   const memberSince = new Date(p.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" });
-  const verifLevel = p.verified ? "Level 2 · KYC Verified" : "Level 1 · Email Verified";
+  
 
   return (
     <PageShell>
