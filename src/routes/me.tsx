@@ -52,7 +52,7 @@ function MePage() {
         db.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle(),
         db.from("deals").select("*").or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`).order("created_at", { ascending: false }),
         db.from("listings").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active"),
-        db.from("reviews").select("*, reviewer:profiles!reviews_reviewer_id_fkey(full_name,username,avatar_url)").eq("reviewee_id", user.id).order("created_at", { ascending: false }).limit(5),
+        db.from("reviews").select("*").eq("reviewee_id", user.id).order("created_at", { ascending: false }).limit(5),
         db.from("disputes").select("id", { count: "exact", head: true }).or(`opened_by.eq.${user.id}`),
       ]);
       setP((pr.data as Profile) ?? null);
