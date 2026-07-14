@@ -16,6 +16,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as MarketplaceRouteImport } from './routes/marketplace'
+import { Route as LegalRouteImport } from './routes/legal'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -75,6 +76,11 @@ const MeRoute = MeRouteImport.update({
 const MarketplaceRoute = MarketplaceRouteImport.update({
   id: '/marketplace',
   path: '/marketplace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/legal': typeof LegalRoute
   '/marketplace': typeof MarketplaceRoute
   '/me': typeof MeRoute
   '/onboarding': typeof OnboardingRouteWithChildren
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/legal': typeof LegalRoute
   '/marketplace': typeof MarketplaceRoute
   '/me': typeof MeRoute
   '/onboarding': typeof OnboardingRouteWithChildren
@@ -277,6 +285,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/legal': typeof LegalRoute
   '/marketplace': typeof MarketplaceRoute
   '/me': typeof MeRoute
   '/onboarding': typeof OnboardingRouteWithChildren
@@ -313,6 +322,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/legal'
     | '/marketplace'
     | '/me'
     | '/onboarding'
@@ -347,6 +357,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/legal'
     | '/marketplace'
     | '/me'
     | '/onboarding'
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/legal'
     | '/marketplace'
     | '/me'
     | '/onboarding'
@@ -416,6 +428,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
+  LegalRoute: typeof LegalRoute
   MarketplaceRoute: typeof MarketplaceRoute
   MeRoute: typeof MeRoute
   OnboardingRoute: typeof OnboardingRouteWithChildren
@@ -491,6 +504,13 @@ declare module '@tanstack/react-router' {
       path: '/marketplace'
       fullPath: '/marketplace'
       preLoaderRoute: typeof MarketplaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -714,6 +734,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
+  LegalRoute: LegalRoute,
   MarketplaceRoute: MarketplaceRoute,
   MeRoute: MeRoute,
   OnboardingRoute: OnboardingRouteWithChildren,
