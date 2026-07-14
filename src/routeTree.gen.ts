@@ -14,6 +14,7 @@ import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as MarketplaceRouteImport } from './routes/marketplace'
 import { Route as LegalRouteImport } from './routes/legal'
@@ -66,6 +67,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MeRoute = MeRouteImport.update({
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/legal': typeof LegalRoute
   '/marketplace': typeof MarketplaceRoute
   '/me': typeof MeRoute
+  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
   '/support': typeof SupportRoute
@@ -252,6 +259,7 @@ export interface FileRoutesByTo {
   '/legal': typeof LegalRoute
   '/marketplace': typeof MarketplaceRoute
   '/me': typeof MeRoute
+  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
   '/support': typeof SupportRoute
@@ -288,6 +296,7 @@ export interface FileRoutesById {
   '/legal': typeof LegalRoute
   '/marketplace': typeof MarketplaceRoute
   '/me': typeof MeRoute
+  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
   '/support': typeof SupportRoute
@@ -325,6 +334,7 @@ export interface FileRouteTypes {
     | '/legal'
     | '/marketplace'
     | '/me'
+    | '/notifications'
     | '/onboarding'
     | '/settings'
     | '/support'
@@ -360,6 +370,7 @@ export interface FileRouteTypes {
     | '/legal'
     | '/marketplace'
     | '/me'
+    | '/notifications'
     | '/onboarding'
     | '/settings'
     | '/support'
@@ -395,6 +406,7 @@ export interface FileRouteTypes {
     | '/legal'
     | '/marketplace'
     | '/me'
+    | '/notifications'
     | '/onboarding'
     | '/settings'
     | '/support'
@@ -431,6 +443,7 @@ export interface RootRouteChildren {
   LegalRoute: typeof LegalRoute
   MarketplaceRoute: typeof MarketplaceRoute
   MeRoute: typeof MeRoute
+  NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRouteWithChildren
   SettingsRoute: typeof SettingsRouteWithChildren
   SupportRoute: typeof SupportRoute
@@ -490,6 +503,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/me': {
@@ -737,6 +757,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalRoute: LegalRoute,
   MarketplaceRoute: MarketplaceRoute,
   MeRoute: MeRoute,
+  NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRouteWithChildren,
   SettingsRoute: SettingsRouteWithChildren,
   SupportRoute: SupportRoute,
