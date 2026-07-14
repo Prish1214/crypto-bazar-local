@@ -25,7 +25,7 @@ function SecurityPage() {
         .select("deal_code_set_at, biometric_enabled")
         .eq("id", user.id).maybeSingle();
       setDealCodeSet(!!data?.deal_code_set_at);
-      const localBio = await isBiometricAvailable(user.id).catch(() => false);
+      const localBio = isBiometricEnrolledLocally(user.id);
       setBiometricOn(!!data?.biometric_enabled && localBio);
     })();
     setLastSignIn(user.last_sign_in_at ?? null);
