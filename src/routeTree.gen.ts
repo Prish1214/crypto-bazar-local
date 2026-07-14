@@ -11,10 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as TransactionsRouteImport } from './routes/transactions'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SecurityRouteImport } from './routes/security'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as MarketplaceRouteImport } from './routes/marketplace'
+import { Route as LegalRouteImport } from './routes/legal'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -51,14 +55,29 @@ const TransactionsRoute = TransactionsRouteImport.update({
   path: '/transactions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SecurityRoute = SecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MeRoute = MeRouteImport.update({
@@ -69,6 +88,11 @@ const MeRoute = MeRouteImport.update({
 const MarketplaceRoute = MarketplaceRouteImport.update({
   id: '/marketplace',
   path: '/marketplace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -202,10 +226,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/legal': typeof LegalRoute
   '/marketplace': typeof MarketplaceRoute
   '/me': typeof MeRoute
+  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRouteWithChildren
+  '/security': typeof SecurityRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/support': typeof SupportRoute
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
   '/chat/$conversationId': typeof ChatConversationIdRoute
@@ -235,10 +263,14 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/legal': typeof LegalRoute
   '/marketplace': typeof MarketplaceRoute
   '/me': typeof MeRoute
+  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRouteWithChildren
+  '/security': typeof SecurityRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/support': typeof SupportRoute
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
   '/chat/$conversationId': typeof ChatConversationIdRoute
@@ -269,10 +301,14 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/legal': typeof LegalRoute
   '/marketplace': typeof MarketplaceRoute
   '/me': typeof MeRoute
+  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRouteWithChildren
+  '/security': typeof SecurityRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/support': typeof SupportRoute
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
   '/chat/$conversationId': typeof ChatConversationIdRoute
@@ -304,10 +340,14 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/legal'
     | '/marketplace'
     | '/me'
+    | '/notifications'
     | '/onboarding'
+    | '/security'
     | '/settings'
+    | '/support'
     | '/transactions'
     | '/wallet'
     | '/chat/$conversationId'
@@ -337,10 +377,14 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/legal'
     | '/marketplace'
     | '/me'
+    | '/notifications'
     | '/onboarding'
+    | '/security'
     | '/settings'
+    | '/support'
     | '/transactions'
     | '/wallet'
     | '/chat/$conversationId'
@@ -370,10 +414,14 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/legal'
     | '/marketplace'
     | '/me'
+    | '/notifications'
     | '/onboarding'
+    | '/security'
     | '/settings'
+    | '/support'
     | '/transactions'
     | '/wallet'
     | '/chat/$conversationId'
@@ -404,10 +452,14 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
+  LegalRoute: typeof LegalRoute
   MarketplaceRoute: typeof MarketplaceRoute
   MeRoute: typeof MeRoute
+  NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRouteWithChildren
+  SecurityRoute: typeof SecurityRoute
   SettingsRoute: typeof SettingsRouteWithChildren
+  SupportRoute: typeof SupportRoute
   TransactionsRoute: typeof TransactionsRoute
   WalletRoute: typeof WalletRouteWithChildren
   ChatConversationIdRoute: typeof ChatConversationIdRoute
@@ -445,6 +497,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TransactionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -452,11 +511,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/security': {
+      id: '/security'
+      path: '/security'
+      fullPath: '/security'
+      preLoaderRoute: typeof SecurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/me': {
@@ -471,6 +544,13 @@ declare module '@tanstack/react-router' {
       path: '/marketplace'
       fullPath: '/marketplace'
       preLoaderRoute: typeof MarketplaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -694,10 +774,14 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
+  LegalRoute: LegalRoute,
   MarketplaceRoute: MarketplaceRoute,
   MeRoute: MeRoute,
+  NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRouteWithChildren,
+  SecurityRoute: SecurityRoute,
   SettingsRoute: SettingsRouteWithChildren,
+  SupportRoute: SupportRoute,
   TransactionsRoute: TransactionsRoute,
   WalletRoute: WalletRouteWithChildren,
   ChatConversationIdRoute: ChatConversationIdRoute,

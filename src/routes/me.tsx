@@ -42,6 +42,7 @@ function MePage() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [activeListings, setActiveListings] = useState(0);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewers, setReviewers] = useState<Record<string, { full_name?: string; username?: string; avatar_url?: string }>>({});
   const [disputes, setDisputes] = useState(0);
 
   useEffect(() => {
@@ -52,7 +53,7 @@ function MePage() {
         db.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle(),
         db.from("deals").select("*").or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`).order("created_at", { ascending: false }),
         db.from("listings").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active"),
-        db.from("reviews").select("*, reviewer:profiles!reviews_reviewer_id_fkey(full_name,username,avatar_url)").eq("reviewee_id", user.id).order("created_at", { ascending: false }).limit(5),
+        db.from("reviews").select("*").eq("reviewee_id", user.id).order("created_at", { ascending: false }).limit(5),
         db.from("disputes").select("id", { count: "exact", head: true }).or(`opened_by.eq.${user.id}`),
       ]);
       setP((pr.data as Profile) ?? null);
@@ -61,6 +62,14 @@ function MePage() {
       setActiveListings(lr.count ?? 0);
       setReviews(rr.data ?? []);
       setDisputes(dispR.count ?? 0);
+
+      const ids = Array.from(new Set((rr.data ?? []).map((r: any) => r.reviewer_id).filter(Boolean)));
+      if (ids.length) {
+        const { data: profs } = await db.from("profiles").select("id, full_name, username, avatar_url").in("id", ids);
+        const map: Record<string, any> = {};
+        for (const p of profs ?? []) map[p.id] = p;
+        setReviewers(map);
+      }
     })();
   }, [user?.id]);
 
@@ -126,7 +135,7 @@ function MePage() {
   const displayName = p.full_name || p.username || (user.email?.split("@")[0] ?? "User");
   const initial = displayName.slice(0, 1).toUpperCase();
   const memberSince = new Date(p.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" });
-  const verifLevel = p.verified ? "Level 2 · KYC Verified" : "Level 1 · Email Verified";
+  
 
   return (
     <PageShell>
@@ -163,9 +172,11 @@ function MePage() {
                 <span>·</span>
                 <span>Member since {memberSince}</span>
               </div>
-              <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                <ShieldCheck className="h-3 w-3" /> {verifLevel}
-              </div>
+              {p.verified && (
+                <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
+                  <ShieldCheck className="h-3 w-3" /> Verified
+                </div>
+              )}
             </div>
             <Link to="/settings">
               <Button size="sm" variant="outline" className="h-8 rounded-full px-3 text-xs">
@@ -264,15 +275,18 @@ function MePage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {reviews.map((r) => (
+              {reviews.map((r) => {
+                const rv = reviewers[r.reviewer_id] ?? {};
+                const name = rv.full_name || rv.username || "Anonymous";
+                return (
                 <div key={r.id} className="rounded-2xl border border-border bg-card p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                        {(r.reviewer?.full_name ?? r.reviewer?.username ?? "?").slice(0, 1).toUpperCase()}
+                      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary overflow-hidden">
+                        {rv.avatar_url ? <img src={rv.avatar_url} alt={name} className="h-full w-full object-cover" /> : name.slice(0, 1).toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-medium">{r.reviewer?.full_name ?? r.reviewer?.username ?? "Anonymous"}</div>
+                        <div className="truncate text-sm font-medium">{name}</div>
                         <div className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</div>
                       </div>
                     </div>
@@ -284,7 +298,8 @@ function MePage() {
                   </div>
                   {r.comment && <p className="mt-1.5 text-xs text-muted-foreground">{r.comment}</p>}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Section>
@@ -301,8 +316,8 @@ function MePage() {
 
         <Section title="Preferences">
           <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <MenuItem to="/settings" icon={Shield} title="Security" subtitle="Sign-in, sessions & verification" />
-            <MenuItem to="/settings" icon={Bell} title="Notifications" subtitle="Alerts & communication" />
+            <MenuItem to="/security" icon={Shield} title="Security" subtitle="Sign-in, sessions & verification" />
+            <MenuItem to="/notifications" icon={Bell} title="Notifications" subtitle="Alerts & communication" />
             {isAdmin && (
               <MenuItem to="/admin" icon={LayoutDashboard} title="Admin panel" subtitle="Users, disputes, analytics" />
             )}
@@ -311,8 +326,8 @@ function MePage() {
 
         <Section title="Support & Legal">
           <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <MenuItem to="/settings" icon={LifeBuoy} title="Help & support" subtitle="FAQs & contact" />
-            <MenuItem to="/settings" icon={FileText} title="Terms & privacy" subtitle="Legal documents" />
+            <MenuItem to="/support" icon={LifeBuoy} title="Help & support" subtitle="FAQs & contact" />
+            <MenuItem to="/legal" icon={FileText} title="Terms & privacy" subtitle="Legal documents" />
           </div>
         </Section>
 
