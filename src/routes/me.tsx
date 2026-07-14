@@ -163,9 +163,11 @@ function MePage() {
                 <span>·</span>
                 <span>Member since {memberSince}</span>
               </div>
-              <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                <ShieldCheck className="h-3 w-3" /> {verifLevel}
-              </div>
+              {p.verified && (
+                <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
+                  <ShieldCheck className="h-3 w-3" /> Verified
+                </div>
+              )}
             </div>
             <Link to="/settings">
               <Button size="sm" variant="outline" className="h-8 rounded-full px-3 text-xs">
