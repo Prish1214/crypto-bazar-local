@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as TransactionsRouteImport } from './routes/transactions'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MeRouteImport } from './routes/me'
@@ -49,6 +50,11 @@ const WalletRoute = WalletRouteImport.update({
 const TransactionsRoute = TransactionsRouteImport.update({
   id: '/transactions',
   path: '/transactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/me': typeof MeRoute
   '/onboarding': typeof OnboardingRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
+  '/support': typeof SupportRoute
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
   '/chat/$conversationId': typeof ChatConversationIdRoute
@@ -239,6 +246,7 @@ export interface FileRoutesByTo {
   '/me': typeof MeRoute
   '/onboarding': typeof OnboardingRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
+  '/support': typeof SupportRoute
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
   '/chat/$conversationId': typeof ChatConversationIdRoute
@@ -273,6 +281,7 @@ export interface FileRoutesById {
   '/me': typeof MeRoute
   '/onboarding': typeof OnboardingRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
+  '/support': typeof SupportRoute
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRouteWithChildren
   '/chat/$conversationId': typeof ChatConversationIdRoute
@@ -308,6 +317,7 @@ export interface FileRouteTypes {
     | '/me'
     | '/onboarding'
     | '/settings'
+    | '/support'
     | '/transactions'
     | '/wallet'
     | '/chat/$conversationId'
@@ -341,6 +351,7 @@ export interface FileRouteTypes {
     | '/me'
     | '/onboarding'
     | '/settings'
+    | '/support'
     | '/transactions'
     | '/wallet'
     | '/chat/$conversationId'
@@ -374,6 +385,7 @@ export interface FileRouteTypes {
     | '/me'
     | '/onboarding'
     | '/settings'
+    | '/support'
     | '/transactions'
     | '/wallet'
     | '/chat/$conversationId'
@@ -408,6 +420,7 @@ export interface RootRouteChildren {
   MeRoute: typeof MeRoute
   OnboardingRoute: typeof OnboardingRouteWithChildren
   SettingsRoute: typeof SettingsRouteWithChildren
+  SupportRoute: typeof SupportRoute
   TransactionsRoute: typeof TransactionsRoute
   WalletRoute: typeof WalletRouteWithChildren
   ChatConversationIdRoute: typeof ChatConversationIdRoute
@@ -443,6 +456,13 @@ declare module '@tanstack/react-router' {
       path: '/transactions'
       fullPath: '/transactions'
       preLoaderRoute: typeof TransactionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -698,6 +718,7 @@ const rootRouteChildren: RootRouteChildren = {
   MeRoute: MeRoute,
   OnboardingRoute: OnboardingRouteWithChildren,
   SettingsRoute: SettingsRouteWithChildren,
+  SupportRoute: SupportRoute,
   TransactionsRoute: TransactionsRoute,
   WalletRoute: WalletRouteWithChildren,
   ChatConversationIdRoute: ChatConversationIdRoute,
@@ -721,13 +742,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
