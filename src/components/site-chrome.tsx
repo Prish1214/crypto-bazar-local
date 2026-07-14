@@ -218,6 +218,8 @@ export function PageShell({ children }: { children: ReactNode }) {
 
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [profileReady, setProfileReady] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -225,22 +227,27 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     if (!user) { setProfileReady(null); return; }
     (async () => {
       // Ensure a profile row exists — old accounts predate the signup trigger.
-      const { data, error } = await db.from("profiles")
-        .select("id").eq("id", user.id).maybeSingle();
+      const { data } = await db.from("profiles")
+        .select("id, deal_code_set_at").eq("id", user.id).maybeSingle();
       if (cancelled) return;
-      if (error || !data) {
-        // No row yet — create one so downstream flows (deal code, wallet) work.
+      let dealCodeSet = !!data?.deal_code_set_at;
+      if (!data) {
         await db.from("profiles").upsert(
           { id: user.id, full_name: user.user_metadata?.full_name ?? null },
           { onConflict: "id" },
         );
-        if (!cancelled) setProfileReady(true);
+      }
+      // Prompt new users to set up their Deal Code, except on excluded routes.
+      const EXCLUDED = ["/onboarding", "/auth", "/settings/deal-code"];
+      const isExcluded = EXCLUDED.some((p) => pathname === p || pathname.startsWith(p + "/"));
+      if (!dealCodeSet && !isExcluded) {
+        if (!cancelled) navigate({ to: "/onboarding/deal-code", replace: true });
         return;
       }
-      setProfileReady(true);
+      if (!cancelled) setProfileReady(true);
     })();
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [user?.id, pathname]);
 
   if (loading || (user && profileReady === null)) {
     return (
