@@ -42,6 +42,7 @@ function MePage() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [activeListings, setActiveListings] = useState(0);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewers, setReviewers] = useState<Record<string, { full_name?: string; username?: string; avatar_url?: string }>>({});
   const [disputes, setDisputes] = useState(0);
 
   useEffect(() => {
@@ -61,6 +62,14 @@ function MePage() {
       setActiveListings(lr.count ?? 0);
       setReviews(rr.data ?? []);
       setDisputes(dispR.count ?? 0);
+
+      const ids = Array.from(new Set((rr.data ?? []).map((r: any) => r.reviewer_id).filter(Boolean)));
+      if (ids.length) {
+        const { data: profs } = await db.from("profiles").select("id, full_name, username, avatar_url").in("id", ids);
+        const map: Record<string, any> = {};
+        for (const p of profs ?? []) map[p.id] = p;
+        setReviewers(map);
+      }
     })();
   }, [user?.id]);
 
