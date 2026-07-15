@@ -124,10 +124,49 @@ function StartDeal() {
             <div>
               <Label>Amount (USDT)</Label>
               <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`${listing.min_amount} - ${listing.max_amount}`} />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Limits: {Number(listing.min_amount).toFixed(0)} - {Number(listing.max_amount).toFixed(0)} USDT
-              </p>
+              <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span>Limits: {Number(listing.min_amount).toFixed(0)} - {Number(listing.max_amount).toFixed(0)} USDT</span>
+                {userIsSeller && wallet && (
+                  <span>
+                    Wallet: <span className="font-mono font-semibold text-foreground">{fmtUSDT(balance)}</span>
+                    {balance > 0 && amt !== balance && (
+                      <button type="button" onClick={() => setAmount(String(Math.min(balance, Number(listing.max_amount), Number(listing.available_amount))))} className="ml-2 font-medium text-primary hover:underline">
+                        Max
+                      </button>
+                    )}
+                  </span>
+                )}
+              </div>
             </div>
+
+            {userIsSeller && sellShortBalance && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className="flex-1">
+                  <div className="font-semibold">No USDT in your wallet</div>
+                  <div className="mt-0.5">You need USDT before you can sell to this buyer.</div>
+                  <Link to="/wallet/deposit" className="mt-1 inline-block font-medium text-primary hover:underline">Deposit USDT →</Link>
+                </div>
+              </div>
+            )}
+            {userIsSeller && sellOverBalance && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>You only have <b>{fmtUSDT(balance)}</b> — reduce the amount to sell.</span>
+              </div>
+            )}
+            {(belowMin || aboveMax) && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>Amount must be between {Number(listing.min_amount).toFixed(0)} and {Number(listing.max_amount).toFixed(0)} USDT.</span>
+              </div>
+            )}
+            {overAvailable && !aboveMax && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>Only {Number(listing.available_amount).toFixed(0)} USDT available in this ad.</span>
+              </div>
+            )}
 
             <div className="glass-panel rounded-xl p-4 text-sm">
               <Row label="Price / USDT" value={fmtFiat(listing.price_per_usdt)} />
@@ -137,7 +176,7 @@ function StartDeal() {
               <Row label="Total cash" value={amt ? fmtFiat(totalFiat) : "—"} accent />
             </div>
 
-            <Button variant="hero" className="w-full" size="lg" onClick={start} disabled={busy || !amount}>
+            <Button variant="hero" className="w-full" size="lg" onClick={start} disabled={busy || invalid}>
               {busy ? <><Loader2 className="h-4 w-4 animate-spin" /> Creating deal…</> : <><BellRing className="h-4 w-4" /> Start deal & open room</>}
             </Button>
           </div>
