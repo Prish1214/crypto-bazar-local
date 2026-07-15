@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { userFromRequest, admin } from "@/lib/supabase.server";
+import { withCorsHandlers } from "@/lib/cors";
 
 export const Route = createFileRoute("/api/deal-code/biometric")({
   server: {
-    handlers: {
-      POST: async ({ request }) => {
+    handlers: withCorsHandlers({
+      POST: async ({ request }: { request: Request }) => {
         const auth = await userFromRequest(request);
         if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
         const body = (await request.json().catch(() => ({}))) as { enabled?: boolean };
@@ -15,6 +16,6 @@ export const Route = createFileRoute("/api/deal-code/biometric")({
         if (error) return Response.json({ error: error.message }, { status: 500 });
         return Response.json({ ok: true });
       },
-    },
+    }),
   },
 });
