@@ -7,6 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { isNativeShell } from "@/lib/api-base";
+import { NATIVE_AUTH_REDIRECT } from "@/lib/deep-links";
+
+// Redirect URL for magic-link emails. Inside Capacitor we return via the
+// custom scheme (cryptobazar://auth/callback); on the web we bounce back to
+// the same origin so the /auth route can pick up the session.
+function authRedirectUrl(): string {
+  if (isNativeShell()) return NATIVE_AUTH_REDIRECT;
+  return `${window.location.origin}/auth`;
+}
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -88,7 +98,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth`,
+            emailRedirectTo: authRedirectUrl(),
             data: { full_name: fullName, city, username: u },
           },
         });
@@ -121,7 +131,7 @@ function AuthPage() {
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: sentTo,
-      options: { emailRedirectTo: `${window.location.origin}/auth` },
+      options: { emailRedirectTo: authRedirectUrl() },
     });
     if (error) return toast.error(error.message);
     toast.success("New confirmation link sent");

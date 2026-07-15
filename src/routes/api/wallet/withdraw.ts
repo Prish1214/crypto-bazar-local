@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { userFromRequest, admin } from "@/lib/supabase.server";
+import { withCorsHandlers } from "@/lib/cors";
 import {
   NETWORK_TO_CURRENCY,
   createPayout,
@@ -12,8 +13,8 @@ import {
 
 export const Route = createFileRoute("/api/wallet/withdraw")({
   server: {
-    handlers: {
-      GET: async ({ request }) => {
+    handlers: withCorsHandlers({
+      GET: async ({ request }: { request: Request }) => {
         const auth = await userFromRequest(request);
         if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
         const url = new URL(request.url);
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
         const processed = await processQueuedWithdrawals(auth.user.id, request.url);
         return Response.json({ ok: true, processed });
       },
-      POST: async ({ request }) => {
+      POST: async ({ request }: { request: Request }) => {
         const auth = await userFromRequest(request);
         if (!auth) {
           return Response.json(
@@ -387,7 +388,7 @@ export const Route = createFileRoute("/api/wallet/withdraw")({
           .eq("id", wRow.id);
         return Response.json({ error: providerAuthMessage(payoutError) }, { status: 502 });
       },
-    },
+    }),
   },
 });
 
