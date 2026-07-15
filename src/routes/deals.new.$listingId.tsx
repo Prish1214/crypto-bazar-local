@@ -47,13 +47,26 @@ function StartDeal() {
   const totalFiat = amt * Number(listing.price_per_usdt);
   const fee = amt * 0.001;
 
+  // If this listing is a BUY ad, the current user is the SELLER — they must have USDT.
+  const userIsSeller = listing.type === "buy";
+  const balance = Number(wallet?.balance ?? 0);
+  const sellShortBalance = userIsSeller && balance <= 0;
+  const sellOverBalance = userIsSeller && amt > 0 && amt > balance;
+  const belowMin = amt > 0 && amt < Number(listing.min_amount);
+  const aboveMax = amt > 0 && amt > Number(listing.max_amount);
+  const overAvailable = amt > 0 && amt > Number(listing.available_amount);
+  const invalid =
+    !amt || belowMin || aboveMax || overAvailable || sellShortBalance || sellOverBalance;
+
   const start = async () => {
     if (!user) return;
     if (user.id === listing.user_id) return toast.error("You can't deal with your own listing");
-    if (amt < Number(listing.min_amount) || amt > Number(listing.max_amount)) {
+    if (belowMin || aboveMax) {
       return toast.error(`Amount must be between ${listing.min_amount} and ${listing.max_amount}`);
     }
-    if (amt > Number(listing.available_amount)) return toast.error("Exceeds available amount");
+    if (overAvailable) return toast.error("Exceeds available amount");
+    if (sellShortBalance) return toast.error("Deposit USDT before selling — your wallet is empty");
+    if (sellOverBalance) return toast.error(`You only have ${fmtUSDT(balance)} available to sell`);
 
     setBusy(true);
     try {
