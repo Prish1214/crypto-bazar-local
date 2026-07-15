@@ -128,17 +128,14 @@ function RootComponent() {
   // Install native (Capacitor) helpers on mount. No-ops on the web SSR build.
   useEffect(() => {
     (async () => {
-      const [{ installNativeFetchRewriter }, { installDeepLinkHandler }, { default: routerModule }] =
-        await Promise.all([
-          import("../lib/api-base"),
-          import("../lib/deep-links"),
-          import("@tanstack/react-router").then((m) => ({ default: m })),
-        ]);
+      const [{ installNativeFetchRewriter }, { installDeepLinkHandler }] = await Promise.all([
+        import("../lib/api-base"),
+        import("../lib/deep-links"),
+      ]);
       installNativeFetchRewriter();
       await installDeepLinkHandler((path) => {
         window.location.assign(path);
       });
-      void routerModule;
     })().catch(() => {});
   }, []);
 
