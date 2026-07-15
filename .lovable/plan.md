@@ -1,88 +1,89 @@
-# Plan — Wallet, Ads, Escrow & Deal Room Overhaul
 
-A large, multi-part change touching schema, server functions, and the Deal Room UI. Grouped into 4 phases so each ships verifiable behavior.
+# Convert CryptoBazar to a Capacitor Android app
 
-## Phase 1 — Wallet & Ad Ownership Rules
+## Strategy
 
-**Sell-ad balance validation**
-- Frontend (`src/routes/listings.new.tsx`): fetch current wallet; if `type === "sell"`, require `available_amount ≤ wallet.balance`. Disable submit when balance is 0. Inline error + helper text.
-- Backend (new migration `docs/schema-v8-sellad-guard.sql`): add `BEFORE INSERT/UPDATE` trigger `enforce_sell_listing_balance` on `listings` — if `type='sell'`, ensure `available_amount ≤ wallets.balance` for `user_id`. Buy ads bypass.
+Keep the existing TanStack Start app deployed on Lovable exactly as it is — it becomes the **API backend** for the mobile app (server functions, `/api/*` routes, NOWPayments webhook, admin analytics, everything). We add a **parallel static SPA build** of the same React UI that runs inside Capacitor on Android and talks to that hosted API over HTTPS.
 
-**Ad ownership for accept/decline**
-- Add SQL policy + RPC `respond_to_deal(_deal_id, _action)` (`accept` | `decline`) — `SECURITY DEFINER`, asserts `auth.uid() = listing.user_id` (the ad owner), not just `seller_id`.
-- Tighten `deals` UPDATE policy: only ad owner can move `pending → accepted/cancelled`.
-- Replace any client `.update({status:'accepted'})` calls with `respond_to_deal` RPC.
+Why not fully strip SSR: the Lovable preview, publish flow, and email links all depend on the SSR build. Removing it would break your live web experience. Running the same routes as an SPA-only bundle for Android is safer and reversible.
 
-**Auto-escrow on accept**
-- Inside `respond_to_deal` when accepting a sell-side ad: atomically move `amount_usdt` from seller's `wallets.balance` → `wallets.escrow_balance`, insert `escrow_lock` transaction, set deal `status='escrow_funded'`, `locked_at=now()`. Fail if insufficient balance.
-- Cancel path (`decline` or later cancel): refund escrow → balance via existing/new RPC `cancel_deal_refund`.
-- Remove the existing manual "Lock escrow" UI step.
+## What gets built
 
-## Phase 2 — Deal Flow Simplification
+### 1. Static SPA build for mobile
 
-**Drop Identity Verification step**
-- Remove `verified` status usage from UI flow. New chain:
-  `escrow_funded → meeting_scheduled → arrived → cash_sent → completed`.
-- `src/components/deal/panels.tsx`: delete `PresenceVerification` panel from active flow (keep file but unused) and skip directly from QR-verified to Cash Handover.
-- State machine in `deals.$dealId.tsx`: after both `*_qr_verified_at` set, jump to cash handover.
+- Add `vite.mobile.config.ts` — a plain Vite React config (no TanStack Start SSR plugin) that reuses `src/`, `src/styles.css`, and the shadcn setup.
+- Switch routing for mobile to a small client-router shim: mount all route components from `src/routes/*.tsx` under a memory router. Route files remain unchanged; the shim registers them.
+- Output to `dist-mobile/` — this is what Capacitor bundles into the APK.
+- New script `bun run build:mobile` produces the static bundle.
 
-**Live-camera-only proof**
-- New component `src/components/deal/live-camera-capture.tsx` using `navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})`, draws frame to canvas, overlays timestamp + date + "LIVE" badge, exports JPEG Blob.
-- `CashHandoverPanel`: replace `<input type="file">` with this component. No `accept="image/*"` fallback, no gallery picker.
-- Server: keep upload through existing `uploadDealFile`; filename suffix `-live.jpg`.
+### 2. API base URL
 
-**Timer fix**
-- In `DealInfoCard` (or wherever countdown lives): stop interval when `status ∈ {completed, cancelled}` or when `meeting_at` passed and stage advanced. Hide countdown entirely post-completion.
+- New env `VITE_API_BASE_URL`.
+  - Web build: unset → same-origin `/api/...` (unchanged).
+  - Mobile build: `https://crypto-bazar-local.lovable.app` → all `fetch("/api/...")` calls become absolute URLs.
+- Add tiny `src/lib/api-base.ts` helper and update the ~10 existing `fetch("/api/...`)` call sites to route through it. Server-function calls (`useServerFn`) also need the base URL; wrap `createServerFn` client transport with the base.
+- Add CORS headers to every `/api/*` server route (currently same-origin only) + an `OPTIONS` handler on each. Include `Authorization` in allowed headers.
 
-## Phase 3 — Mobile-First Deal Room
+### 3. Capacitor scaffold
 
-Rewrite `src/routes/deals.$dealId.tsx` as a single-column, mobile-first layout (works on desktop too).
+- Install `@capacitor/core`, `@capacitor/cli`, `@capacitor/android`, `@capacitor/app`, `@capacitor/browser`, `@capacitor/preferences`.
+- `capacitor.config.ts` with `webDir: "dist-mobile"`, `appId: "app.cryptobazar"`, `appName: "CryptoBazar"`, deep-link scheme `cryptobazar`.
+- Add `android/` platform (created by `npx cap add android`; committed).
+- Scripts: `build:mobile`, `cap:sync`, `cap:open:android`.
 
-Visible cards in order:
-1. **Status header** (sticky top): deal code, big status pill, "who acts next" line.
-2. **Deal Information**: amount, rate, total, meeting time/location.
-3. **Counterparty**: avatar, name, trust score, rating, tap-to-view profile.
-4. **Current Action Required**: ONE primary CTA card driven by state machine (Accept/Decline, Propose meeting, I've Arrived, Scan QR, Upload Live Proof, Confirm Cash Received, Rate). Sticky bottom action button on mobile.
-5. **Chat** (collapsible, expanded by default).
+### 4. Deep-link auth (magic links back into the app)
 
-Removed/collapsed by default: progress timeline (collapsible "Steps"), escrow card folded into status header chip, secondary panels hidden until their turn.
+- Custom scheme + Android App Link: `cryptobazar://auth/callback`.
+- New `src/lib/deep-links.ts`: on app start, register `App.addListener("appUrlOpen", ...)`. When URL matches the auth callback, parse `access_token` / `refresh_token` from the fragment and call `supabase.auth.setSession(...)`, then navigate to `/wallet`.
+- Auth flow change in `src/routes/auth.tsx`: when running in Capacitor (detected via `Capacitor.isNativePlatform()`), send `emailRedirectTo: "cryptobazar://auth/callback"`. When running on web, keep the current same-origin redirect.
+- **Manual step for you**: in Supabase Auth → URL Configuration, add `cryptobazar://auth/callback` to allowed redirect URLs. I'll document this in `docs/CAPACITOR.md`.
 
-**Completed/cancelled view** — render `<CompletedDealView />` showing only:
-- Deal Information (read-only)
-- Counterparty
-- Result badge (Completed ✓ / Cancelled ✗) + completion time + tx ids
-- Chat history (read-only)
+### 5. Supabase client for mobile
 
-No escrow card, no timers, no verification panels, no progress controls.
+- The web client uses `localStorage`. On Android WebView this still works, but persists poorly across app restarts in some cases. Swap in `@capacitor/preferences` as the auth storage adapter when running natively. Small change in `src/integrations/supabase/client.ts`.
 
-**Mobile polish**
-- `min-h-11` touch targets, `text-base` minimum, sticky CTA with `pb-[env(safe-area-inset-bottom)]`.
-- Collapsible sections via existing `Collapsible` primitive.
-- Test viewports: 360×800 and 412×915.
+### 6. Docs
 
-## Phase 4 — Verification
+- `docs/CAPACITOR.md`: install Android Studio, run `bun run build:mobile && bun run cap:sync && bun run cap:open:android`, Supabase redirect URL config, Android intent-filter for the deep link, release keystore reminder.
 
-- Add Playwright smoke: load `/listings/new` with empty wallet → Sell disabled.
-- Manual check Deal Room at mobile viewport: only one primary action visible, chat reachable, completed deal shows clean view.
-- Run typecheck/build after each phase.
+## Explicitly NOT changing
 
-## Technical Notes
+- Web app UX, routes, styling, business logic.
+- Any server function or webhook.
+- Supabase schema.
+- NOWPayments flow.
+- `src/routeTree.gen.ts` regeneration — SSR web build stays intact.
 
-- New SQL file: `docs/schema-v8-sellad-guard.sql` — user must run in Supabase SQL Editor.
-- New RPCs: `respond_to_deal(uuid, text)`, `cancel_deal_refund(uuid)`.
-- Existing `complete_deal_release` already handles escrow → counterparty on completion; reuse.
-- Live capture requires HTTPS (preview & published both OK).
-- No new packages needed.
+## Files changed / added
 
-## Out of Scope
+Added:
+- `vite.mobile.config.ts`
+- `src/mobile-entry.tsx` (SPA bootstrap for Capacitor)
+- `src/mobile-router.tsx` (memory router mounting existing route components)
+- `src/lib/api-base.ts`
+- `src/lib/deep-links.ts`
+- `capacitor.config.ts`
+- `docs/CAPACITOR.md`
+- `android/` (Capacitor-generated)
 
-- Rebuilding chat encryption.
-- Admin dispute screens.
-- Push notifications.
+Modified:
+- `package.json` (deps + scripts)
+- `src/integrations/supabase/client.ts` (native storage adapter)
+- `src/routes/auth.tsx` (native redirect URL)
+- `src/routes/api/**` (add CORS + OPTIONS)
+- ~10 `fetch("/api/...")` call sites (use `apiUrl()`)
+- `src/start.ts` (bearer attacher already handles auth; verify base URL for native)
 
-## Deliverables
+## Risks / trade-offs
 
-- 1 migration SQL block (user runs).
-- ~2 new components (LiveCameraCapture, CompletedDealView).
-- Rewritten `deals.$dealId.tsx`, updated `listings.new.tsx`, updated panels.
-- Updated client calls to use new RPCs.
+- **Two builds to maintain.** Web = SSR, Mobile = SPA. Adding a new API route requires no extra work; adding a new page works in both because route files are shared. Adding a new SSR-only feature (loader-fetched OG images) won't be visible in the mobile build.
+- **CORS is now real.** Every `/api/*` handler needs CORS headers. I'll do this for all existing routes in the same pass.
+- **First-load performance on mobile** depends on the CDN serving `crypto-bazar-local.lovable.app/api/*`. Same latency as the web app today.
+- **Deep-link testing** requires an Android device or emulator — I can wire the code but cannot verify the end-to-end tap-link-opens-app flow from here.
+
+## After you approve
+
+I'll implement in this order and stop for verification after step 3:
+1. Capacitor scaffold + mobile Vite config + `dist-mobile` build succeeds.
+2. API base URL plumbing + CORS on `/api/*`.
+3. Deep-link auth + native storage adapter + docs.
