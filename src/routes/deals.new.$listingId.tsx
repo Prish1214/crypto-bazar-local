@@ -21,6 +21,7 @@ function StartDeal() {
   const [listing, setListing] = useState<Listing | null>(null);
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -34,6 +35,11 @@ function StartDeal() {
       setListing({ ...(data as any), profiles: profile ?? null });
     })();
   }, [listingId]);
+
+  useEffect(() => {
+    if (!user) { setWallet(null); return; }
+    ensureWallet(user.id).then(setWallet).catch(() => setWallet(null));
+  }, [user?.id]);
 
   if (!listing) return <PageShell><div className="glass-panel grid place-items-center rounded-2xl p-16"><Loader2 className="h-6 w-6 animate-spin" /></div></PageShell>;
 
