@@ -1,12 +1,12 @@
-import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, ShieldCheck, Star, MapPin, BellRing } from "lucide-react";
+import { AlertTriangle, Loader2, ShieldCheck, Star, MapPin, BellRing } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { db, fmtFiat, fmtUSDT, sendSystemMessage, type Listing } from "@/lib/db";
+import { db, ensureWallet, fmtFiat, fmtUSDT, sendSystemMessage, type Listing, type Wallet } from "@/lib/db";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/deals/new/$listingId")({
