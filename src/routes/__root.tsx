@@ -125,6 +125,23 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  // Install native (Capacitor) helpers on mount. No-ops on the web SSR build.
+  useEffect(() => {
+    (async () => {
+      const [{ installNativeFetchRewriter }, { installDeepLinkHandler }, { default: routerModule }] =
+        await Promise.all([
+          import("../lib/api-base"),
+          import("../lib/deep-links"),
+          import("@tanstack/react-router").then((m) => ({ default: m })),
+        ]);
+      installNativeFetchRewriter();
+      await installDeepLinkHandler((path) => {
+        window.location.assign(path);
+      });
+      void routerModule;
+    })().catch(() => {});
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
