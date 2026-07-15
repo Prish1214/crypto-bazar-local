@@ -25,3 +25,33 @@ export function withCors(response: Response): Response {
 export function corsPreflight(): Response {
   return new Response(null, { status: 204, headers: CORS_HEADERS });
 }
+
+type HandlerFn = (ctx: any) => Promise<Response> | Response;
+
+/**
+ * Wrap a `handlers` object so every response gets CORS headers, and add an
+ * OPTIONS handler for preflight. Use inside `server: { handlers: withCorsHandlers({...}) }`.
+ */
+export function withCorsHandlers<T extends Record<string, HandlerFn>>(
+  handlers: T,
+): T & { OPTIONS: HandlerFn } {
+  const out: Record<string, HandlerFn> = {
+    OPTIONS: () => corsPreflight(),
+  };
+  for (const [method, fn] of Object.entries(handlers)) {
+    out[method] = async (ctx) => {
+      try {
+        const res = await fn(ctx);
+        return withCors(res);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(`[api] ${method} handler threw`, err);
+        return withCors(
+          Response.json({ error: "Internal error" }, { status: 500 }),
+        );
+      }
+    };
+  }
+  return out as T & { OPTIONS: HandlerFn };
+}
+
