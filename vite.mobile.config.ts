@@ -32,12 +32,12 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "src") },
   },
   build: {
-    outDir: "dist-mobile",
+    outDir: "dist",
     emptyOutDir: true,
     target: "es2020",
     sourcemap: false,
     rollupOptions: {
-      input: path.resolve(__dirname, "index.mobile.html"),
+      input: path.resolve(__dirname, "index.html"),
     },
   },
   define: {

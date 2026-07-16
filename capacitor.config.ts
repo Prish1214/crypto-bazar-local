@@ -13,7 +13,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 const config: CapacitorConfig = {
   appId: "app.cryptobazar",
   appName: "CryptoBazar",
-  webDir: "dist-mobile",
+  webDir: "dist",
   android: {
     allowMixedContent: false,
   },
