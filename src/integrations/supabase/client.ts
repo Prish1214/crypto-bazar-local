@@ -13,39 +13,28 @@ function pickAuthStorage(): SupportedStorage | undefined {
   const isNative = !!w.Capacitor?.isNativePlatform?.();
   if (!isNative) return window.localStorage;
 
-  // Lazily load @capacitor/preferences to avoid pulling it into the web bundle.
-  const cache = new Map<string, string>();
-  let ready: Promise<void> | null = null;
-  const ensure = async () => {
-    if (ready) return ready;
-    ready = (async () => {
-      const { Preferences } = await import("@capacitor/preferences");
-      const { keys } = await Preferences.keys();
-      await Promise.all(
-        keys.map(async (k) => {
-          const { value } = await Preferences.get({ key: k });
-          if (value != null) cache.set(k, value);
-        }),
-      );
-    })();
-    return ready;
+  // Supabase supports async storage. Reading Preferences directly avoids the
+  // old startup preload of every stored key, which could make Android WebView
+  // feel frozen while the keyboard/input was opening.
+  let preferencesPromise: Promise<typeof import("@capacitor/preferences").Preferences> | null = null;
+  const getPreferences = () => {
+    preferencesPromise ??= import("@capacitor/preferences").then((m) => m.Preferences);
+    return preferencesPromise;
   };
-  // Fire preload but don't block sync API.
-  void ensure();
 
   return {
-    getItem: (key: string) => cache.get(key) ?? null,
-    setItem: (key: string, value: string) => {
-      cache.set(key, value);
-      void import("@capacitor/preferences").then(({ Preferences }) =>
-        Preferences.set({ key, value }),
-      );
+    getItem: async (key: string) => {
+      const Preferences = await getPreferences();
+      const { value } = await Preferences.get({ key });
+      return value;
     },
-    removeItem: (key: string) => {
-      cache.delete(key);
-      void import("@capacitor/preferences").then(({ Preferences }) =>
-        Preferences.remove({ key }),
-      );
+    setItem: async (key: string, value: string) => {
+      const Preferences = await getPreferences();
+      await Preferences.set({ key, value });
+    },
+    removeItem: async (key: string) => {
+      const Preferences = await getPreferences();
+      await Preferences.remove({ key });
     },
   };
 }

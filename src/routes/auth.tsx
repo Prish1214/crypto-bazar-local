@@ -35,35 +35,36 @@ function AuthPage() {
   const { user, loading: authLoading } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [sentMode, setSentMode] = useState<"signin" | "signup">("signin");
 
   // When session becomes available (fresh login OR magic-link redirect),
   // apply any pending signup-profile fields and route to wallet.
   useEffect(() => {
     if (authLoading || !user) return;
-    (async () => {
-      try {
-        const raw = localStorage.getItem(PENDING_KEY);
-        if (raw) {
-          const p = JSON.parse(raw) as { username?: string; full_name?: string; city?: string };
-          const patch: any = {};
-          if (p.username) patch.username = p.username;
-          if (p.full_name) patch.full_name = p.full_name;
-          if (p.city) patch.city = p.city;
-          if (Object.keys(patch).length) {
-            await supabase.from("profiles").update(patch).eq("id", user.id);
-          }
+    try {
+      const raw = localStorage.getItem(PENDING_KEY);
+      if (raw) {
+        const p = JSON.parse(raw) as { username?: string; full_name?: string; city?: string };
+        const patch: any = {};
+        if (p.username) patch.username = p.username;
+        if (p.full_name) patch.full_name = p.full_name;
+        if (p.city) patch.city = p.city;
+        if (Object.keys(patch).length) {
+          void supabase.from("profiles").update(patch).eq("id", user.id).then(() => {
+            localStorage.removeItem(PENDING_KEY);
+          });
+        } else {
           localStorage.removeItem(PENDING_KEY);
         }
-      } catch {}
-      navigate({ to: "/wallet" });
-    })();
+      }
+    } catch {}
+    navigate({ to: "/wallet", replace: true });
   }, [user, authLoading, navigate]);
 
   // Live username availability check
@@ -94,30 +95,27 @@ function AuthPage() {
         try {
           localStorage.setItem(PENDING_KEY, JSON.stringify({ username: u, full_name: fullName, city }));
         } catch {}
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signInWithOtp({
           email,
-          password,
           options: {
+            shouldCreateUser: true,
             emailRedirectTo: authRedirectUrl(),
             data: { full_name: fullName, city, username: u },
           },
         });
         if (error) throw error;
-        if (data.session && data.user) {
-          // Auto-confirm mode — session immediately available.
-          await supabase.from("profiles").update({ username: u, full_name: fullName, city }).eq("id", data.user.id);
-          localStorage.removeItem(PENDING_KEY);
-          toast.success("Account created!");
-          navigate({ to: "/wallet" });
-        } else {
-          setSentTo(email);
-          toast.success("Check your email to confirm your account");
-        }
+        setSentMode("signup");
+        setSentTo(email);
+        toast.success("Check your email for the secure sign-in link");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: { shouldCreateUser: false, emailRedirectTo: authRedirectUrl() },
+        });
         if (error) throw error;
-        toast.success("Welcome back!");
-        navigate({ to: "/wallet" });
+        setSentMode("signin");
+        setSentTo(email);
+        toast.success("Check your email for the secure sign-in link");
       }
     } catch (err: any) {
       toast.error(err?.message ?? "Authentication failed");
@@ -128,33 +126,33 @@ function AuthPage() {
 
   const resendConfirmation = async () => {
     if (!sentTo) return;
-    const { error } = await supabase.auth.resend({
-      type: "signup",
+    const { error } = await supabase.auth.signInWithOtp({
       email: sentTo,
-      options: { emailRedirectTo: authRedirectUrl() },
+      options: {
+        shouldCreateUser: sentMode === "signup",
+        emailRedirectTo: authRedirectUrl(),
+      },
     });
     if (error) return toast.error(error.message);
-    toast.success("New confirmation link sent");
+    toast.success("New secure link sent");
   };
 
   return (
-    <div className="relative min-h-screen px-4 py-10">
-      <div className="grid-bg pointer-events-none absolute inset-0 -z-10 opacity-30 [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]" />
-
+    <div className="relative min-h-screen bg-background px-4 py-6 sm:py-10">
       <div className="mx-auto max-w-md">
         <Link to="/" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Back to home
         </Link>
 
         {sentTo ? (
-          <div className="glass-strong rounded-2xl p-6 sm:p-7 shadow-[var(--shadow-elevated)]">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-elevated)] sm:p-7">
             <div className="flex flex-col items-center text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
                 <MailCheck className="h-7 w-7 text-primary" />
               </div>
               <h1 className="mt-4 font-display text-2xl font-bold">Confirm your email</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                We sent a confirmation link to
+                We sent a secure sign-in link to
                 <br />
                 <span className="font-medium text-foreground">{sentTo}</span>
               </p>
@@ -173,7 +171,7 @@ function AuthPage() {
             </div>
           </div>
         ) : (
-        <div className="glass-strong rounded-2xl p-7 shadow-[var(--shadow-elevated)]">
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-elevated)] sm:p-7">
           <div className="mb-6 flex flex-col items-center text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[image:var(--gradient-primary)] shadow-[var(--shadow-glow)]">
               <Coins className="h-6 w-6 text-primary-foreground" />
@@ -183,8 +181,8 @@ function AuthPage() {
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {mode === "signin"
-                ? "Sign in to trade USDT in your city."
-                : "Start trading USDT locally in minutes."}
+                ? "Enter your email and we’ll send a secure sign-in link."
+                : "Create your account with a secure email link."}
             </p>
           </div>
 
@@ -225,16 +223,22 @@ function AuthPage() {
             )}
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" required />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" minLength={6} required />
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@email.com"
+                autoComplete="email"
+                inputMode="email"
+                enterKeyHint="send"
+                required
+              />
             </div>
 
             <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {mode === "signin" ? "Sign in" : "Create account"}
+              {mode === "signin" ? "Send sign-in link" : "Create account"}
             </Button>
           </form>
 
