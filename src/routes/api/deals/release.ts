@@ -1,12 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { userFromRequest, admin } from "@/lib/supabase.server";
-import { withCorsHandlers } from "@/lib/cors";
 
 // Seller-only: verify Deal Code, then call complete_deal_release RPC.
 export const Route = createFileRoute("/api/deals/release")({
   server: {
-    handlers: withCorsHandlers({
-      POST: async ({ request }: { request: Request }) => {
+    handlers: {
+      POST: async ({ request }) => {
         const auth = await userFromRequest(request);
         if (!auth) {
           console.warn("[deals/release] unauthorized — no valid bearer");
@@ -57,6 +56,6 @@ export const Route = createFileRoute("/api/deals/release")({
         }
         return Response.json({ ok: true });
       },
-    }),
+    },
   },
 });

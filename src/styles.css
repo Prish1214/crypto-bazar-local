@@ -142,16 +142,11 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
-    -webkit-tap-highlight-color: transparent;
   }
 
   h1, h2, h3, h4, h5 {
     font-family: var(--font-display);
-    letter-spacing: 0;
-  }
-
-  input, textarea, select, button, a {
-    touch-action: manipulation;
+    letter-spacing: -0.02em;
   }
 }
 
@@ -216,28 +211,4 @@
 
 @utility app-section-gap {
   gap: var(--space-screen-y);
-}
-
-@media (max-width: 767px), (hover: none) {
-  body {
-    background-attachment: scroll;
-  }
-
-  .glass-panel,
-  .glass-strong,
-  .app-sticky-action {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  ::before,
-  ::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: 0.001ms !important;
-  }
 }

@@ -1,15 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import { userFromRequest, admin } from "@/lib/supabase.server";
-import { withCorsHandlers } from "@/lib/cors";
 
 // Sends a magic-link email to the signed-in user. The link redirects back
 // to /settings/deal-code?rotate=<nonce>. The nonce is stored on the
 // profile with a 15-minute expiry and validated by /api/deal-code/change.
 export const Route = createFileRoute("/api/deal-code/request-otp")({
   server: {
-    handlers: withCorsHandlers({
-      POST: async ({ request }: { request: Request }) => {
+    handlers: {
+      POST: async ({ request }) => {
         const auth = await userFromRequest(request);
         if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
         const email = auth.user.email;
@@ -47,6 +46,6 @@ export const Route = createFileRoute("/api/deal-code/request-otp")({
         if (error) return Response.json({ error: error.message }, { status: 502 });
         return Response.json({ ok: true, email });
       },
-    }),
+    },
   },
 });
