@@ -39,7 +39,7 @@ export default defineConfig({
     sourcemap: false,
     target: "es2020",
     rollupOptions: {
-      input: path.resolve(__dirname, "index.html"),
+      input: path.resolve(__dirname, "mobile/index.html"),
     },
   },
   base: "./", // relative asset paths required by Capacitor's file:// / capacitor:// scheme
