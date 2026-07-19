@@ -71,7 +71,9 @@ function Marketplace() {
   }, [tab]);
 
   const filtered = useMemo(() => {
-    return items.filter((l) => {
+    const amt = parseFloat(amount);
+    const hasAmt = Number.isFinite(amt) && amt > 0;
+    const passed = items.filter((l) => {
       if (city && !l.city.toLowerCase().includes(city.toLowerCase())) return false;
       if (query) {
         const q = query.toLowerCase();
@@ -81,9 +83,36 @@ function Marketplace() {
           (l.profiles?.full_name ?? "").toLowerCase().includes(q);
         if (!hit) return false;
       }
+      if (hasAmt) {
+        const min = Number(l.min_amount ?? 0);
+        const max = Number(l.max_amount ?? 0);
+        const avail = Number(l.available_amount ?? 0);
+        // amount must fit within min/max and not exceed available
+        if (min && amt < min) return false;
+        if (max && amt > max) return false;
+        if (avail && amt > avail) return false;
+      }
       return true;
     });
-  }, [items, city, query]);
+
+    const sorted = [...passed];
+    sorted.sort((a, b) => {
+      if (sort === "price_asc") return Number(a.price_per_usdt) - Number(b.price_per_usdt);
+      if (sort === "price_desc") return Number(b.price_per_usdt) - Number(a.price_per_usdt);
+      if (sort === "trades") return Number(b.profiles?.completed_trades ?? 0) - Number(a.profiles?.completed_trades ?? 0);
+      if (sort === "completion") {
+        const rate = (p: any) => {
+          const t = Number(p?.total_trades ?? 0);
+          const c = Number(p?.completed_trades ?? 0);
+          return t > 0 ? c / t : 0;
+        };
+        return rate(b.profiles) - rate(a.profiles);
+      }
+      return 0;
+    });
+    return sorted;
+  }, [items, city, query, amount, sort]);
+
 
   return (
     <PageShell>
