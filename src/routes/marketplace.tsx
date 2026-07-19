@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, MapPin, Star, ShieldCheck, ArrowDownUp, Loader2 } from "lucide-react";
+import { Search, MapPin, Star, ShieldCheck, ArrowDownUp, Loader2, Wallet as WalletIcon } from "lucide-react";
 import { PageShell } from "@/components/site-chrome";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { db, fmtFiat, type Listing, type ListingType } from "@/lib/db";
 import { useAuth } from "@/hooks/use-auth";
+
+type SortKey = "price_asc" | "price_desc" | "trades" | "completion";
+
 
 export const Route = createFileRoute("/marketplace")({
   head: () => ({ meta: [{ title: "Marketplace — CryptoBazar" }] }),
