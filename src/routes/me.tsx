@@ -186,6 +186,36 @@ function MePage() {
           </div>
         </section>
 
+        {/* Quick actions */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <Link
+            to="/listings"
+            className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-[image:var(--gradient-primary)] p-3.5 text-primary-foreground shadow-sm transition active:scale-[0.98]"
+          >
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/20">
+              <ListOrdered className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold">My listings</div>
+              <div className="text-[11px] opacity-90">{activeListings} active</div>
+            </div>
+            <ChevronRight className="h-4 w-4 opacity-80" />
+          </Link>
+          <Link
+            to="/listings/new"
+            className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 transition hover:bg-secondary/50 active:scale-[0.98]"
+          >
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+              <Pencil className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold">New listing</div>
+              <div className="text-[11px] text-muted-foreground">Post buy / sell ad</div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </div>
+
         {/* Trading Reputation */}
         <Section title="Trading Reputation" icon={Award}>
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
