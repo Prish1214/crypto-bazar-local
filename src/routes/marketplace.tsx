@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, MapPin, Star, ShieldCheck, ArrowDownUp, Loader2 } from "lucide-react";
+import { Search, MapPin, Star, ShieldCheck, ArrowDownUp, Loader2, Wallet as WalletIcon } from "lucide-react";
 import { PageShell } from "@/components/site-chrome";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { db, fmtFiat, type Listing, type ListingType } from "@/lib/db";
 import { useAuth } from "@/hooks/use-auth";
+
+type SortKey = "price_asc" | "price_desc" | "trades" | "completion";
+
 
 export const Route = createFileRoute("/marketplace")({
   head: () => ({ meta: [{ title: "Marketplace — CryptoBazar" }] }),
@@ -19,8 +22,11 @@ function Marketplace() {
   const [city, setCity] = useState("");
   const [myCity, setMyCity] = useState<string>("");
   const [query, setQuery] = useState("");
+  const [amount, setAmount] = useState<string>("");
+  const [sort, setSort] = useState<SortKey>("price_asc");
   const [items, setItems] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+
 
   // Prefill city filter from signed-in user's profile city
   useEffect(() => {
@@ -65,7 +71,9 @@ function Marketplace() {
   }, [tab]);
 
   const filtered = useMemo(() => {
-    return items.filter((l) => {
+    const amt = parseFloat(amount);
+    const hasAmt = Number.isFinite(amt) && amt > 0;
+    const passed = items.filter((l) => {
       if (city && !l.city.toLowerCase().includes(city.toLowerCase())) return false;
       if (query) {
         const q = query.toLowerCase();
@@ -75,9 +83,36 @@ function Marketplace() {
           (l.profiles?.full_name ?? "").toLowerCase().includes(q);
         if (!hit) return false;
       }
+      if (hasAmt) {
+        const min = Number(l.min_amount ?? 0);
+        const max = Number(l.max_amount ?? 0);
+        const avail = Number(l.available_amount ?? 0);
+        // amount must fit within min/max and not exceed available
+        if (min && amt < min) return false;
+        if (max && amt > max) return false;
+        if (avail && amt > avail) return false;
+      }
       return true;
     });
-  }, [items, city, query]);
+
+    const sorted = [...passed];
+    sorted.sort((a, b) => {
+      if (sort === "price_asc") return Number(a.price_per_usdt) - Number(b.price_per_usdt);
+      if (sort === "price_desc") return Number(b.price_per_usdt) - Number(a.price_per_usdt);
+      if (sort === "trades") return Number(b.profiles?.completed_trades ?? 0) - Number(a.profiles?.completed_trades ?? 0);
+      if (sort === "completion") {
+        const rate = (p: any) => {
+          const t = Number(p?.total_trades ?? 0);
+          const c = Number(p?.completed_trades ?? 0);
+          return t > 0 ? c / t : 0;
+        };
+        return rate(b.profiles) - rate(a.profiles);
+      }
+      return 0;
+    });
+    return sorted;
+  }, [items, city, query, amount, sort]);
+
 
   return (
     <PageShell>
@@ -117,6 +152,42 @@ function Marketplace() {
           <Input className="h-10 pl-9" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} />
         </div>
       </div>
+
+      {/* Sort + Amount filter */}
+      <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_200px]">
+        <div className="relative">
+          <WalletIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="h-10 pl-9 pr-14"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="any"
+            placeholder={tab === "sell" ? "Amount to buy (USDT)" : "Amount to sell (USDT)"}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+          {amount && (
+            <button
+              type="button"
+              onClick={() => setAmount("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+            >Clear</button>
+          )}
+        </div>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as SortKey)}
+          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          aria-label="Sort listings"
+        >
+          <option value="price_asc">Price: Low → High</option>
+          <option value="price_desc">Price: High → Low</option>
+          <option value="trades">Most trades</option>
+          <option value="completion">Best completion rate</option>
+        </select>
+      </div>
+
       {myCity && (
         <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
           <span>
