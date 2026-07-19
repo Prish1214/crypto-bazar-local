@@ -152,6 +152,42 @@ function Marketplace() {
           <Input className="h-10 pl-9" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} />
         </div>
       </div>
+
+      {/* Sort + Amount filter */}
+      <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_200px]">
+        <div className="relative">
+          <WalletIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="h-10 pl-9 pr-14"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="any"
+            placeholder={tab === "sell" ? "Amount to buy (USDT)" : "Amount to sell (USDT)"}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+          {amount && (
+            <button
+              type="button"
+              onClick={() => setAmount("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+            >Clear</button>
+          )}
+        </div>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as SortKey)}
+          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          aria-label="Sort listings"
+        >
+          <option value="price_asc">Price: Low → High</option>
+          <option value="price_desc">Price: High → Low</option>
+          <option value="trades">Most trades</option>
+          <option value="completion">Best completion rate</option>
+        </select>
+      </div>
+
       {myCity && (
         <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
           <span>
