@@ -22,8 +22,11 @@ function Marketplace() {
   const [city, setCity] = useState("");
   const [myCity, setMyCity] = useState<string>("");
   const [query, setQuery] = useState("");
+  const [amount, setAmount] = useState<string>("");
+  const [sort, setSort] = useState<SortKey>("price_asc");
   const [items, setItems] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+
 
   // Prefill city filter from signed-in user's profile city
   useEffect(() => {
