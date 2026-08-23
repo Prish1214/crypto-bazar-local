@@ -108,7 +108,7 @@ function Landing() {
 
         <p className="mx-auto mt-6 max-w-2xl text-base text-muted-foreground md:text-lg">
           CryptoBazar is the local P2P marketplace for crypto. Escrow-protected
-          meet-ups, verified merchants, instant settlement — no banks, no
+          meet-ups, verified merchants, instant settlement — no bank account freezes, no
           chargebacks, no surprises.
         </p>
 
