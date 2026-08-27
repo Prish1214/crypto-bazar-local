@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { withCorsHandlers } from "@/lib/cors.server";
 import { admin } from "@/lib/supabase.server";
 import { verifyIpn } from "@/lib/nowpayments.server";
 
@@ -6,7 +7,7 @@ import { verifyIpn } from "@/lib/nowpayments.server";
 // Public route (/api/public/* bypasses auth) — security is the HMAC signature.
 export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
   server: {
-    handlers: {
+    handlers: withCorsHandlers({
       POST: async ({ request }) => {
         const raw = await request.text();
         const sig = request.headers.get("x-nowpayments-sig") ?? "";
@@ -120,7 +121,7 @@ export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
         });
         return Response.json({ ok: true, credited: creditedAmount });
       },
-    },
+    }),
   },
 });
 

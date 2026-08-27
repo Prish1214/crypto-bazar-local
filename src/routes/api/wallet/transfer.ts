@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { withCorsHandlers } from "@/lib/cors.server";
 import { userFromRequest } from "@/lib/supabase.server";
 
 export const Route = createFileRoute("/api/wallet/transfer")({
   server: {
-    handlers: {
+    handlers: withCorsHandlers({
       POST: async ({ request }) => {
         const auth = await userFromRequest(request);
         if (!auth) return new Response("Unauthorized", { status: 401 });
@@ -27,6 +28,6 @@ export const Route = createFileRoute("/api/wallet/transfer")({
         if (error) return Response.json({ error: error.message }, { status: 400 });
         return Response.json({ ok: true });
       },
-    },
+    }),
   },
 });

@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { apiUrl } from "@/lib/api-base";
 import { useEffect, useState } from "react";
 import { Shield, Fingerprint, AlertTriangle, CheckCircle2, Lock, Loader2 } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
@@ -42,7 +43,7 @@ function Onboarding() {
     setBusy(true);
     try {
       const token = session?.access_token ?? (await supabase.auth.getSession()).data.session?.access_token;
-      const r = await fetch("/api/deal-code/set", {
+      const r = await fetch(apiUrl("/api/deal-code/set"), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ code }),
@@ -61,7 +62,7 @@ function Onboarding() {
     try {
       await enableBiometric(user.id, code);
       const token = session?.access_token ?? (await supabase.auth.getSession()).data.session?.access_token;
-      await fetch("/api/deal-code/biometric", {
+      await fetch(apiUrl("/api/deal-code/biometric"), {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ enabled: true }),
       }).catch(() => null);

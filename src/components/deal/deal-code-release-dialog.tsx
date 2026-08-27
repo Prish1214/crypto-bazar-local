@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiUrl } from "@/lib/api-base";
 import { Fingerprint, Lock, Loader2, AlertTriangle, Shield } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ export function DealCodeReleaseDialog({
       }
       if (!token) throw new Error("Your session expired. Please sign in again.");
 
-      const r = await fetch("/api/deals/release", {
+      const r = await fetch(apiUrl("/api/deals/release"), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ deal_id: dealId, code: submittedCode }),

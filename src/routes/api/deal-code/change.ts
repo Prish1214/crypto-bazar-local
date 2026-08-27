@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { withCorsHandlers } from "@/lib/cors.server";
 import { userFromRequest, admin } from "@/lib/supabase.server";
 
 // Validates the magic-link "rotate" nonce that was emailed to the user
@@ -8,7 +9,7 @@ import { userFromRequest, admin } from "@/lib/supabase.server";
 //   3) present it before it expires (15 min)
 export const Route = createFileRoute("/api/deal-code/change")({
   server: {
-    handlers: {
+    handlers: withCorsHandlers({
       POST: async ({ request }) => {
         const auth = await userFromRequest(request);
         if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -53,7 +54,7 @@ export const Route = createFileRoute("/api/deal-code/change")({
         if (error) return Response.json({ error: error.message }, { status: 500 });
         return Response.json({ ok: true });
       },
-    },
+    }),
   },
 });
 

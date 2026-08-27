@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { withCorsHandlers } from "@/lib/cors.server";
 import { createClient } from "@supabase/supabase-js";
 import { userFromRequest, admin } from "@/lib/supabase.server";
 
@@ -7,7 +8,7 @@ import { userFromRequest, admin } from "@/lib/supabase.server";
 // profile with a 15-minute expiry and validated by /api/deal-code/change.
 export const Route = createFileRoute("/api/deal-code/request-otp")({
   server: {
-    handlers: {
+    handlers: withCorsHandlers({
       POST: async ({ request }) => {
         const auth = await userFromRequest(request);
         if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -46,6 +47,6 @@ export const Route = createFileRoute("/api/deal-code/request-otp")({
         if (error) return Response.json({ error: error.message }, { status: 502 });
         return Response.json({ ok: true, email });
       },
-    },
+    }),
   },
 });

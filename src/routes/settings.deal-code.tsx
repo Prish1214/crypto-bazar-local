@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
+import { apiUrl } from "@/lib/api-base";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Shield, Fingerprint, Mail, AlertTriangle, Loader2, CheckCircle2, LockKeyhole, Smartphone, MailCheck } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
@@ -59,7 +60,7 @@ function SettingsDealCode() {
   const requestMagicLink = async () => {
     setBusy(true);
     try {
-      const r = await fetch("/api/deal-code/request-otp", {
+      const r = await fetch(apiUrl("/api/deal-code/request-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` },
         body: JSON.stringify({ redirect_origin: window.location.origin }),
@@ -78,7 +79,7 @@ function SettingsDealCode() {
     if (!rotate) return toast.error("Open the verification link from your email first");
     setBusy(true);
     try {
-      const r = await fetch("/api/deal-code/change", {
+      const r = await fetch(apiUrl("/api/deal-code/change"), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` },
         body: JSON.stringify({ nonce: rotate, new_code: newCode }),
@@ -97,7 +98,7 @@ function SettingsDealCode() {
   const disableDeviceBiometric = async () => {
     if (!user) return;
     disableBiometric(user.id); setBioEnrolled(false);
-    await fetch("/api/deal-code/biometric", {
+    await fetch(apiUrl("/api/deal-code/biometric"), {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` },
       body: JSON.stringify({ enabled: false }),
     }).catch(() => null);
@@ -112,7 +113,7 @@ function SettingsDealCode() {
       setBioEnrolled(true);
       setBioCode("");
       setBioMode(false);
-      await fetch("/api/deal-code/biometric", {
+      await fetch(apiUrl("/api/deal-code/biometric"), {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` },
         body: JSON.stringify({ enabled: true }),
       }).catch(() => null);

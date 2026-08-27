@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { apiUrl } from "@/lib/api-base";
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowUpFromLine, AlertTriangle, Loader2, Clock3, CheckCircle2, XCircle } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
@@ -43,7 +44,7 @@ function WithdrawPage() {
     const run = async () => {
       const token = session?.access_token ?? (await supabase.auth.getSession()).data.session?.access_token;
       if (!token) return;
-      await fetch("/api/wallet/withdraw", { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+      await fetch(apiUrl("/api/wallet/withdraw"), { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
       if (user) await refreshWalletData(user.id).catch(() => null);
     };
     run();
@@ -61,7 +62,7 @@ function WithdrawPage() {
       try {
         const token = session?.access_token ?? (await supabase.auth.getSession()).data.session?.access_token;
         if (!token) return;
-        const r = await fetch(`/api/wallet/withdraw?estimate=1&network=${network.id}&amount=${amt}`, { headers: { Authorization: `Bearer ${token}` } });
+        const r = await fetch(apiUrl(`/api/wallet/withdraw?estimate=1&network=${network.id}&amount=${amt}`), { headers: { Authorization: `Bearer ${token}` } });
         const j = await r.json().catch(() => ({}));
         if (!cancel) setNetworkFee(typeof j.fee === "number" ? j.fee : null);
       } finally {
@@ -87,7 +88,7 @@ function WithdrawPage() {
     try {
       const token = session?.access_token ?? (await supabase.auth.getSession()).data.session?.access_token;
       if (!token) throw new Error("Your login session expired. Please sign in again, then retry.");
-      const r = await fetch("/api/wallet/withdraw", {
+      const r = await fetch(apiUrl("/api/wallet/withdraw"), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ network: network.id, address: address.trim(), amount: amt }),

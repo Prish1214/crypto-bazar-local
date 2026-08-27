@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { withCorsHandlers } from "@/lib/cors.server";
 import { userFromRequest, admin } from "@/lib/supabase.server";
 import {
   NETWORK_TO_CURRENCY,
@@ -8,7 +9,7 @@ import {
 
 export const Route = createFileRoute("/api/wallet/deposit-address")({
   server: {
-    handlers: {
+    handlers: withCorsHandlers({
       POST: async ({ request }) => {
         try {
           return await handleDepositAddress(request);
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/api/wallet/deposit-address")({
           );
         }
       },
-    },
+    }),
   },
 });
 
