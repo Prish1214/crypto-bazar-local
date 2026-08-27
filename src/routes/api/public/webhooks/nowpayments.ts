@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { corsPreflight, withCors } from "@/lib/cors.server";
 import { admin } from "@/lib/supabase.server";
 import { verifyIpn } from "@/lib/nowpayments.server";
 
@@ -8,7 +7,7 @@ import { verifyIpn } from "@/lib/nowpayments.server";
 export const Route = createFileRoute("/api/public/webhooks/nowpayments")({
   server: {
     handlers: {
-      POST: async (ctx) => withCors(await (async ({ request }) => {
+      POST: async ({ request }) => {
         const raw = await request.text();
         const sig = request.headers.get("x-nowpayments-sig") ?? "";
 

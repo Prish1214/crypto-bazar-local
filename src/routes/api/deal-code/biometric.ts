@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { corsPreflight, withCors } from "@/lib/cors.server";
 import { userFromRequest, admin } from "@/lib/supabase.server";
 
 export const Route = createFileRoute("/api/deal-code/biometric")({
   server: {
     handlers: {
-      POST: async (ctx) => withCors(await (async ({ request }) => {
+      POST: async ({ request }) => {
         const auth = await userFromRequest(request);
         if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
         const body = (await request.json().catch(() => ({}))) as { enabled?: boolean };
