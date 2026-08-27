@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { initPushNotifications, clearPushToken } from "@/lib/push";
 
 interface AuthContextValue {
   user: User | null;
@@ -20,11 +21,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
     let unsubscribe: (() => void) | undefined;
 
+    let pushedFor: string | null = null;
+
     const applySession = (s: Session | null) => {
       if (!mounted) return;
       setSession(s);
       setUser(s?.user ?? null);
       setLoading(false);
+
+      const uid = s?.user?.id ?? null;
+      if (uid && pushedFor !== uid) {
+        pushedFor = uid;
+        void initPushNotifications(uid);
+      } else if (!uid) {
+        pushedFor = null;
+      }
     };
 
     (async () => {
@@ -47,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    await clearPushToken(user?.id ?? null);
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
