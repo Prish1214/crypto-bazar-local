@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { corsPreflight, withCors } from "@/lib/cors.server";
 import { createClient } from "@supabase/supabase-js";
 import { userFromRequest, admin } from "@/lib/supabase.server";
 
@@ -8,7 +9,7 @@ import { userFromRequest, admin } from "@/lib/supabase.server";
 export const Route = createFileRoute("/api/deal-code/request-otp")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
+      POST: async (ctx) => withCors(await (async ({ request }) => {
         const auth = await userFromRequest(request);
         if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
         const email = auth.user.email;

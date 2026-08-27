@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { corsPreflight, withCors } from "@/lib/cors.server";
 import { userFromRequest, admin } from "@/lib/supabase.server";
 
 // Validates the magic-link "rotate" nonce that was emailed to the user
@@ -9,7 +10,7 @@ import { userFromRequest, admin } from "@/lib/supabase.server";
 export const Route = createFileRoute("/api/deal-code/change")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
+      POST: async (ctx) => withCors(await (async ({ request }) => {
         const auth = await userFromRequest(request);
         if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
