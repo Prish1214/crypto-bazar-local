@@ -40,3 +40,19 @@ export function withCors(response: Response, request: Request): Response {
     headers,
   });
 }
+
+type Handler = (ctx: any) => Response | Promise<Response>;
+
+/**
+ * Wrap a route's handler map: every response gets CORS headers and an
+ * OPTIONS preflight handler is added automatically.
+ */
+export function withCorsHandlers<T extends Record<string, Handler>>(handlers: T) {
+  const out: Record<string, Handler> = {
+    OPTIONS: async ({ request }: any) => corsPreflight(request),
+  };
+  for (const [method, handler] of Object.entries(handlers)) {
+    out[method] = async (ctx: any) => withCors(await handler(ctx), ctx.request);
+  }
+  return out as T & { OPTIONS: Handler };
+}

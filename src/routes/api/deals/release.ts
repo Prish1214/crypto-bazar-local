@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { withCorsHandlers } from "@/lib/cors.server";
 import { userFromRequest, admin } from "@/lib/supabase.server";
 
 // Seller-only: verify Deal Code, then call complete_deal_release RPC.
 export const Route = createFileRoute("/api/deals/release")({
   server: {
-    handlers: {
+    handlers: withCorsHandlers({
       POST: async ({ request }) => {
         const auth = await userFromRequest(request);
         if (!auth) {
@@ -56,6 +57,6 @@ export const Route = createFileRoute("/api/deals/release")({
         }
         return Response.json({ ok: true });
       },
-    },
+    }),
   },
 });
