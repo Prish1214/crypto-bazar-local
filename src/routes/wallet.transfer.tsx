@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { apiUrl } from "@/lib/api-base";
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowLeftRight, Search, Loader2 } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
@@ -54,7 +55,7 @@ function TransferPage() {
     try {
       const { data: session } = await db.auth.getSession();
       const token = session.session?.access_token;
-      const r = await fetch("/api/wallet/transfer", {
+      const r = await fetch(apiUrl("/api/wallet/transfer"), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ recipient_username: recipient.username, amount: v, note }),

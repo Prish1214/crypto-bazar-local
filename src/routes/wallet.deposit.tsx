@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { apiUrl } from "@/lib/api-base";
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { ArrowLeft, ArrowDownToLine, Copy, Check, Loader2, AlertTriangle } from "lucide-react";
@@ -51,7 +52,7 @@ function DepositPage() {
         // Ask backend to provision one via NOWPayments.
         const { data: session } = await supabase.auth.getSession();
         const token = session.session?.access_token;
-        const r = await fetch("/api/wallet/deposit-address", {
+        const r = await fetch(apiUrl("/api/wallet/deposit-address"), {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ network: network.id }),
