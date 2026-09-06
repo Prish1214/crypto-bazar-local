@@ -76,7 +76,7 @@ export function EscrowProgressCard({ deal }: { deal: Deal }) {
           <div className={locked ? "text-success" : "text-muted-foreground"}>{locked ? "Yes" : "Pending"}</div>
         </div>
         <div className="rounded-[var(--radius-control)] bg-secondary/60 p-2">
-          <div className="font-semibold">Fee</div>
+          <div className="font-semibold">Platform fee (0%)</div>
           <div className="font-mono text-muted-foreground">{fmtUSDT(deal.fee_usdt)}</div>
         </div>
         <div className="rounded-[var(--radius-control)] bg-secondary/60 p-2">
@@ -159,7 +159,7 @@ export function DealInfoCard({ deal }: { deal: Deal }) {
         <Row label="Amount" value={fmtUSDT(deal.amount_usdt)} />
         <Row label="Locked Rate" value={fmtFiat(deal.price_per_usdt)} />
         <Row label="Total Value" value={fmtFiat(deal.total_fiat)} accent />
-        <Row label="Platform Fee" value={fmtUSDT(deal.fee_usdt)} />
+        <Row label="Platform Fee (0%)" value={fmtUSDT(deal.fee_usdt)} />
         {deal.meeting_at && (
           <Row label="Meeting" value={new Date(deal.meeting_at).toLocaleString()} />
         )}
