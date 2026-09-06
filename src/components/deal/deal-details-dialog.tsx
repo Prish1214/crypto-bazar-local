@@ -92,7 +92,7 @@ export function DealDetailsDialog({ deal, trigger }: Props) {
 
         <div className="grid gap-4 md:grid-cols-3">
           <SummaryTile icon={Lock} label="Escrow amount" value={fmtUSDT(deal.amount_usdt)} />
-          <SummaryTile icon={ShieldCheck} label="Platform fee" value={fmtUSDT(deal.fee_usdt)} />
+          <SummaryTile icon={ShieldCheck} label="Platform fee (0%)" value={fmtUSDT(deal.fee_usdt)} />
           <SummaryTile icon={Clock} label="Opened" value={new Date(deal.created_at).toLocaleString()} />
         </div>
 

@@ -125,7 +125,7 @@ function Landing() {
         </div>
 
         <div className="mx-auto mt-14 grid max-w-3xl grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat value="0.1%" label="Trade fee" />
+          <Stat value="0%" label="Trade fee" />
           <Stat value="< 2 sec." label="Avg. settlement" />
           <Stat value="100%" label="Escrow protected" />
           <Stat value="24/7" label="In-app chat" />
@@ -146,7 +146,7 @@ function Landing() {
           <Step n="01" icon={MapPin} title="Find a local listing" desc="Browse buy & sell offers in your city, filter by amount, price, and merchant rating." />
           <Step n="02" icon={Lock} title="USDT locked in escrow" desc="The seller's USDT is locked the moment a deal is accepted. The listing is paused for others." />
           <Step n="03" icon={MessageSquare} title="Meet & exchange cash" desc="Chat in-app, schedule the meeting, hand over cash at your agreed location." />
-          <Step n="04" icon={Zap} title="Instant USDT release" desc="Buyer uploads proof, seller confirms — USDT releases in seconds. 0.1% fee." />
+          <Step n="04" icon={Zap} title="Instant USDT release" desc="Buyer uploads proof, seller confirms — USDT releases in seconds. 0% fee." />
         </div>
       </section>
 
