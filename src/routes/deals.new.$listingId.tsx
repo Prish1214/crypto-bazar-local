@@ -45,7 +45,7 @@ function StartDeal() {
 
   const amt = parseFloat(amount || "0");
   const totalFiat = amt * Number(listing.price_per_usdt);
-  const fee = amt * 0.001;
+  const fee = 0;
 
   // If this listing is a BUY ad, the current user is the SELLER — they must have USDT.
   const userIsSeller = listing.type === "buy";
@@ -171,7 +171,7 @@ function StartDeal() {
             <div className="glass-panel rounded-xl p-4 text-sm">
               <Row label="Price / USDT" value={fmtFiat(listing.price_per_usdt)} />
               <Row label="Amount" value={amt ? fmtUSDT(amt) : "—"} />
-              <Row label="Platform fee (0.1%)" value={amt ? fmtUSDT(fee) : "—"} />
+              <Row label="Platform fee (0%)" value="0 USDT" />
               <div className="my-2 border-t border-glass-border" />
               <Row label="Total cash" value={amt ? fmtFiat(totalFiat) : "—"} accent />
             </div>

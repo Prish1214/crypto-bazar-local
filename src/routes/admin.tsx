@@ -262,7 +262,7 @@ function Admin() {
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <MiniStat icon={ArrowDownToLine} label="Deposits" value={fmtUSDT(analytics.deposits_total)} hint={`${analytics.deposits_count} txns`} />
                 <MiniStat icon={ArrowUpFromLine} label="Withdrawals" value={fmtUSDT(analytics.withdrawals_total)} hint={`${analytics.withdrawals_count} completed · ${analytics.withdrawals_pending} pending`} />
-                <MiniStat icon={ReceiptText} label="Platform fees" value={fmtUSDT(analytics.fees_collected_usdt)} hint="0.1% on completed deals" />
+                <MiniStat icon={ReceiptText} label="Platform fees" value={fmtUSDT(analytics.fees_collected_usdt)} hint="0% trading fees" />
                 <MiniStat icon={Activity} label="Active users (7d)" value={String(analytics.users_active_7d)} hint={`${analytics.users_verified}/${analytics.users_total} verified`} />
               </div>
 
