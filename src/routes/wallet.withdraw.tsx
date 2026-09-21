@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/wallet/withdraw")({
-  head: () => ({ meta: [{ title: "Withdraw USDT — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Withdraw USDT — KryptoBazar" }] }),
   component: () => <RequireAuth><WithdrawPage /></RequireAuth>,
 });
 

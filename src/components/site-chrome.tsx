@@ -185,7 +185,7 @@ export function SiteFooter() {
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[image:var(--gradient-primary)]">
               <Coins className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <span className="font-display text-sm font-bold">CryptoBazar</span>
+            <span className="font-display text-sm font-bold">KryptoBazar</span>
             <span className="text-xs text-muted-foreground">· Local USDT marketplace</span>
           </div>
           <div className="flex items-center gap-5 text-[11px] text-muted-foreground">
@@ -194,7 +194,7 @@ export function SiteFooter() {
           </div>
         </div>
         <p className="mt-4 text-center text-[10px] text-muted-foreground/70">
-          © {new Date().getFullYear()} CryptoBazar. Trade responsibly.
+          © {new Date().getFullYear()} KryptoBazar. Trade responsibly.
         </p>
       </div>
     </footer>

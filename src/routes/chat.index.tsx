@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/chat/")({
-  head: () => ({ meta: [{ title: "Private Chat — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Private Chat — KryptoBazar" }] }),
   component: () => (
     <RequireAuth>
       <PageShell>

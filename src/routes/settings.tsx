@@ -11,7 +11,7 @@ import { db, type Profile } from "@/lib/db";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "Settings — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Settings — KryptoBazar" }] }),
   component: SettingsRoute,
 });
 

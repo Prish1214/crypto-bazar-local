@@ -10,7 +10,7 @@ import { db, ensureWallet, fmtFiat, fmtUSDT, sendSystemMessage, type Listing, ty
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/deals/new/$listingId")({
-  head: () => ({ meta: [{ title: "Start a deal — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Start a deal — KryptoBazar" }] }),
   component: () => <RequireAuth><StartDeal /></RequireAuth>,
 });
 

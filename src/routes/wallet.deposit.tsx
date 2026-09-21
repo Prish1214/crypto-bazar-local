@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/wallet/deposit")({
-  head: () => ({ meta: [{ title: "Deposit USDT — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Deposit USDT — KryptoBazar" }] }),
   component: () => <RequireAuth><DepositPage /></RequireAuth>,
 });
 
@@ -99,7 +99,7 @@ function DepositPage() {
           </div>
           <div>
             <h1 className="font-display text-2xl font-bold">Deposit USDT</h1>
-            <p className="text-sm text-muted-foreground">Send USDT to your permanent CryptoBazar address.</p>
+            <p className="text-sm text-muted-foreground">Send USDT to your permanent KryptoBazar address.</p>
           </div>
         </div>
 

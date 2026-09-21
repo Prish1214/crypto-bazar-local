@@ -12,7 +12,7 @@ type SortKey = "price_asc" | "price_desc" | "trades" | "completion";
 
 
 export const Route = createFileRoute("/marketplace")({
-  head: () => ({ meta: [{ title: "Marketplace — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Marketplace — KryptoBazar" }] }),
   component: Marketplace,
 });
 

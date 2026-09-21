@@ -1,7 +1,7 @@
 // Strip personal contact info from chat messages.
-// Keeps the deal inside CryptoBazar.
+// Keeps the deal inside KryptoBazar.
 
-const REPLACE = "[hidden — keep chat in CryptoBazar]";
+const REPLACE = "[hidden — keep chat in KryptoBazar]";
 
 const PATTERNS: RegExp[] = [
   // phone numbers (7+ digits, spaces/dashes allowed)

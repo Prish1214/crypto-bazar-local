@@ -29,7 +29,7 @@ import { DealDetailsDialog } from "@/components/deal/deal-details-dialog";
 import { DealCodeReleaseDialog } from "@/components/deal/deal-code-release-dialog";
 
 export const Route = createFileRoute("/deals/$dealId")({
-  head: () => ({ meta: [{ title: "Deal Room — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Deal Room — KryptoBazar" }] }),
   // Deal rooms are user-scoped and hydrate entirely on the client
   // (auth session lives in localStorage). SSR would 500 with no session.
   ssr: false,
@@ -485,7 +485,7 @@ function CompletedDealView({
       )}
       {ok && hasReview && (
         <div className="rounded-2xl border border-emerald-600/30 bg-emerald-50/50 p-4 text-sm text-emerald-700 dark:bg-emerald-950/20">
-          ✓ Review submitted — thanks for keeping CryptoBazar trustworthy.
+          ✓ Review submitted — thanks for keeping KryptoBazar trustworthy.
         </div>
       )}
 

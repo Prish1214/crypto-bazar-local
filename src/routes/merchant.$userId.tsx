@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { db, fmtFiat, type Listing, type Profile } from "@/lib/db";
 
 export const Route = createFileRoute("/merchant/$userId")({
-  head: () => ({ meta: [{ title: "Merchant — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Merchant — KryptoBazar" }] }),
   component: MerchantPage,
 });
 

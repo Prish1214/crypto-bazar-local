@@ -43,7 +43,7 @@ export function ChatPanel({
   const send = async () => {
     if (!text.trim()) return;
     const { clean, blocked } = sanitizeMessage(text.trim());
-    if (blocked) toast.warning("Personal contact details are blocked — keep chat in CryptoBazar.");
+    if (blocked) toast.warning("Personal contact details are blocked — keep chat in KryptoBazar.");
     const { error } = await db.from("messages").insert({
       deal_id: dealId, sender_id: userId, content: clean, kind: "text",
     } as any);
@@ -118,7 +118,7 @@ export function ChatPanel({
       <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
         {messages.length === 0 && (
           <p className="py-12 text-center text-xs text-muted-foreground">
-            Say hello — all communication stays inside CryptoBazar.
+            Say hello — all communication stays inside KryptoBazar.
           </p>
         )}
         {messages.map((m) => (

@@ -8,7 +8,7 @@ import { isBiometricEnrolledLocally } from "@/lib/deal-code";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/security")({
-  head: () => ({ meta: [{ title: "Security — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Security — KryptoBazar" }] }),
   component: () => <RequireAuth><SecurityPage /></RequireAuth>,
 });
 
@@ -83,7 +83,7 @@ function SecurityPage() {
         <section className="space-y-2">
           <div className="px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Tips</div>
           <div className="space-y-2">
-            <Tip>Never share your Deal Code, email OTP, or magic link with anyone — CryptoBazar staff will never ask.</Tip>
+            <Tip>Never share your Deal Code, email OTP, or magic link with anyone — KryptoBazar staff will never ask.</Tip>
             <Tip>Always verify the counterparty's rating and completed trades before meeting in person.</Tip>
             <Tip>Sign out on shared devices and enable biometric unlock on your personal phone.</Tip>
           </div>

@@ -13,7 +13,7 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/onboarding/deal-code")({
-  head: () => ({ meta: [{ title: "Create your Deal Code — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Create your Deal Code — KryptoBazar" }] }),
   component: () => <RequireAuth><Onboarding /></RequireAuth>,
 });
 
@@ -94,7 +94,7 @@ function Onboarding() {
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <div>
                 <b>Never share your Deal Code with anyone.</b> It is confidential, should only be known by
-                the account owner, and is required to authorize every deal. CryptoBazar staff will never
+                the account owner, and is required to authorize every deal. KryptoBazar staff will never
                 ask for it.
               </div>
             </div>

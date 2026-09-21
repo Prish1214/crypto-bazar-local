@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { db, fmtUSDT, type Deal, type Profile } from "@/lib/db";
 
 export const Route = createFileRoute("/me")({
-  head: () => ({ meta: [{ title: "My Profile — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "My Profile — KryptoBazar" }] }),
   component: () => <RequireAuth><MePage /></RequireAuth>,
 });
 
@@ -368,7 +368,7 @@ function MePage() {
           <LogOut className="h-4 w-4" /> Log out
         </button>
 
-        <div className="text-center text-[10px] text-muted-foreground">CryptoBazar · v1.0</div>
+        <div className="text-center text-[10px] text-muted-foreground">KryptoBazar · v1.0</div>
       </div>
     </PageShell>
   );

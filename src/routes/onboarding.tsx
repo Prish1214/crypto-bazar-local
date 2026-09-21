@@ -12,8 +12,8 @@ export const Route = createFileRoute("/onboarding")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Welcome to CryptoBazar" },
-      { name: "description", content: "Get started with CryptoBazar — the safest way to trade USDT locally." },
+      { title: "Welcome to KryptoBazar" },
+      { name: "description", content: "Get started with KryptoBazar — the safest way to trade USDT locally." },
     ],
   }),
   component: OnboardingRoute,

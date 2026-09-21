@@ -9,7 +9,7 @@ import { db, fmtFiat, type Listing } from "@/lib/db";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/listings/")({
-  head: () => ({ meta: [{ title: "My Listings — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "My Listings — KryptoBazar" }] }),
   component: () => <RequireAuth><MyListings /></RequireAuth>,
 });
 

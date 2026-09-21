@@ -12,7 +12,7 @@ import { db, ensureWallet, fmtUSDT, type Profile, type Wallet } from "@/lib/db";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/wallet/transfer")({
-  head: () => ({ meta: [{ title: "Transfer — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Transfer — KryptoBazar" }] }),
   component: () => <RequireAuth><TransferPage /></RequireAuth>,
 });
 
@@ -131,7 +131,7 @@ function TransferPage() {
             Send {amount && `${fmtUSDT(parseFloat(amount) || 0)}`}
           </Button>
           <p className="text-[11px] text-muted-foreground">
-            Transfers are instant and free between CryptoBazar accounts.
+            Transfers are instant and free between KryptoBazar accounts.
           </p>
         </div>
       </div>

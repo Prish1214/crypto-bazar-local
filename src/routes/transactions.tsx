@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { db, fmtUSDT, type Deal, type Transaction } from "@/lib/db";
 
 export const Route = createFileRoute("/transactions")({
-  head: () => ({ meta: [{ title: "History — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "History — KryptoBazar" }] }),
   component: () => <RequireAuth><History /></RequireAuth>,
 });
 
