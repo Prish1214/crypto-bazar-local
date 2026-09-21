@@ -141,7 +141,7 @@ export function EscrowStatusCard({ deal }: { deal: Deal }) {
       </div>
       <div className="mt-3 font-display text-2xl font-bold">{fmtUSDT(deal.amount_usdt)}</div>
       <p className="mt-1 text-xs text-muted-foreground">
-        {active ? "Funds Secured in CryptoBazar Escrow" : deal.status === "completed" ? "USDT released to buyer" : "Awaiting seller to fund escrow"}
+        {active ? "Funds Secured in KryptoBazar Escrow" : deal.status === "completed" ? "USDT released to buyer" : "Awaiting seller to fund escrow"}
       </p>
     </div>
   );

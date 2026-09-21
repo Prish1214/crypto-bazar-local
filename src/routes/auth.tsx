@@ -11,8 +11,8 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — CryptoBazar" },
-      { name: "description", content: "Sign in or create your CryptoBazar account." },
+      { title: "Sign in — KryptoBazar" },
+      { name: "description", content: "Sign in or create your KryptoBazar account." },
     ],
   }),
   component: AuthPage,
@@ -229,7 +229,7 @@ function AuthPage() {
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            {mode === "signin" ? "New to CryptoBazar?" : "Already have an account?"}{" "}
+            {mode === "signin" ? "New to KryptoBazar?" : "Already have an account?"}{" "}
             <button
               type="button"
               onClick={() => setMode(mode === "signin" ? "signup" : "signin")}

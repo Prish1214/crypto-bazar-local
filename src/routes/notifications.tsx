@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/notifications")({
-  head: () => ({ meta: [{ title: "Notifications — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Notifications — KryptoBazar" }] }),
   component: () => <RequireAuth><NotifPage /></RequireAuth>,
 });
 

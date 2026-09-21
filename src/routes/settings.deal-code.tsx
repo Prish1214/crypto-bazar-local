@@ -14,7 +14,7 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings/deal-code")({
-  head: () => ({ meta: [{ title: "Deal Code — Settings — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Deal Code — Settings — KryptoBazar" }] }),
   validateSearch: (s: Record<string, unknown>) => ({ rotate: typeof s.rotate === "string" ? s.rotate : undefined }),
   component: () => <RequireAuth><SettingsDealCode /></RequireAuth>,
 });

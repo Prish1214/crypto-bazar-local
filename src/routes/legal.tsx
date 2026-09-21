@@ -4,7 +4,7 @@ import { FileText, ChevronDown } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 
 export const Route = createFileRoute("/legal")({
-  head: () => ({ meta: [{ title: "Terms & Privacy — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Terms & Privacy — KryptoBazar" }] }),
   component: () => <RequireAuth><LegalPage /></RequireAuth>,
 });
 
@@ -13,11 +13,11 @@ const DOCS = [
     title: "Terms of Service",
     updated: "Jan 2026",
     sections: [
-      { h: "1. Acceptance", p: "By using CryptoBazar you agree to these Terms and our Privacy Policy. You must be 18+ and legally allowed to trade cryptocurrency in your jurisdiction." },
-      { h: "2. Platform role", p: "CryptoBazar is a peer-to-peer marketplace and escrow provider. We are not a party to transactions between users and do not custody funds outside the escrow flow." },
+      { h: "1. Acceptance", p: "By using KryptoBazar you agree to these Terms and our Privacy Policy. You must be 18+ and legally allowed to trade cryptocurrency in your jurisdiction." },
+      { h: "2. Platform role", p: "KryptoBazar is a peer-to-peer marketplace and escrow provider. We are not a party to transactions between users and do not custody funds outside the escrow flow." },
       { h: "3. User conduct", p: "You agree not to engage in fraud, money laundering, harassment, or any activity that violates local law. Prohibited activity leads to account termination and potential legal action." },
       { h: "4. Fees", p: "Escrow, deposit and withdrawal fees are shown before confirmation. Users always receive exactly the amount displayed on the withdrawal confirmation screen." },
-      { h: "5. Disputes", p: "Disputes are resolved by CryptoBazar staff using submitted chat logs, QR receipts, and evidence uploads. Decisions are final." },
+      { h: "5. Disputes", p: "Disputes are resolved by KryptoBazar staff using submitted chat logs, QR receipts, and evidence uploads. Decisions are final." },
       { h: "6. Termination", p: "We may suspend or terminate accounts that violate these Terms, are involved in disputes, or pose risk to other users." },
     ],
   },

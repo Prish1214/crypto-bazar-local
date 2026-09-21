@@ -11,13 +11,13 @@ import { useAuth } from "@/hooks/use-auth";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "CryptoBazar — Local USDT marketplace with cash escrow" },
+      { title: "KryptoBazar — Local USDT marketplace with cash escrow" },
       {
         name: "description",
         content:
           "Buy and sell USDT face-to-face in your city. Escrow-protected, reputation-backed, instant settlement after meet-up.",
       },
-      { property: "og:title", content: "CryptoBazar — Local USDT marketplace" },
+      { property: "og:title", content: "KryptoBazar — Local USDT marketplace" },
       {
         property: "og:description",
         content:
@@ -107,7 +107,7 @@ function Landing() {
         </h1>
 
         <p className="mx-auto mt-6 max-w-2xl text-base text-muted-foreground md:text-lg">
-          CryptoBazar is the local P2P marketplace for crypto. Escrow-protected
+          KryptoBazar is the local P2P marketplace for crypto. Escrow-protected
           meet-ups, verified merchants, instant settlement — no bank account freezes, no
           chargebacks, no surprises.
         </p>

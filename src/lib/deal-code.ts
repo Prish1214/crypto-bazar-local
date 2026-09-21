@@ -49,7 +49,7 @@ export async function enableBiometric(userId: string, code: string): Promise<boo
   const cred = (await navigator.credentials.create({
     publicKey: {
       challenge,
-      rp: { name: "CryptoBazar", id: window.location.hostname },
+      rp: { name: "KryptoBazar", id: window.location.hostname },
       user: { id: userIdBytes, name: userId, displayName: "Deal Code" },
       pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
       authenticatorSelection: {

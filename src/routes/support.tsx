@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/support")({
-  head: () => ({ meta: [{ title: "Help & Support — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Help & Support — KryptoBazar" }] }),
   component: () => <RequireAuth><SupportPage /></RequireAuth>,
 });
 
@@ -90,7 +90,7 @@ function SupportPage() {
             <div className="text-xs">
               <div className="font-semibold text-amber-900 dark:text-amber-200">Safety first</div>
               <p className="mt-1 text-amber-900/80 dark:text-amber-200/80">
-                CryptoBazar staff will never ask for your Deal Code, password, or email OTP. Always meet
+                KryptoBazar staff will never ask for your Deal Code, password, or email OTP. Always meet
                 counterparties in a safe public place.
               </p>
             </div>

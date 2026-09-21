@@ -10,7 +10,7 @@ import { sanitizeMessage } from "@/lib/chat-sanitize";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/chat/$conversationId")({
-  head: () => ({ meta: [{ title: "Chat — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Chat — KryptoBazar" }] }),
   component: () => (
     <RequireAuth>
       <ChatThread />
@@ -110,7 +110,7 @@ function ChatThread() {
   const send = async () => {
     if (!text.trim() || !user) return;
     const { clean, blocked } = sanitizeMessage(text.trim());
-    if (blocked) toast.warning("Personal contact details were blocked — keep chat in CryptoBazar.");
+    if (blocked) toast.warning("Personal contact details were blocked — keep chat in KryptoBazar.");
     setSending(true);
     try {
       const enc = await encryptForConversation(conversationId, clean);

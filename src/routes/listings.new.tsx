@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/listings/new")({
-  head: () => ({ meta: [{ title: "Create listing — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Create listing — KryptoBazar" }] }),
   component: () => <RequireAuth><NewListing /></RequireAuth>,
 });
 

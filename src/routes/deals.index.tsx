@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { DealDetailsDialog } from "@/components/deal/deal-details-dialog";
 
 export const Route = createFileRoute("/deals/")({
-  head: () => ({ meta: [{ title: "My Deals — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "My Deals — KryptoBazar" }] }),
   component: () => <RequireAuth><DealsIndex /></RequireAuth>,
 });
 

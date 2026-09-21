@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/wallet")({
-  head: () => ({ meta: [{ title: "Wallet — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Wallet — KryptoBazar" }] }),
   component: WalletRoute,
 });
 

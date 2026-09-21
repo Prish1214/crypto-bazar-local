@@ -19,7 +19,7 @@ import { db, fmtUSDT, type Dispute, type Profile, type Listing, type Deal, type 
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Admin — CryptoBazar" }] }),
+  head: () => ({ meta: [{ title: "Admin — KryptoBazar" }] }),
   component: () => <RequireAuth><Admin /></RequireAuth>,
 });
 
@@ -251,7 +251,7 @@ function Admin() {
           )}
           {analytics && (
             <>
-              <SectionTitle title="Platform overview" subtitle="All-time totals across CryptoBazar" />
+              <SectionTitle title="Platform overview" subtitle="All-time totals across KryptoBazar" />
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <BigStat icon={TrendingUp} label="Trading volume" value={fmtUSDT(analytics.trading_volume_usdt)} hint={`${fmtUSDT(analytics.trading_volume_30d)} last 30d`} tone="primary" />
                 <BigStat icon={Handshake} label="Completed deals" value={String(analytics.deals_completed)} hint={`${analytics.deals_cancelled} cancelled · ${analytics.success_rate}% success`} tone="emerald" />

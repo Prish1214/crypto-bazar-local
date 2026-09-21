@@ -37,7 +37,7 @@ export function DisputeButton({ dealId, userId, disabled }: Props) {
         .update({ status: "disputed", updated_at: new Date().toISOString() })
         .eq("id", dealId);
       if (e2) throw e2;
-      await sendSystemMessage(dealId, userId, `⚠️ Dispute opened — reason: ${reason.trim().slice(0, 140)}. CryptoBazar admins will review.`);
+      await sendSystemMessage(dealId, userId, `⚠️ Dispute opened — reason: ${reason.trim().slice(0, 140)}. KryptoBazar admins will review.`);
       toast.success("Dispute filed — escrow frozen for review");
       setOpen(false); setReason(""); setFile(null);
     } catch (e: any) {
@@ -56,7 +56,7 @@ export function DisputeButton({ dealId, userId, disabled }: Props) {
         <DialogHeader>
           <DialogTitle>Open a dispute</DialogTitle>
           <DialogDescription>
-            Escrow stays frozen until a CryptoBazar admin reviews the case.
+            Escrow stays frozen until a KryptoBazar admin reviews the case.
             Be specific — false disputes hurt your trust score.
           </DialogDescription>
         </DialogHeader>
