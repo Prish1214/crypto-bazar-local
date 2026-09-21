@@ -38,6 +38,7 @@ import { Route as DealsNewListingIdRouteImport } from './routes/deals.new.$listi
 import { Route as ApiWalletWithdrawRouteImport } from './routes/api/wallet/withdraw'
 import { Route as ApiWalletTransferRouteImport } from './routes/api/wallet/transfer'
 import { Route as ApiWalletDepositAddressRouteImport } from './routes/api/wallet/deposit-address'
+import { Route as ApiDisputesAnalyzeRouteImport } from './routes/api/disputes/analyze'
 import { Route as ApiDealsReleaseRouteImport } from './routes/api/deals/release'
 import { Route as ApiDealCodeSetRouteImport } from './routes/api/deal-code/set'
 import { Route as ApiDealCodeRequestOtpRouteImport } from './routes/api/deal-code/request-otp'
@@ -190,6 +191,11 @@ const ApiWalletDepositAddressRoute = ApiWalletDepositAddressRouteImport.update({
   path: '/api/wallet/deposit-address',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDisputesAnalyzeRoute = ApiDisputesAnalyzeRouteImport.update({
+  id: '/api/disputes/analyze',
+  path: '/api/disputes/analyze',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiDealsReleaseRoute = ApiDealsReleaseRouteImport.update({
   id: '/api/deals/release',
   path: '/api/deals/release',
@@ -253,6 +259,7 @@ export interface FileRoutesByFullPath {
   '/api/deal-code/request-otp': typeof ApiDealCodeRequestOtpRoute
   '/api/deal-code/set': typeof ApiDealCodeSetRoute
   '/api/deals/release': typeof ApiDealsReleaseRoute
+  '/api/disputes/analyze': typeof ApiDisputesAnalyzeRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
   '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
@@ -290,6 +297,7 @@ export interface FileRoutesByTo {
   '/api/deal-code/request-otp': typeof ApiDealCodeRequestOtpRoute
   '/api/deal-code/set': typeof ApiDealCodeSetRoute
   '/api/deals/release': typeof ApiDealsReleaseRoute
+  '/api/disputes/analyze': typeof ApiDisputesAnalyzeRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
   '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
@@ -328,6 +336,7 @@ export interface FileRoutesById {
   '/api/deal-code/request-otp': typeof ApiDealCodeRequestOtpRoute
   '/api/deal-code/set': typeof ApiDealCodeSetRoute
   '/api/deals/release': typeof ApiDealsReleaseRoute
+  '/api/disputes/analyze': typeof ApiDisputesAnalyzeRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
   '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
@@ -367,6 +376,7 @@ export interface FileRouteTypes {
     | '/api/deal-code/request-otp'
     | '/api/deal-code/set'
     | '/api/deals/release'
+    | '/api/disputes/analyze'
     | '/api/wallet/deposit-address'
     | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
@@ -404,6 +414,7 @@ export interface FileRouteTypes {
     | '/api/deal-code/request-otp'
     | '/api/deal-code/set'
     | '/api/deals/release'
+    | '/api/disputes/analyze'
     | '/api/wallet/deposit-address'
     | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
@@ -441,6 +452,7 @@ export interface FileRouteTypes {
     | '/api/deal-code/request-otp'
     | '/api/deal-code/set'
     | '/api/deals/release'
+    | '/api/disputes/analyze'
     | '/api/wallet/deposit-address'
     | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
@@ -474,6 +486,7 @@ export interface RootRouteChildren {
   ApiDealCodeRequestOtpRoute: typeof ApiDealCodeRequestOtpRoute
   ApiDealCodeSetRoute: typeof ApiDealCodeSetRoute
   ApiDealsReleaseRoute: typeof ApiDealsReleaseRoute
+  ApiDisputesAnalyzeRoute: typeof ApiDisputesAnalyzeRoute
   ApiWalletDepositAddressRoute: typeof ApiWalletDepositAddressRoute
   ApiWalletTransferRoute: typeof ApiWalletTransferRoute
   ApiWalletWithdrawRoute: typeof ApiWalletWithdrawRoute
@@ -686,6 +699,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWalletDepositAddressRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/disputes/analyze': {
+      id: '/api/disputes/analyze'
+      path: '/api/disputes/analyze'
+      fullPath: '/api/disputes/analyze'
+      preLoaderRoute: typeof ApiDisputesAnalyzeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/deals/release': {
       id: '/api/deals/release'
       path: '/api/deals/release'
@@ -796,6 +816,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiDealCodeRequestOtpRoute: ApiDealCodeRequestOtpRoute,
   ApiDealCodeSetRoute: ApiDealCodeSetRoute,
   ApiDealsReleaseRoute: ApiDealsReleaseRoute,
+  ApiDisputesAnalyzeRoute: ApiDisputesAnalyzeRoute,
   ApiWalletDepositAddressRoute: ApiWalletDepositAddressRoute,
   ApiWalletTransferRoute: ApiWalletTransferRoute,
   ApiWalletWithdrawRoute: ApiWalletWithdrawRoute,

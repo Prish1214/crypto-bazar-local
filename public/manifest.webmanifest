@@ -1,0 +1,13 @@
+{
+  "name": "KryptoBazar",
+  "short_name": "KryptoBazar",
+  "description": "Local USDT marketplace with escrow-protected trading.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    { "src": "/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
