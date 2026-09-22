@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet'
+import { Route as VerifiedRouteImport } from './routes/verified'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -49,6 +50,11 @@ import { Route as ApiPublicWebhooksNowpaymentsRouteImport } from './routes/api/p
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifiedRoute = VerifiedRouteImport.update({
+  id: '/verified',
+  path: '/verified',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TransactionsRoute = TransactionsRouteImport.update({
@@ -241,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRouteWithChildren
   '/support': typeof SupportRoute
   '/transactions': typeof TransactionsRoute
+  '/verified': typeof VerifiedRoute
   '/wallet': typeof WalletRouteWithChildren
   '/chat/$conversationId': typeof ChatConversationIdRoute
   '/deals/$dealId': typeof DealsDealIdRoute
@@ -279,6 +286,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRouteWithChildren
   '/support': typeof SupportRoute
   '/transactions': typeof TransactionsRoute
+  '/verified': typeof VerifiedRoute
   '/wallet': typeof WalletRouteWithChildren
   '/chat/$conversationId': typeof ChatConversationIdRoute
   '/deals/$dealId': typeof DealsDealIdRoute
@@ -318,6 +326,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRouteWithChildren
   '/support': typeof SupportRoute
   '/transactions': typeof TransactionsRoute
+  '/verified': typeof VerifiedRoute
   '/wallet': typeof WalletRouteWithChildren
   '/chat/$conversationId': typeof ChatConversationIdRoute
   '/deals/$dealId': typeof DealsDealIdRoute
@@ -358,6 +367,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/support'
     | '/transactions'
+    | '/verified'
     | '/wallet'
     | '/chat/$conversationId'
     | '/deals/$dealId'
@@ -396,6 +406,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/support'
     | '/transactions'
+    | '/verified'
     | '/wallet'
     | '/chat/$conversationId'
     | '/deals/$dealId'
@@ -434,6 +445,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/support'
     | '/transactions'
+    | '/verified'
     | '/wallet'
     | '/chat/$conversationId'
     | '/deals/$dealId'
@@ -473,6 +485,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRouteWithChildren
   SupportRoute: typeof SupportRoute
   TransactionsRoute: typeof TransactionsRoute
+  VerifiedRoute: typeof VerifiedRoute
   WalletRoute: typeof WalletRouteWithChildren
   ChatConversationIdRoute: typeof ChatConversationIdRoute
   DealsDealIdRoute: typeof DealsDealIdRoute
@@ -501,6 +514,13 @@ declare module '@tanstack/react-router' {
       path: '/wallet'
       fullPath: '/wallet'
       preLoaderRoute: typeof WalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verified': {
+      id: '/verified'
+      path: '/verified'
+      fullPath: '/verified'
+      preLoaderRoute: typeof VerifiedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/transactions': {
@@ -803,6 +823,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRouteWithChildren,
   SupportRoute: SupportRoute,
   TransactionsRoute: TransactionsRoute,
+  VerifiedRoute: VerifiedRoute,
   WalletRoute: WalletRouteWithChildren,
   ChatConversationIdRoute: ChatConversationIdRoute,
   DealsDealIdRoute: DealsDealIdRoute,
