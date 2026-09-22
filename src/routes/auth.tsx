@@ -88,7 +88,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth`,
+            emailRedirectTo: `${window.location.origin}/verified`,
             data: { full_name: fullName, city, username: u },
           },
         });
@@ -121,7 +121,7 @@ function AuthPage() {
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: sentTo,
-      options: { emailRedirectTo: `${window.location.origin}/auth` },
+      options: { emailRedirectTo: `${window.location.origin}/verified` },
     });
     if (error) return toast.error(error.message);
     toast.success("New confirmation link sent");
