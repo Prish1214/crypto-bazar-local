@@ -62,7 +62,7 @@ export function SiteHeader() {
             <Coins className="h-4 w-4 text-primary-foreground" />
           </div>
           <span className="font-display text-base font-bold tracking-tight md:text-lg">
-            Crypto<span className="text-gradient-primary">Bazar</span>
+            Krypto<span className="text-gradient-primary">Bazar</span>
           </span>
         </Link>
 
