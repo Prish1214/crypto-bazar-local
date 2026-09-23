@@ -129,7 +129,7 @@ function AuthPage() {
 
   return (
     <div className="relative min-h-screen px-4 py-10">
-      <div className="grid-bg pointer-events-none absolute inset-0 -z-10 opacity-30 [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]" />
+      <div className="grid-bg pointer-events-none absolute inset-x-0 top-0 h-72 -z-10 opacity-20" />
 
       <div className="mx-auto max-w-md">
         <Link to="/" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
