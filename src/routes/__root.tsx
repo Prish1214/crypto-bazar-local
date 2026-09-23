@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../hooks/use-auth";
 import { Toaster } from "../components/ui/sonner";
+import { markNativePlatform } from "../lib/native-ui";
 
 function NotFoundComponent() {
   return (
@@ -78,7 +79,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" },
       { title: "KryptoBazar — Local USDT marketplace" },
       { name: "description", content: "Buy and sell USDT face-to-face in your city. Escrow protected. Instant settlement." },
       { name: "author", content: "KryptoBazar" },
@@ -127,6 +128,10 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    markNativePlatform();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
