@@ -211,3 +211,34 @@
 @utility app-section-gap {
   gap: var(--space-screen-y);
 }
+
+/* ---------------------------------------------------------------------------
+   Capacitor native shell (Android WebView) performance guards.
+   The Android WebView rasterises backdrop-filter blurs and masked overlays on
+   every layout pass. With the soft keyboard open each keystroke re-lays out the
+   viewport, which stalled the UI thread and froze the page (dead caret, no taps).
+   Inside the native shell we keep the same palette but drop those effects.
+--------------------------------------------------------------------------- */
+html.native-app,
+html.native-app body {
+  min-height: 100dvh;
+}
+
+html.native-app body {
+  background: var(--color-background);
+}
+
+html.native-app *,
+html.native-app *::before,
+html.native-app *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+}
+
+html.native-app input,
+html.native-app textarea,
+html.native-app select {
+  font-size: 16px; /* prevents WebView auto-zoom on focus */
+}
