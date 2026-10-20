@@ -43,6 +43,16 @@ export interface Wallet {
   escrow_balance: number;
 }
 
+export interface BankAccount {
+  id: string;
+  user_id: string;
+  bank_name: string;
+  account_number: string;
+  ifsc: string;
+  holder_name: string;
+  updated_at: string;
+}
+
 export interface Listing {
   id: string;
   user_id: string;
