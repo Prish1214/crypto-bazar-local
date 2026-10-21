@@ -1,12 +1,13 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { AlertTriangle, Loader2, ShieldCheck, Star, MapPin, BellRing } from "lucide-react";
+import { AlertTriangle, Loader2, ShieldCheck, Star, MapPin, BellRing, Landmark } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { db, ensureWallet, fmtFiat, fmtUSDT, sendSystemMessage, type Listing, type Wallet } from "@/lib/db";
+import { CDM_LIVE_ENABLED } from "@/lib/cdm";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/deals/new/$listingId")({
@@ -20,6 +21,7 @@ function StartDeal() {
   const navigate = useNavigate();
   const [listing, setListing] = useState<Listing | null>(null);
   const [amount, setAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "cdm">("cash");
   const [busy, setBusy] = useState(false);
   const [wallet, setWallet] = useState<Wallet | null>(null);
 
@@ -82,6 +84,7 @@ function StartDeal() {
         total_fiat: totalFiat,
         fee_usdt: fee,
         status: "pending",
+        payment_method: listing.cdm_enabled && listing.type === "sell" && CDM_LIVE_ENABLED ? paymentMethod : "cash",
       }).select("id").single();
       if (error) throw error;
       if (!deal?.id) throw new Error("Deal was created but could not be opened — check permissions.");
@@ -165,6 +168,38 @@ function StartDeal() {
               <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>Only {Number(listing.available_amount).toFixed(0)} USDT available in this ad.</span>
+              </div>
+            )}
+
+            {listing.cdm_enabled && listing.type === "sell" && (
+              <div className="glass-panel rounded-xl p-4">
+                <div className="text-xs font-semibold">Payment method</div>
+                {CDM_LIVE_ENABLED ? (
+                  <>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => setPaymentMethod("cash")}
+                        className={`rounded-lg border px-3 py-2 text-xs font-semibold ${paymentMethod === "cash" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}>
+                        In-person cash
+                      </button>
+                      <button type="button" onClick={() => setPaymentMethod("cdm")}
+                        className={`rounded-lg border px-3 py-2 text-xs font-semibold ${paymentMethod === "cdm" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}>
+                        CDM bank deposit
+                      </button>
+                    </div>
+                    {paymentMethod === "cdm" && (
+                      <p className="mt-2 text-[11px] text-muted-foreground">
+                        No meeting needed — deposit the exact INR amount into the seller's account ({listing.cdm_bank_name ?? "bank"}{listing.cdm_bank_account_last4 ? ` ••••${listing.cdm_bank_account_last4}` : ""}) at any CDM, then upload the receipt in the Deal Room.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-border bg-secondary/40 p-3 text-[11px] text-muted-foreground">
+                    <Landmark className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                    <span>
+                      <b className="text-foreground">CDM deposit — coming soon.</b> This seller accepts CDM deposits; live CDM deals open once machine verification is complete. In-person cash meetups stay available.
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
