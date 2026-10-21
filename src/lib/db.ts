@@ -113,6 +113,14 @@ export interface Deal {
   proof_image_url: string | null;
   proof_video_url: string | null;
   proof_uploaded_at: string | null;
+  payment_method: "cash" | "cdm";
+  cdm_bank_name: string | null;
+  cdm_bank_account: string | null;
+  cdm_ifsc: string | null;
+  cdm_holder_name: string | null;
+  cdm_receipt_url: string | null;
+  cdm_receipt_uploaded_at: string | null;
+  cdm_verified_at: string | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
