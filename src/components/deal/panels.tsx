@@ -1,4 +1,4 @@
-import { Lock, ShieldCheck, Star, Clock, MapPin, CheckCircle2, Circle, Banknote, Send } from "lucide-react";
+import { Lock, ShieldCheck, Star, Clock, MapPin, CheckCircle2, Circle, Banknote, Send, Landmark, Copy, Eye, EyeOff, AlertTriangle, Paperclip } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useRef, useState } from "react";
 import { fmtFiat, fmtUSDT, type Deal, type Profile } from "@/lib/db";
 import { trustScore, trustLabel } from "@/lib/trust";
+import { maskAccount } from "@/lib/cdm"; // SAFETY: bank account numbers are masked in all UI by default.
 import { Link } from "@tanstack/react-router";
 
 // ---------- Progress Timeline ----------
@@ -434,6 +435,230 @@ export function SellerConfirmPanel({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// =====================================================================
+// CDM (Cash Deposit Machine) panels
+// SAFETY (do not remove): a receipt image never proves payment. Escrow
+// is only released by the seller's explicit confirmation after they
+// verify the actual bank credit. Bank details are masked by default.
+// =====================================================================
+const CDM_STEPS = [
+  { key: "escrow", label: "Escrow", match: (d: Deal) => !!d.locked_at || (d.status !== "pending" && d.status !== "cancelled") },
+  { key: "deposit", label: "Deposit", match: (d: Deal) => !!d.cdm_receipt_uploaded_at },
+  { key: "verify", label: "Verify", match: (d: Deal) => !!d.cdm_verified_at || !!d.seller_confirmed_at || d.status === "completed" },
+  { key: "release", label: "Release", match: (d: Deal) => d.status === "completed" },
+];
+
+export function CdmDealSteps({ deal }: { deal: Deal }) {
+  const states = CDM_STEPS.map((s) => ({ ...s, done: s.match(deal) }));
+  const firstOpen = states.findIndex((s) => !s.done);
+  const activeIdx = firstOpen === -1 ? states.length - 1 : firstOpen;
+  return (
+    <div className="grid grid-cols-4 gap-1.5">
+      {states.map((s, idx) => {
+        const active = idx === activeIdx;
+        return (
+          <div key={s.key} className="min-w-0">
+            <div className={`h-1.5 rounded-full ${s.done ? "bg-success" : active ? "bg-primary" : "bg-border"}`} />
+            <div className={`mt-1 truncate text-center text-[10px] font-semibold ${s.done ? "text-success" : active ? "text-primary" : "text-muted-foreground"}`}>
+              {s.label}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const CDM_TIMELINE: { key: string; label: string; match: (d: Deal) => boolean }[] = [
+  { key: "started",  label: "Deal Started",              match: () => true },
+  { key: "escrow",   label: "Escrow Locked",            match: (d) => !!d.locked_at || (d.status !== "pending" && d.status !== "cancelled") },
+  { key: "deposit",  label: "Buyer Deposited at CDM",   match: (d) => !!d.cdm_receipt_uploaded_at },
+  { key: "verify",   label: "Seller Verifying Bank Credit", match: (d) => !!d.cdm_receipt_uploaded_at },
+  { key: "released", label: "Escrow Released",          match: (d) => d.status === "completed" },
+  { key: "completed", label: "Trade Completed",         match: (d) => d.status === "completed" },
+];
+
+export function CdmTimeline({ deal }: { deal: Deal }) {
+  const states = CDM_TIMELINE.map((t) => ({ ...t, done: t.match(deal) }));
+  const activeIdx = states.findIndex((s) => !s.done);
+  return (
+    <div className="p-1">
+      <h3 className="font-display text-sm font-semibold tracking-tight">CDM Deal Progress</h3>
+      <ol className="mt-4 space-y-3">
+        {states.map((s, i) => {
+          const isActive = i === activeIdx;
+          return (
+            <li key={s.key} className="flex items-start gap-3">
+              <div className="relative mt-0.5">
+                {s.done ? (
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                ) : isActive ? (
+                  <div className="grid h-5 w-5 place-items-center">
+                    <span className="h-3 w-3 animate-pulse rounded-full bg-primary" />
+                  </div>
+                ) : (
+                  <Circle className="h-5 w-5 text-muted-foreground/40" />
+                )}
+                {i < states.length - 1 && (
+                  <div className={`absolute left-1/2 top-5 h-6 w-px -translate-x-1/2 ${s.done ? "bg-emerald-600/50" : "bg-border"}`} />
+                )}
+              </div>
+              <div className="pb-2">
+                <div className={`text-sm ${s.done ? "font-medium text-foreground" : isActive ? "font-medium text-primary" : "text-muted-foreground"}`}>
+                  {s.label}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+export function CdmSafetyWarning() {
+  return (
+    <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-50 p-2.5 text-[11px] text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <span>A deposit receipt is <b>not</b> proof of payment. The seller independently verifies the actual bank credit before escrow is released — never trust a photo alone.</span>
+    </div>
+  );
+}
+
+// ---------- CDM Deposit (buyer) ----------
+export function CdmDepositPanel({
+  deal, onSubmit,
+}: { deal: Deal; onSubmit: (file: File) => Promise<void> }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const copy = async (label: string, value: string | null | undefined) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(label);
+      setTimeout(() => setCopied(null), 1500);
+    } catch { /* clipboard unavailable */ }
+  };
+
+  if (deal.cdm_receipt_url) {
+    return (
+      <div className="rounded-2xl border border-success/30 bg-success/10 p-4 text-sm">
+        <div className="flex items-center gap-2 font-semibold text-emerald-700">
+          <CheckCircle2 className="h-4 w-4" /> Deposit receipt uploaded
+        </div>
+        <p className="mt-1 text-xs text-emerald-700/80">
+          Awaiting seller verification. The seller must confirm the actual bank credit before escrow releases — usually a few minutes after the deposit lands.
+        </p>
+        {deal.cdm_receipt_uploaded_at && (
+          <div className="mt-1 text-[11px] text-muted-foreground">Uploaded {new Date(deal.cdm_receipt_uploaded_at).toLocaleString()}</div>
+        )}
+        <a href={deal.cdm_receipt_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+          <Paperclip className="h-3 w-3" /> View receipt
+        </a>
+      </div>
+    );
+  }
+
+  const acct = revealed ? (deal.cdm_bank_account ?? "—") : maskAccount(deal.cdm_bank_account);
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        <Landmark className="h-4 w-4 text-primary" /> CDM Deposit
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Deposit the exact amount at any Cash Deposit Machine that accepts {deal.cdm_bank_name ?? "the seller's bank"} deposits.
+      </p>
+
+      <div className="mt-3 rounded-xl bg-secondary/60 p-3 text-center">
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Deposit exactly</div>
+        <div className="font-display text-2xl font-bold text-gradient-primary">{fmtFiat(deal.total_fiat)}</div>
+        <div className="text-[11px] text-muted-foreground">for {fmtUSDT(deal.amount_usdt)}</div>
+      </div>
+
+      <div className="mt-3 rounded-xl border border-border p-3">
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-semibold">Seller's bank details</div>
+          <button type="button" onClick={() => setRevealed((v) => !v)} className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
+            {revealed ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />} {revealed ? "Hide" : "Reveal"}
+          </button>
+        </div>
+        <dl className="mt-2 space-y-1.5 text-xs">
+          <CdmRow label="Bank" value={deal.cdm_bank_name} onCopy={() => copy("bank", deal.cdm_bank_name)} copied={copied === "bank"} />
+          <CdmRow label="Account" value={acct} mono onCopy={() => copy("acct", deal.cdm_bank_account)} copied={copied === "acct"} />
+          <CdmRow label="IFSC" value={deal.cdm_ifsc} mono onCopy={() => copy("ifsc", deal.cdm_ifsc)} copied={copied === "ifsc"} />
+          <CdmRow label="Holder" value={deal.cdm_holder_name} onCopy={() => copy("holder", deal.cdm_holder_name)} copied={copied === "holder"} />
+        </dl>
+        {deal.cdm_instructions && (
+          <p className="mt-2 whitespace-pre-wrap rounded-lg bg-secondary/60 p-2 text-[11px] text-muted-foreground">{deal.cdm_instructions}</p>
+        )}
+        {!deal.cdm_bank_account && (
+          <p className="mt-2 text-[11px] font-medium text-amber-600">Bank details appear as soon as the seller accepts the deal.</p>
+        )}
+      </div>
+
+      <CdmSafetyWarning />
+
+      <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden"
+        onChange={async (e) => {
+          const f = e.target.files?.[0]; if (!f) return;
+          setBusy(true); try { await onSubmit(f); } finally { setBusy(false); e.target.value = ""; }
+        }} />
+      <Button variant="hero" className="mt-3 w-full" size="sm" disabled={busy || !deal.cdm_bank_account} onClick={() => inputRef.current?.click()}>
+        {busy ? "Uploading…" : "Upload deposit receipt"}
+      </Button>
+      <p className="mt-1.5 text-center text-[10px] text-muted-foreground">The receipt also lands in the Deal Room chat.</p>
+    </div>
+  );
+}
+
+function CdmRow({ label, value, mono, onCopy, copied }: { label: string; value: string | null; mono?: boolean; onCopy: () => void; copied: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="flex items-center gap-1.5">
+        <span className={mono ? "font-mono" : ""}>{value ?? "—"}</span>
+        {value && (
+          <button type="button" onClick={onCopy} className="text-muted-foreground hover:text-primary" aria-label={`Copy ${label}`}>
+            {copied ? <CheckCircle2 className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+          </button>
+        )}
+      </dd>
+    </div>
+  );
+}
+
+// ---------- CDM Seller Verification ----------
+export function CdmSellerVerifyPanel({
+  deal, onConfirm,
+}: { deal: Deal; onConfirm: () => Promise<void> }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        <Landmark className="h-4 w-4 text-primary" /> Verify CDM deposit
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        The buyer uploaded a deposit receipt for <b>{fmtFiat(deal.total_fiat)}</b>. Check your bank app or passbook and confirm the money actually arrived.
+      </p>
+      <CdmSafetyWarning />
+      {deal.cdm_receipt_url && (
+        <a href={deal.cdm_receipt_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+          <Paperclip className="h-3 w-3" /> View buyer's receipt
+        </a>
+      )}
+      <Button variant="hero" className="mt-3 w-full" size="sm" onClick={onConfirm}>
+        Credit received — release escrow
+      </Button>
+      <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
+        Didn't receive the credit? Open a dispute from the actions below — escrow stays locked.
+      </p>
     </div>
   );
 }

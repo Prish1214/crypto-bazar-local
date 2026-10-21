@@ -66,6 +66,12 @@ export interface Listing {
   meeting_location: string | null;
   available_timings: string | null;
   notes: string | null;
+  cdm_enabled: boolean;
+  cdm_bank_name: string | null;
+  cdm_bank_account_last4: string | null;
+  cdm_ifsc: string | null;
+  cdm_holder_name: string | null;
+  cdm_instructions: string | null;
   featured: boolean;
   created_at: string;
   profiles?: Profile | null;
