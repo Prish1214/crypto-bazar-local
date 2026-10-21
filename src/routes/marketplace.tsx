@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, MapPin, Star, ShieldCheck, ArrowDownUp, Loader2, Wallet as WalletIcon } from "lucide-react";
+import { Search, MapPin, Star, ShieldCheck, ArrowDownUp, Loader2, Landmark, Wallet as WalletIcon } from "lucide-react";
 import { PageShell } from "@/components/site-chrome";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -124,9 +124,14 @@ function Marketplace() {
             {tab === "sell" ? "Buy USDT from local merchants" : "Sell USDT to local buyers"}
           </p>
         </div>
-        <Link to="/listings/new">
-          <Button variant="hero" size="sm">+ New</Button>
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link to="/cdm-map">
+            <Button variant="outline" size="sm" className="gap-1.5"><Landmark className="h-3.5 w-3.5" /> Find CDMs</Button>
+          </Link>
+          <Link to="/listings/new">
+            <Button variant="hero" size="sm">+ New</Button>
+          </Link>
+        </div>
       </div>
 
       {/* Tabs (Binance-style segmented) */}
@@ -261,6 +266,9 @@ function ListingRow({ listing, disabled }: { listing: Listing; disabled: boolean
           <div><span className="text-foreground">{Number(listing.available_amount).toFixed(0)}</span> available</div>
           <div>{Number(listing.min_amount).toFixed(0)}–{Number(listing.max_amount).toFixed(0)} limit</div>
           <div className="inline-flex items-center gap-0.5"><MapPin className="h-2.5 w-2.5" /> {listing.city}</div>
+          {listing.cdm_enabled && (
+            <div className="mt-0.5 inline-flex items-center gap-0.5 font-medium text-primary"><Landmark className="h-2.5 w-2.5" /> CDM deposit</div>
+          )}
         </div>
       </div>
 

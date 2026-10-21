@@ -1,7 +1,7 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Loader2, Check, X, Lock, Star, AlertOctagon, Clock, ChevronDown,
+  Loader2, Check, X, Lock, Star, AlertOctagon, Clock, ChevronDown, Landmark,
   MessageSquare, ListChecks, ShieldCheck,
 } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
@@ -16,11 +16,13 @@ import {
   db, fetchDealWithContext, sendSystemMessage, uploadDealFile, fmtUSDT, fmtFiat,
   type Deal, type DealStatus, type Message,
 } from "@/lib/db";
+import { isCdmDeal } from "@/lib/cdm";
 import { toast } from "sonner";
 import {
   ProgressTimeline, DealInfoCard, TrustHeader, CompactDealSteps, EscrowProgressCard,
   MeetingCard, ArrivalCheckIn,
   CashHandoverPanel, SellerConfirmPanel,
+  CdmDealSteps, CdmTimeline, CdmDepositPanel, CdmSellerVerifyPanel,
 } from "@/components/deal/panels";
 import { ChatPanel } from "@/components/deal/chat-panel";
 import { MutualQRVerification } from "@/components/deal/qr-verification";
@@ -128,6 +130,7 @@ function DealRoom() {
 
   const isBuyer = user.id === deal.buyer_id;
   const isSeller = user.id === deal.seller_id;
+  const isCdm = isCdmDeal(deal.payment_method);
   const counter = isBuyer ? deal.seller : deal.buyer;
   const isOwner = !!deal.listing && deal.listing.user_id === user.id;
   const terminal = TERMINAL.includes(deal.status);
@@ -190,6 +193,25 @@ function DealRoom() {
     } as any, "Buyer marked cash as handed over.");
   };
 
+  // CDM: buyer uploads the deposit receipt; the deal moves to cash_sent so
+  // the existing release flow (which requires cash_sent) works unchanged.
+  const submitCdmReceipt = async (file: File) => {
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const r = await uploadDealFile(dealId, user.id, file, ext);
+    const ok = await patch({
+      cdm_receipt_url: r.url,
+      cdm_receipt_uploaded_at: new Date().toISOString(),
+      status: "cash_sent",
+    } as any, "Buyer uploaded a CDM deposit receipt — awaiting seller verification.");
+    if (!ok) return;
+    try {
+      await db.from("messages").insert({
+        deal_id: dealId, sender_id: user.id, content: "CDM deposit receipt",
+        kind: "image", attachment_url: r.url,
+      } as any);
+    } catch { /* chat log optional */ }
+  };
+
   const releaseEscrow = async () => { setReleaseOpen(true); };
   const onReleased = async () => {
     const amt = Number(deal!.amount_usdt);
@@ -235,6 +257,7 @@ function DealRoom() {
     onPropose: proposeMeeting, onAcceptMeeting: acceptMeeting, onRejectMeeting: rejectMeeting,
     onArrive: checkIn, onQR: markQRVerified,
     onCash: submitCashHandover, onConfirm: releaseEscrow,
+    onCdmReceipt: submitCdmReceipt,
   };
   const PrimaryAction = renderPrimaryAction(actionProps);
 
@@ -246,6 +269,7 @@ function DealRoom() {
             <div className="flex items-center gap-1.5">
               <Badge variant="outline" className="border-primary/30 font-mono text-[10px] text-primary">{deal.deal_code ?? "—"}</Badge>
               <Badge className="text-[10px] uppercase">{deal.status.replace(/_/g, " ")}</Badge>
+              {isCdm && <Badge variant="outline" className="gap-1 text-[10px]"><Landmark className="h-3 w-3" /> CDM</Badge>}
               {deal.locked_at && <Badge variant="secondary" className="gap-1 text-[10px]"><Lock className="h-3 w-3" /> Locked</Badge>}
               {deal.status === "disputed" && <Badge variant="destructive" className="gap-1 text-[10px]"><AlertOctagon className="h-3 w-3" /> Review</Badge>}
             </div>
@@ -258,7 +282,7 @@ function DealRoom() {
             <div className="font-mono text-sm font-semibold text-primary">{fmtFiat(deal.total_fiat)}</div>
           </div>
         </div>
-        <div className="mt-2"><CompactDealSteps deal={deal} /></div>
+        <div className="mt-2">{isCdm ? <CdmDealSteps deal={deal} /> : <CompactDealSteps deal={deal} />}</div>
         <p className="mt-2 text-xs font-medium text-primary">{nextAction}</p>
       </div>
 
@@ -310,7 +334,7 @@ function DealRoom() {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="border-t border-border p-3">
-                <ProgressTimeline deal={deal} />
+                {isCdm ? <CdmTimeline deal={deal} /> : <ProgressTimeline deal={deal} />}
               </div>
             </CollapsibleContent>
           </div>
@@ -357,6 +381,7 @@ function renderPrimaryAction(props: {
   onQR: () => Promise<void>;
   onCash: (photo: File | null, notes: string) => Promise<void>;
   onConfirm: () => Promise<void>;
+  onCdmReceipt: (file: File) => Promise<void>;
 }) {
   const { deal, isBuyer, isSeller, isOwner, bothQRVerified } = props;
 
@@ -380,6 +405,17 @@ function renderPrimaryAction(props: {
       );
     }
     return <WaitingCard title="Waiting for ad owner" text="The ad owner will accept or decline your request shortly." />;
+  }
+
+  // CDM deals skip in-person meeting, arrival check-in and QR — the buyer
+  // deposits cash at a CDM and uploads the receipt into the Deal Room.
+  if (isCdmDeal(deal.payment_method)) {
+    if (deal.status === "cash_sent") {
+      if (isSeller) return <CdmSellerVerifyPanel deal={deal} onConfirm={props.onConfirm} />;
+      return <WaitingCard title="Awaiting seller verification" text="The seller must verify the actual bank credit before escrow releases." />;
+    }
+    if (isBuyer) return <CdmDepositPanel deal={deal} onSubmit={props.onCdmReceipt} />;
+    return <WaitingCard title="Waiting for buyer deposit" text="The buyer is depositing cash at a CDM and will upload the receipt." />;
   }
 
   // Meeting scheduling phase — only until a meeting is confirmed

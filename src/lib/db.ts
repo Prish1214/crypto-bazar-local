@@ -66,6 +66,12 @@ export interface Listing {
   meeting_location: string | null;
   available_timings: string | null;
   notes: string | null;
+  cdm_enabled: boolean;
+  cdm_bank_name: string | null;
+  cdm_bank_account_last4: string | null;
+  cdm_ifsc: string | null;
+  cdm_holder_name: string | null;
+  cdm_instructions: string | null;
   featured: boolean;
   created_at: string;
   profiles?: Profile | null;
@@ -107,6 +113,14 @@ export interface Deal {
   proof_image_url: string | null;
   proof_video_url: string | null;
   proof_uploaded_at: string | null;
+  payment_method: "cash" | "cdm";
+  cdm_bank_name: string | null;
+  cdm_bank_account: string | null;
+  cdm_ifsc: string | null;
+  cdm_holder_name: string | null;
+  cdm_receipt_url: string | null;
+  cdm_receipt_uploaded_at: string | null;
+  cdm_verified_at: string | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
