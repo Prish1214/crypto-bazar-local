@@ -38,9 +38,11 @@ create policy "bank_accounts_select_own" on public.bank_accounts for select
 drop policy if exists "bank_accounts_insert_own" on public.bank_accounts;
 create policy "bank_accounts_insert_own" on public.bank_accounts for insert
   with check (auth.uid() = user_id);
-drop policy if exists "bank_accounts_update_own" on public.bank_accounts for update
+drop policy if exists "bank_accounts_update_own" on public.bank_accounts;
+create policy "bank_accounts_update_own" on public.bank_accounts for update
   using (auth.uid() = user_id);
-drop policy if exists "bank_accounts_delete_own" on public.bank_accounts for delete
+drop policy if exists "bank_accounts_delete_own" on public.bank_accounts;
+create policy "bank_accounts_delete_own" on public.bank_accounts for delete
   using (auth.uid() = user_id);
 
 -- 3. Deals: payment method + CDM state ---------------------------------
