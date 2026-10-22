@@ -9,108 +9,48 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WalletRouteImport } from './routes/wallet'
-import { Route as VerifiedRouteImport } from './routes/verified'
-import { Route as TransactionsRouteImport } from './routes/transactions'
-import { Route as SupportRouteImport } from './routes/support'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as SecurityRouteImport } from './routes/security'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as MeRouteImport } from './routes/me'
-import { Route as MarketplaceRouteImport } from './routes/marketplace'
-import { Route as LegalRouteImport } from './routes/legal'
-import { Route as CdmMapRouteImport } from './routes/cdm-map'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ListingsIndexRouteImport } from './routes/listings.index'
-import { Route as DealsIndexRouteImport } from './routes/deals.index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CdmMapRouteImport } from './routes/cdm-map'
+import { Route as LegalRouteImport } from './routes/legal'
+import { Route as MarketplaceRouteImport } from './routes/marketplace'
+import { Route as MeRouteImport } from './routes/me'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as SecurityRouteImport } from './routes/security'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SupportRouteImport } from './routes/support'
+import { Route as TransactionsRouteImport } from './routes/transactions'
+import { Route as VerifiedRouteImport } from './routes/verified'
+import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
-import { Route as WalletWithdrawRouteImport } from './routes/wallet.withdraw'
-import { Route as WalletTransferRouteImport } from './routes/wallet.transfer'
-import { Route as WalletDepositRouteImport } from './routes/wallet.deposit'
-import { Route as SettingsDealCodeRouteImport } from './routes/settings.deal-code'
-import { Route as OnboardingDealCodeRouteImport } from './routes/onboarding.deal-code'
-import { Route as MerchantUserIdRouteImport } from './routes/merchant.$userId'
-import { Route as ListingsNewRouteImport } from './routes/listings.new'
-import { Route as DealsDealIdRouteImport } from './routes/deals.$dealId'
 import { Route as ChatConversationIdRouteImport } from './routes/chat.$conversationId'
-import { Route as DealsNewListingIdRouteImport } from './routes/deals.new.$listingId'
-import { Route as ApiWalletWithdrawRouteImport } from './routes/api/wallet/withdraw'
-import { Route as ApiWalletTransferRouteImport } from './routes/api/wallet/transfer'
-import { Route as ApiWalletDepositAddressRouteImport } from './routes/api/wallet/deposit-address'
-import { Route as ApiDisputesAnalyzeRouteImport } from './routes/api/disputes/analyze'
-import { Route as ApiDealsReleaseRouteImport } from './routes/api/deals/release'
-import { Route as ApiDealCodeSetRouteImport } from './routes/api/deal-code/set'
-import { Route as ApiDealCodeRequestOtpRouteImport } from './routes/api/deal-code/request-otp'
-import { Route as ApiDealCodeChangeRouteImport } from './routes/api/deal-code/change'
+import { Route as DealsIndexRouteImport } from './routes/deals.index'
+import { Route as DealsDealIdRouteImport } from './routes/deals.$dealId'
+import { Route as ListingsIndexRouteImport } from './routes/listings.index'
+import { Route as ListingsNewRouteImport } from './routes/listings.new'
+import { Route as MerchantUserIdRouteImport } from './routes/merchant.$userId'
+import { Route as OnboardingDealCodeRouteImport } from './routes/onboarding.deal-code'
+import { Route as SettingsDealCodeRouteImport } from './routes/settings.deal-code'
+import { Route as WalletDepositRouteImport } from './routes/wallet.deposit'
+import { Route as WalletTransferRouteImport } from './routes/wallet.transfer'
+import { Route as WalletWithdrawRouteImport } from './routes/wallet.withdraw'
 import { Route as ApiDealCodeBiometricRouteImport } from './routes/api/deal-code/biometric'
+import { Route as ApiDealCodeChangeRouteImport } from './routes/api/deal-code/change'
+import { Route as ApiDealCodeRequestOtpRouteImport } from './routes/api/deal-code/request-otp'
+import { Route as ApiDealCodeSetRouteImport } from './routes/api/deal-code/set'
+import { Route as ApiDealsReleaseRouteImport } from './routes/api/deals/release'
+import { Route as ApiDisputesAnalyzeRouteImport } from './routes/api/disputes/analyze'
+import { Route as ApiWalletDepositAddressRouteImport } from './routes/api/wallet/deposit-address'
+import { Route as ApiWalletTransferRouteImport } from './routes/api/wallet/transfer'
+import { Route as ApiWalletWithdrawRouteImport } from './routes/api/wallet/withdraw'
+import { Route as DealsNewListingIdRouteImport } from './routes/deals.new.$listingId'
 import { Route as ApiPublicWebhooksNowpaymentsRouteImport } from './routes/api/public/webhooks/nowpayments'
 
-const WalletRoute = WalletRouteImport.update({
-  id: '/wallet',
-  path: '/wallet',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const VerifiedRoute = VerifiedRouteImport.update({
-  id: '/verified',
-  path: '/verified',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TransactionsRoute = TransactionsRouteImport.update({
-  id: '/transactions',
-  path: '/transactions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SupportRoute = SupportRouteImport.update({
-  id: '/support',
-  path: '/support',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SecurityRoute = SecurityRouteImport.update({
-  id: '/security',
-  path: '/security',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MeRoute = MeRouteImport.update({
-  id: '/me',
-  path: '/me',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MarketplaceRoute = MarketplaceRouteImport.update({
-  id: '/marketplace',
-  path: '/marketplace',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LegalRoute = LegalRouteImport.update({
-  id: '/legal',
-  path: '/legal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CdmMapRoute = CdmMapRouteImport.update({
-  id: '/cdm-map',
-  path: '/cdm-map',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -118,19 +58,69 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ListingsIndexRoute = ListingsIndexRouteImport.update({
-  id: '/listings/',
-  path: '/listings/',
+const CdmMapRoute = CdmMapRouteImport.update({
+  id: '/cdm-map',
+  path: '/cdm-map',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DealsIndexRoute = DealsIndexRouteImport.update({
-  id: '/deals/',
-  path: '/deals/',
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketplaceRoute = MarketplaceRouteImport.update({
+  id: '/marketplace',
+  path: '/marketplace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeRoute = MeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SecurityRoute = SecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TransactionsRoute = TransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifiedRoute = VerifiedRouteImport.update({
+  id: '/verified',
+  path: '/verified',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WalletRoute = WalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatIndexRoute = ChatIndexRouteImport.update({
@@ -138,39 +128,14 @@ const ChatIndexRoute = ChatIndexRouteImport.update({
   path: '/chat/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WalletWithdrawRoute = WalletWithdrawRouteImport.update({
-  id: '/withdraw',
-  path: '/withdraw',
-  getParentRoute: () => WalletRoute,
-} as any)
-const WalletTransferRoute = WalletTransferRouteImport.update({
-  id: '/transfer',
-  path: '/transfer',
-  getParentRoute: () => WalletRoute,
-} as any)
-const WalletDepositRoute = WalletDepositRouteImport.update({
-  id: '/deposit',
-  path: '/deposit',
-  getParentRoute: () => WalletRoute,
-} as any)
-const SettingsDealCodeRoute = SettingsDealCodeRouteImport.update({
-  id: '/deal-code',
-  path: '/deal-code',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const OnboardingDealCodeRoute = OnboardingDealCodeRouteImport.update({
-  id: '/deal-code',
-  path: '/deal-code',
-  getParentRoute: () => OnboardingRoute,
-} as any)
-const MerchantUserIdRoute = MerchantUserIdRouteImport.update({
-  id: '/merchant/$userId',
-  path: '/merchant/$userId',
+const ChatConversationIdRoute = ChatConversationIdRouteImport.update({
+  id: '/chat/$conversationId',
+  path: '/chat/$conversationId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ListingsNewRoute = ListingsNewRouteImport.update({
-  id: '/listings/new',
-  path: '/listings/new',
+const DealsIndexRoute = DealsIndexRouteImport.update({
+  id: '/deals/',
+  path: '/deals/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DealsDealIdRoute = DealsDealIdRouteImport.update({
@@ -178,49 +143,49 @@ const DealsDealIdRoute = DealsDealIdRouteImport.update({
   path: '/deals/$dealId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChatConversationIdRoute = ChatConversationIdRouteImport.update({
-  id: '/chat/$conversationId',
-  path: '/chat/$conversationId',
+const ListingsIndexRoute = ListingsIndexRouteImport.update({
+  id: '/listings/',
+  path: '/listings/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DealsNewListingIdRoute = DealsNewListingIdRouteImport.update({
-  id: '/deals/new/$listingId',
-  path: '/deals/new/$listingId',
+const ListingsNewRoute = ListingsNewRouteImport.update({
+  id: '/listings/new',
+  path: '/listings/new',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiWalletWithdrawRoute = ApiWalletWithdrawRouteImport.update({
-  id: '/api/wallet/withdraw',
-  path: '/api/wallet/withdraw',
+const MerchantUserIdRoute = MerchantUserIdRouteImport.update({
+  id: '/merchant/$userId',
+  path: '/merchant/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiWalletTransferRoute = ApiWalletTransferRouteImport.update({
-  id: '/api/wallet/transfer',
-  path: '/api/wallet/transfer',
-  getParentRoute: () => rootRouteImport,
+const OnboardingDealCodeRoute = OnboardingDealCodeRouteImport.update({
+  id: '/deal-code',
+  path: '/deal-code',
+  getParentRoute: () => OnboardingRoute,
 } as any)
-const ApiWalletDepositAddressRoute = ApiWalletDepositAddressRouteImport.update({
-  id: '/api/wallet/deposit-address',
-  path: '/api/wallet/deposit-address',
-  getParentRoute: () => rootRouteImport,
+const SettingsDealCodeRoute = SettingsDealCodeRouteImport.update({
+  id: '/deal-code',
+  path: '/deal-code',
+  getParentRoute: () => SettingsRoute,
 } as any)
-const ApiDisputesAnalyzeRoute = ApiDisputesAnalyzeRouteImport.update({
-  id: '/api/disputes/analyze',
-  path: '/api/disputes/analyze',
-  getParentRoute: () => rootRouteImport,
+const WalletDepositRoute = WalletDepositRouteImport.update({
+  id: '/deposit',
+  path: '/deposit',
+  getParentRoute: () => WalletRoute,
 } as any)
-const ApiDealsReleaseRoute = ApiDealsReleaseRouteImport.update({
-  id: '/api/deals/release',
-  path: '/api/deals/release',
-  getParentRoute: () => rootRouteImport,
+const WalletTransferRoute = WalletTransferRouteImport.update({
+  id: '/transfer',
+  path: '/transfer',
+  getParentRoute: () => WalletRoute,
 } as any)
-const ApiDealCodeSetRoute = ApiDealCodeSetRouteImport.update({
-  id: '/api/deal-code/set',
-  path: '/api/deal-code/set',
-  getParentRoute: () => rootRouteImport,
+const WalletWithdrawRoute = WalletWithdrawRouteImport.update({
+  id: '/withdraw',
+  path: '/withdraw',
+  getParentRoute: () => WalletRoute,
 } as any)
-const ApiDealCodeRequestOtpRoute = ApiDealCodeRequestOtpRouteImport.update({
-  id: '/api/deal-code/request-otp',
-  path: '/api/deal-code/request-otp',
+const ApiDealCodeBiometricRoute = ApiDealCodeBiometricRouteImport.update({
+  id: '/api/deal-code/biometric',
+  path: '/api/deal-code/biometric',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiDealCodeChangeRoute = ApiDealCodeChangeRouteImport.update({
@@ -228,9 +193,44 @@ const ApiDealCodeChangeRoute = ApiDealCodeChangeRouteImport.update({
   path: '/api/deal-code/change',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiDealCodeBiometricRoute = ApiDealCodeBiometricRouteImport.update({
-  id: '/api/deal-code/biometric',
-  path: '/api/deal-code/biometric',
+const ApiDealCodeRequestOtpRoute = ApiDealCodeRequestOtpRouteImport.update({
+  id: '/api/deal-code/request-otp',
+  path: '/api/deal-code/request-otp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDealCodeSetRoute = ApiDealCodeSetRouteImport.update({
+  id: '/api/deal-code/set',
+  path: '/api/deal-code/set',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDealsReleaseRoute = ApiDealsReleaseRouteImport.update({
+  id: '/api/deals/release',
+  path: '/api/deals/release',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDisputesAnalyzeRoute = ApiDisputesAnalyzeRouteImport.update({
+  id: '/api/disputes/analyze',
+  path: '/api/disputes/analyze',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWalletDepositAddressRoute = ApiWalletDepositAddressRouteImport.update({
+  id: '/api/wallet/deposit-address',
+  path: '/api/wallet/deposit-address',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWalletTransferRoute = ApiWalletTransferRouteImport.update({
+  id: '/api/wallet/transfer',
+  path: '/api/wallet/transfer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWalletWithdrawRoute = ApiWalletWithdrawRouteImport.update({
+  id: '/api/wallet/withdraw',
+  path: '/api/wallet/withdraw',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DealsNewListingIdRoute = DealsNewListingIdRouteImport.update({
+  id: '/deals/new/$listingId',
+  path: '/deals/new/$listingId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicWebhooksNowpaymentsRoute =
@@ -522,95 +522,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/wallet': {
-      id: '/wallet'
-      path: '/wallet'
-      fullPath: '/wallet'
-      preLoaderRoute: typeof WalletRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/verified': {
-      id: '/verified'
-      path: '/verified'
-      fullPath: '/verified'
-      preLoaderRoute: typeof VerifiedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/transactions': {
-      id: '/transactions'
-      path: '/transactions'
-      fullPath: '/transactions'
-      preLoaderRoute: typeof TransactionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/support': {
-      id: '/support'
-      path: '/support'
-      fullPath: '/support'
-      preLoaderRoute: typeof SupportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/security': {
-      id: '/security'
-      path: '/security'
-      fullPath: '/security'
-      preLoaderRoute: typeof SecurityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notifications': {
-      id: '/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/me': {
-      id: '/me'
-      path: '/me'
-      fullPath: '/me'
-      preLoaderRoute: typeof MeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/marketplace': {
-      id: '/marketplace'
-      path: '/marketplace'
-      fullPath: '/marketplace'
-      preLoaderRoute: typeof MarketplaceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/legal': {
-      id: '/legal'
-      path: '/legal'
-      fullPath: '/legal'
-      preLoaderRoute: typeof LegalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cdm-map': {
-      id: '/cdm-map'
-      path: '/cdm-map'
-      fullPath: '/cdm-map'
-      preLoaderRoute: typeof CdmMapRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -620,25 +536,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/listings/': {
-      id: '/listings/'
-      path: '/listings'
-      fullPath: '/listings/'
-      preLoaderRoute: typeof ListingsIndexRouteImport
+    '/cdm-map': {
+      id: '/cdm-map'
+      path: '/cdm-map'
+      fullPath: '/cdm-map'
+      preLoaderRoute: typeof CdmMapRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/deals/': {
-      id: '/deals/'
-      path: '/deals'
-      fullPath: '/deals/'
-      preLoaderRoute: typeof DealsIndexRouteImport
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketplace': {
+      id: '/marketplace'
+      path: '/marketplace'
+      fullPath: '/marketplace'
+      preLoaderRoute: typeof MarketplaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/security': {
+      id: '/security'
+      path: '/security'
+      fullPath: '/security'
+      preLoaderRoute: typeof SecurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/transactions': {
+      id: '/transactions'
+      path: '/transactions'
+      fullPath: '/transactions'
+      preLoaderRoute: typeof TransactionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verified': {
+      id: '/verified'
+      path: '/verified'
+      fullPath: '/verified'
+      preLoaderRoute: typeof VerifiedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wallet': {
+      id: '/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof WalletRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chat/': {
@@ -648,53 +634,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/wallet/withdraw': {
-      id: '/wallet/withdraw'
-      path: '/withdraw'
-      fullPath: '/wallet/withdraw'
-      preLoaderRoute: typeof WalletWithdrawRouteImport
-      parentRoute: typeof WalletRoute
-    }
-    '/wallet/transfer': {
-      id: '/wallet/transfer'
-      path: '/transfer'
-      fullPath: '/wallet/transfer'
-      preLoaderRoute: typeof WalletTransferRouteImport
-      parentRoute: typeof WalletRoute
-    }
-    '/wallet/deposit': {
-      id: '/wallet/deposit'
-      path: '/deposit'
-      fullPath: '/wallet/deposit'
-      preLoaderRoute: typeof WalletDepositRouteImport
-      parentRoute: typeof WalletRoute
-    }
-    '/settings/deal-code': {
-      id: '/settings/deal-code'
-      path: '/deal-code'
-      fullPath: '/settings/deal-code'
-      preLoaderRoute: typeof SettingsDealCodeRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/onboarding/deal-code': {
-      id: '/onboarding/deal-code'
-      path: '/deal-code'
-      fullPath: '/onboarding/deal-code'
-      preLoaderRoute: typeof OnboardingDealCodeRouteImport
-      parentRoute: typeof OnboardingRoute
-    }
-    '/merchant/$userId': {
-      id: '/merchant/$userId'
-      path: '/merchant/$userId'
-      fullPath: '/merchant/$userId'
-      preLoaderRoute: typeof MerchantUserIdRouteImport
+    '/chat/$conversationId': {
+      id: '/chat/$conversationId'
+      path: '/chat/$conversationId'
+      fullPath: '/chat/$conversationId'
+      preLoaderRoute: typeof ChatConversationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/listings/new': {
-      id: '/listings/new'
-      path: '/listings/new'
-      fullPath: '/listings/new'
-      preLoaderRoute: typeof ListingsNewRouteImport
+    '/deals/': {
+      id: '/deals/'
+      path: '/deals'
+      fullPath: '/deals/'
+      preLoaderRoute: typeof DealsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/deals/$dealId': {
@@ -704,67 +655,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DealsDealIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/chat/$conversationId': {
-      id: '/chat/$conversationId'
-      path: '/chat/$conversationId'
-      fullPath: '/chat/$conversationId'
-      preLoaderRoute: typeof ChatConversationIdRouteImport
+    '/listings/': {
+      id: '/listings/'
+      path: '/listings'
+      fullPath: '/listings/'
+      preLoaderRoute: typeof ListingsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/deals/new/$listingId': {
-      id: '/deals/new/$listingId'
-      path: '/deals/new/$listingId'
-      fullPath: '/deals/new/$listingId'
-      preLoaderRoute: typeof DealsNewListingIdRouteImport
+    '/listings/new': {
+      id: '/listings/new'
+      path: '/listings/new'
+      fullPath: '/listings/new'
+      preLoaderRoute: typeof ListingsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/wallet/withdraw': {
-      id: '/api/wallet/withdraw'
-      path: '/api/wallet/withdraw'
-      fullPath: '/api/wallet/withdraw'
-      preLoaderRoute: typeof ApiWalletWithdrawRouteImport
+    '/merchant/$userId': {
+      id: '/merchant/$userId'
+      path: '/merchant/$userId'
+      fullPath: '/merchant/$userId'
+      preLoaderRoute: typeof MerchantUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/wallet/transfer': {
-      id: '/api/wallet/transfer'
-      path: '/api/wallet/transfer'
-      fullPath: '/api/wallet/transfer'
-      preLoaderRoute: typeof ApiWalletTransferRouteImport
-      parentRoute: typeof rootRouteImport
+    '/onboarding/deal-code': {
+      id: '/onboarding/deal-code'
+      path: '/deal-code'
+      fullPath: '/onboarding/deal-code'
+      preLoaderRoute: typeof OnboardingDealCodeRouteImport
+      parentRoute: typeof OnboardingRoute
     }
-    '/api/wallet/deposit-address': {
-      id: '/api/wallet/deposit-address'
-      path: '/api/wallet/deposit-address'
-      fullPath: '/api/wallet/deposit-address'
-      preLoaderRoute: typeof ApiWalletDepositAddressRouteImport
-      parentRoute: typeof rootRouteImport
+    '/settings/deal-code': {
+      id: '/settings/deal-code'
+      path: '/deal-code'
+      fullPath: '/settings/deal-code'
+      preLoaderRoute: typeof SettingsDealCodeRouteImport
+      parentRoute: typeof SettingsRoute
     }
-    '/api/disputes/analyze': {
-      id: '/api/disputes/analyze'
-      path: '/api/disputes/analyze'
-      fullPath: '/api/disputes/analyze'
-      preLoaderRoute: typeof ApiDisputesAnalyzeRouteImport
-      parentRoute: typeof rootRouteImport
+    '/wallet/deposit': {
+      id: '/wallet/deposit'
+      path: '/deposit'
+      fullPath: '/wallet/deposit'
+      preLoaderRoute: typeof WalletDepositRouteImport
+      parentRoute: typeof WalletRoute
     }
-    '/api/deals/release': {
-      id: '/api/deals/release'
-      path: '/api/deals/release'
-      fullPath: '/api/deals/release'
-      preLoaderRoute: typeof ApiDealsReleaseRouteImport
-      parentRoute: typeof rootRouteImport
+    '/wallet/transfer': {
+      id: '/wallet/transfer'
+      path: '/transfer'
+      fullPath: '/wallet/transfer'
+      preLoaderRoute: typeof WalletTransferRouteImport
+      parentRoute: typeof WalletRoute
     }
-    '/api/deal-code/set': {
-      id: '/api/deal-code/set'
-      path: '/api/deal-code/set'
-      fullPath: '/api/deal-code/set'
-      preLoaderRoute: typeof ApiDealCodeSetRouteImport
-      parentRoute: typeof rootRouteImport
+    '/wallet/withdraw': {
+      id: '/wallet/withdraw'
+      path: '/withdraw'
+      fullPath: '/wallet/withdraw'
+      preLoaderRoute: typeof WalletWithdrawRouteImport
+      parentRoute: typeof WalletRoute
     }
-    '/api/deal-code/request-otp': {
-      id: '/api/deal-code/request-otp'
-      path: '/api/deal-code/request-otp'
-      fullPath: '/api/deal-code/request-otp'
-      preLoaderRoute: typeof ApiDealCodeRequestOtpRouteImport
+    '/api/deal-code/biometric': {
+      id: '/api/deal-code/biometric'
+      path: '/api/deal-code/biometric'
+      fullPath: '/api/deal-code/biometric'
+      preLoaderRoute: typeof ApiDealCodeBiometricRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/deal-code/change': {
@@ -774,11 +725,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDealCodeChangeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/deal-code/biometric': {
-      id: '/api/deal-code/biometric'
-      path: '/api/deal-code/biometric'
-      fullPath: '/api/deal-code/biometric'
-      preLoaderRoute: typeof ApiDealCodeBiometricRouteImport
+    '/api/deal-code/request-otp': {
+      id: '/api/deal-code/request-otp'
+      path: '/api/deal-code/request-otp'
+      fullPath: '/api/deal-code/request-otp'
+      preLoaderRoute: typeof ApiDealCodeRequestOtpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/deal-code/set': {
+      id: '/api/deal-code/set'
+      path: '/api/deal-code/set'
+      fullPath: '/api/deal-code/set'
+      preLoaderRoute: typeof ApiDealCodeSetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/deals/release': {
+      id: '/api/deals/release'
+      path: '/api/deals/release'
+      fullPath: '/api/deals/release'
+      preLoaderRoute: typeof ApiDealsReleaseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/disputes/analyze': {
+      id: '/api/disputes/analyze'
+      path: '/api/disputes/analyze'
+      fullPath: '/api/disputes/analyze'
+      preLoaderRoute: typeof ApiDisputesAnalyzeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/wallet/deposit-address': {
+      id: '/api/wallet/deposit-address'
+      path: '/api/wallet/deposit-address'
+      fullPath: '/api/wallet/deposit-address'
+      preLoaderRoute: typeof ApiWalletDepositAddressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/wallet/transfer': {
+      id: '/api/wallet/transfer'
+      path: '/api/wallet/transfer'
+      fullPath: '/api/wallet/transfer'
+      preLoaderRoute: typeof ApiWalletTransferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/wallet/withdraw': {
+      id: '/api/wallet/withdraw'
+      path: '/api/wallet/withdraw'
+      fullPath: '/api/wallet/withdraw'
+      preLoaderRoute: typeof ApiWalletWithdrawRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deals/new/$listingId': {
+      id: '/deals/new/$listingId'
+      path: '/deals/new/$listingId'
+      fullPath: '/deals/new/$listingId'
+      preLoaderRoute: typeof DealsNewListingIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/webhooks/nowpayments': {

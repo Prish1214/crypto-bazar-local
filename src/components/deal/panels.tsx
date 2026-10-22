@@ -596,8 +596,8 @@ export function CdmDepositPanel({
           <CdmRow label="IFSC" value={deal.cdm_ifsc} mono onCopy={() => copy("ifsc", deal.cdm_ifsc)} copied={copied === "ifsc"} />
           <CdmRow label="Holder" value={deal.cdm_holder_name} onCopy={() => copy("holder", deal.cdm_holder_name)} copied={copied === "holder"} />
         </dl>
-        {deal.cdm_instructions && (
-          <p className="mt-2 whitespace-pre-wrap rounded-lg bg-secondary/60 p-2 text-[11px] text-muted-foreground">{deal.cdm_instructions}</p>
+        {deal.listing?.cdm_instructions && (
+          <p className="mt-2 whitespace-pre-wrap rounded-lg bg-secondary/60 p-2 text-[11px] text-muted-foreground">{deal.listing.cdm_instructions}</p>
         )}
         {!deal.cdm_bank_account && (
           <p className="mt-2 text-[11px] font-medium text-amber-600">Bank details appear as soon as the seller accepts the deal.</p>
