@@ -40,7 +40,7 @@ export const Route = createFileRoute("/deals/$dealId")({
     <PageShell>
       <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
         <h1 className="font-display text-2xl font-bold tracking-tight">Deal room hit an error</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{error?.message ?? "Something went wrong loading this deal."}</p>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{error instanceof Error ? error.message : "Something went wrong loading this deal."}</p>
         <div className="mt-5 flex flex-wrap gap-2">
           <Button variant="hero" onClick={reset}>Try again</Button>
           <Link to="/deals"><Button variant="outline">Back to deals</Button></Link>
