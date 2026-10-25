@@ -2,9 +2,10 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { BrandMark } from "@/components/brand-mark";
 import {
-  Shield, Coins, Users, Store, Wallet, ListOrdered, Handshake,
-  ReceiptText, Settings as SettingsIcon, LayoutDashboard, MessageSquare, User as UserIcon,
+  Shield, Users, Wallet, ListOrdered, Handshake,
+  ReceiptText, LayoutDashboard, MessageSquare, User as UserIcon, Coins,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DealNotifier } from "@/components/deal-notifier";
@@ -58,9 +59,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-3 md:h-16 md:px-5">
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[image:var(--gradient-primary)] shadow-[var(--shadow-glow)]">
-            <Coins className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <BrandMark className="[&_img]:h-8 [&_img]:w-8" />
           <span className="font-display text-base font-bold tracking-tight md:text-lg">
             Krypto<span className="text-gradient-primary">Bazar</span>
           </span>
@@ -93,16 +92,19 @@ export function SiteHeader() {
         )}
 
         <div className="flex items-center gap-1">
+          <Link
+            to="/token"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/15"
+            title="Krypto Token — launching soon"
+          >
+            <Coins className="h-3 w-3" />
+            <span>KRYPTO</span>
+            <span className="hidden sm:inline text-muted-foreground font-medium">· Soon</span>
+          </Link>
           {user ? (
             <>
-              <Link to="/settings" className="hidden md:inline-flex">
-                <Button size="icon" variant="ghost" title="Settings"><SettingsIcon className="h-4 w-4" /></Button>
-              </Link>
               <Link to="/admin" className="hidden md:inline-flex">
                 <Button size="icon" variant="ghost" title="Admin"><LayoutDashboard className="h-4 w-4" /></Button>
-              </Link>
-              <Link to="/settings" className="md:hidden">
-                <Button size="icon" variant="ghost" title="Settings"><SettingsIcon className="h-4 w-4" /></Button>
               </Link>
               <Button size="sm" variant="ghost" className="hidden md:inline-flex" onClick={signOut}>Sign out</Button>
             </>
@@ -182,9 +184,7 @@ export function SiteFooter() {
       <div className="rounded-2xl border border-border bg-card px-5 py-6">
         <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[image:var(--gradient-primary)]">
-              <Coins className="h-3.5 w-3.5 text-primary-foreground" />
-            </div>
+            <BrandMark className="[&_img]:h-7 [&_img]:w-7" />
             <span className="font-display text-sm font-bold">KryptoBazar</span>
             <span className="text-xs text-muted-foreground">· Local USDT marketplace</span>
           </div>
