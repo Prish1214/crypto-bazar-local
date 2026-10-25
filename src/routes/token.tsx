@@ -160,9 +160,6 @@ function WaitlistForm() {
       {state === "error" && (
         <p className="text-xs text-destructive sm:hidden" role="alert">{message}</p>
       )}
-      {state === "error" && (
-        <p className="hidden text-xs text-destructive sm:block" role="alert">{message}</p>
-      )}
     </form>
   );
 }

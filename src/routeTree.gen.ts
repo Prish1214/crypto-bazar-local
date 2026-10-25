@@ -21,6 +21,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as SecurityRouteImport } from './routes/security'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SupportRouteImport } from './routes/support'
+import { Route as TokenRouteImport } from './routes/token'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as VerifiedRouteImport } from './routes/verified'
 import { Route as WalletRouteImport } from './routes/wallet'
@@ -42,6 +43,7 @@ import { Route as ApiDealCodeRequestOtpRouteImport } from './routes/api/deal-cod
 import { Route as ApiDealCodeSetRouteImport } from './routes/api/deal-code/set'
 import { Route as ApiDealsReleaseRouteImport } from './routes/api/deals/release'
 import { Route as ApiDisputesAnalyzeRouteImport } from './routes/api/disputes/analyze'
+import { Route as ApiTokenWaitlistRouteImport } from './routes/api/token/waitlist'
 import { Route as ApiWalletDepositAddressRouteImport } from './routes/api/wallet/deposit-address'
 import { Route as ApiWalletTransferRouteImport } from './routes/api/wallet/transfer'
 import { Route as ApiWalletWithdrawRouteImport } from './routes/api/wallet/withdraw'
@@ -106,6 +108,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SupportRoute = SupportRouteImport.update({
   id: '/support',
   path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TokenRoute = TokenRouteImport.update({
+  id: '/token',
+  path: '/token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TransactionsRoute = TransactionsRouteImport.update({
@@ -213,6 +220,11 @@ const ApiDisputesAnalyzeRoute = ApiDisputesAnalyzeRouteImport.update({
   path: '/api/disputes/analyze',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTokenWaitlistRoute = ApiTokenWaitlistRouteImport.update({
+  id: '/api/token/waitlist',
+  path: '/api/token/waitlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWalletDepositAddressRoute = ApiWalletDepositAddressRouteImport.update({
   id: '/api/wallet/deposit-address',
   path: '/api/wallet/deposit-address',
@@ -253,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/security': typeof SecurityRoute
   '/settings': typeof SettingsRouteWithChildren
   '/support': typeof SupportRoute
+  '/token': typeof TokenRoute
   '/transactions': typeof TransactionsRoute
   '/verified': typeof VerifiedRoute
   '/wallet': typeof WalletRouteWithChildren
@@ -274,6 +287,7 @@ export interface FileRoutesByFullPath {
   '/api/deal-code/set': typeof ApiDealCodeSetRoute
   '/api/deals/release': typeof ApiDealsReleaseRoute
   '/api/disputes/analyze': typeof ApiDisputesAnalyzeRoute
+  '/api/token/waitlist': typeof ApiTokenWaitlistRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
   '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
@@ -293,6 +307,7 @@ export interface FileRoutesByTo {
   '/security': typeof SecurityRoute
   '/settings': typeof SettingsRouteWithChildren
   '/support': typeof SupportRoute
+  '/token': typeof TokenRoute
   '/transactions': typeof TransactionsRoute
   '/verified': typeof VerifiedRoute
   '/wallet': typeof WalletRouteWithChildren
@@ -314,6 +329,7 @@ export interface FileRoutesByTo {
   '/api/deal-code/set': typeof ApiDealCodeSetRoute
   '/api/deals/release': typeof ApiDealsReleaseRoute
   '/api/disputes/analyze': typeof ApiDisputesAnalyzeRoute
+  '/api/token/waitlist': typeof ApiTokenWaitlistRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
   '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
@@ -334,6 +350,7 @@ export interface FileRoutesById {
   '/security': typeof SecurityRoute
   '/settings': typeof SettingsRouteWithChildren
   '/support': typeof SupportRoute
+  '/token': typeof TokenRoute
   '/transactions': typeof TransactionsRoute
   '/verified': typeof VerifiedRoute
   '/wallet': typeof WalletRouteWithChildren
@@ -355,6 +372,7 @@ export interface FileRoutesById {
   '/api/deal-code/set': typeof ApiDealCodeSetRoute
   '/api/deals/release': typeof ApiDealsReleaseRoute
   '/api/disputes/analyze': typeof ApiDisputesAnalyzeRoute
+  '/api/token/waitlist': typeof ApiTokenWaitlistRoute
   '/api/wallet/deposit-address': typeof ApiWalletDepositAddressRoute
   '/api/wallet/transfer': typeof ApiWalletTransferRoute
   '/api/wallet/withdraw': typeof ApiWalletWithdrawRoute
@@ -376,6 +394,7 @@ export interface FileRouteTypes {
     | '/security'
     | '/settings'
     | '/support'
+    | '/token'
     | '/transactions'
     | '/verified'
     | '/wallet'
@@ -397,6 +416,7 @@ export interface FileRouteTypes {
     | '/api/deal-code/set'
     | '/api/deals/release'
     | '/api/disputes/analyze'
+    | '/api/token/waitlist'
     | '/api/wallet/deposit-address'
     | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
@@ -416,6 +436,7 @@ export interface FileRouteTypes {
     | '/security'
     | '/settings'
     | '/support'
+    | '/token'
     | '/transactions'
     | '/verified'
     | '/wallet'
@@ -437,6 +458,7 @@ export interface FileRouteTypes {
     | '/api/deal-code/set'
     | '/api/deals/release'
     | '/api/disputes/analyze'
+    | '/api/token/waitlist'
     | '/api/wallet/deposit-address'
     | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
@@ -456,6 +478,7 @@ export interface FileRouteTypes {
     | '/security'
     | '/settings'
     | '/support'
+    | '/token'
     | '/transactions'
     | '/verified'
     | '/wallet'
@@ -477,6 +500,7 @@ export interface FileRouteTypes {
     | '/api/deal-code/set'
     | '/api/deals/release'
     | '/api/disputes/analyze'
+    | '/api/token/waitlist'
     | '/api/wallet/deposit-address'
     | '/api/wallet/transfer'
     | '/api/wallet/withdraw'
@@ -497,6 +521,7 @@ export interface RootRouteChildren {
   SecurityRoute: typeof SecurityRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   SupportRoute: typeof SupportRoute
+  TokenRoute: typeof TokenRoute
   TransactionsRoute: typeof TransactionsRoute
   VerifiedRoute: typeof VerifiedRoute
   WalletRoute: typeof WalletRouteWithChildren
@@ -513,6 +538,7 @@ export interface RootRouteChildren {
   ApiDealCodeSetRoute: typeof ApiDealCodeSetRoute
   ApiDealsReleaseRoute: typeof ApiDealsReleaseRoute
   ApiDisputesAnalyzeRoute: typeof ApiDisputesAnalyzeRoute
+  ApiTokenWaitlistRoute: typeof ApiTokenWaitlistRoute
   ApiWalletDepositAddressRoute: typeof ApiWalletDepositAddressRoute
   ApiWalletTransferRoute: typeof ApiWalletTransferRoute
   ApiWalletWithdrawRoute: typeof ApiWalletWithdrawRoute
@@ -604,6 +630,13 @@ declare module '@tanstack/react-router' {
       path: '/support'
       fullPath: '/support'
       preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/token': {
+      id: '/token'
+      path: '/token'
+      fullPath: '/token'
+      preLoaderRoute: typeof TokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/transactions': {
@@ -753,6 +786,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDisputesAnalyzeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/token/waitlist': {
+      id: '/api/token/waitlist'
+      path: '/api/token/waitlist'
+      fullPath: '/api/token/waitlist'
+      preLoaderRoute: typeof ApiTokenWaitlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/wallet/deposit-address': {
       id: '/api/wallet/deposit-address'
       path: '/api/wallet/deposit-address'
@@ -843,6 +883,7 @@ const rootRouteChildren: RootRouteChildren = {
   SecurityRoute: SecurityRoute,
   SettingsRoute: SettingsRouteWithChildren,
   SupportRoute: SupportRoute,
+  TokenRoute: TokenRoute,
   TransactionsRoute: TransactionsRoute,
   VerifiedRoute: VerifiedRoute,
   WalletRoute: WalletRouteWithChildren,
@@ -859,6 +900,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiDealCodeSetRoute: ApiDealCodeSetRoute,
   ApiDealsReleaseRoute: ApiDealsReleaseRoute,
   ApiDisputesAnalyzeRoute: ApiDisputesAnalyzeRoute,
+  ApiTokenWaitlistRoute: ApiTokenWaitlistRoute,
   ApiWalletDepositAddressRoute: ApiWalletDepositAddressRoute,
   ApiWalletTransferRoute: ApiWalletTransferRoute,
   ApiWalletWithdrawRoute: ApiWalletWithdrawRoute,
