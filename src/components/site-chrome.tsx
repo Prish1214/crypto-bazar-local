@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/brand-mark";
 import {
-  Shield, Users, Wallet, ListOrdered, Handshake,
+  Shield, Users, Store, Wallet, ListOrdered, Handshake,
   ReceiptText, LayoutDashboard, MessageSquare, User as UserIcon, Coins,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
