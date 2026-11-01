@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CdmMapRouteImport } from './routes/cdm-map'
+import { Route as KycRouteImport } from './routes/kyc'
 import { Route as LegalRouteImport } from './routes/legal'
 import { Route as MarketplaceRouteImport } from './routes/marketplace'
 import { Route as MeRouteImport } from './routes/me'
@@ -68,6 +69,11 @@ const AuthRoute = AuthRouteImport.update({
 const CdmMapRoute = CdmMapRouteImport.update({
   id: '/cdm-map',
   path: '/cdm-map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KycRoute = KycRouteImport.update({
+  id: '/kyc',
+  path: '/kyc',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LegalRoute = LegalRouteImport.update({
@@ -257,6 +263,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/cdm-map': typeof CdmMapRoute
+  '/kyc': typeof KycRoute
   '/legal': typeof LegalRoute
   '/marketplace': typeof MarketplaceRoute
   '/me': typeof MeRoute
@@ -299,6 +306,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/cdm-map': typeof CdmMapRoute
+  '/kyc': typeof KycRoute
   '/legal': typeof LegalRoute
   '/marketplace': typeof MarketplaceRoute
   '/me': typeof MeRoute
@@ -342,6 +350,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/cdm-map': typeof CdmMapRoute
+  '/kyc': typeof KycRoute
   '/legal': typeof LegalRoute
   '/marketplace': typeof MarketplaceRoute
   '/me': typeof MeRoute
@@ -386,6 +395,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/cdm-map'
+    | '/kyc'
     | '/legal'
     | '/marketplace'
     | '/me'
@@ -428,6 +438,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/cdm-map'
+    | '/kyc'
     | '/legal'
     | '/marketplace'
     | '/me'
@@ -470,6 +481,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/cdm-map'
+    | '/kyc'
     | '/legal'
     | '/marketplace'
     | '/me'
@@ -513,6 +525,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   CdmMapRoute: typeof CdmMapRoute
+  KycRoute: typeof KycRoute
   LegalRoute: typeof LegalRoute
   MarketplaceRoute: typeof MarketplaceRoute
   MeRoute: typeof MeRoute
@@ -574,6 +587,13 @@ declare module '@tanstack/react-router' {
       path: '/cdm-map'
       fullPath: '/cdm-map'
       preLoaderRoute: typeof CdmMapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kyc': {
+      id: '/kyc'
+      path: '/kyc'
+      fullPath: '/kyc'
+      preLoaderRoute: typeof KycRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/legal': {
@@ -875,6 +895,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   CdmMapRoute: CdmMapRoute,
+  KycRoute: KycRoute,
   LegalRoute: LegalRoute,
   MarketplaceRoute: MarketplaceRoute,
   MeRoute: MeRoute,

@@ -57,10 +57,10 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-3 md:h-16 md:px-5">
-        <Link to="/" className="flex items-center gap-2 shrink-0">
+      <div className="mx-auto grid h-14 max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 md:h-16 md:flex md:justify-between md:px-5">
+        <Link to="/" className="flex min-w-0 items-center gap-2">
           <BrandMark className="[&_img]:h-8 [&_img]:w-8" />
-          <span className="font-display text-base font-bold tracking-tight md:text-lg">
+          <span className="min-w-0 truncate font-display text-base font-bold tracking-tight md:text-lg">
             Krypto<span className="text-gradient-primary">Bazar</span>
           </span>
         </Link>
@@ -91,15 +91,15 @@ export function SiteHeader() {
           </nav>
         )}
 
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1 md:gap-1.5">
           <Link
             to="/token"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/15"
+            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/15 sm:px-2.5 sm:text-[11px]"
             title="Krypto Token — launching soon"
           >
-            <Coins className="h-3 w-3" />
+            <Coins className="h-3 w-3 shrink-0" />
             <span>KRYPTO</span>
-            <span className="hidden sm:inline text-muted-foreground font-medium">· Soon</span>
+            <span className="text-muted-foreground font-medium">· Soon</span>
           </Link>
           {user ? (
             <>
@@ -111,7 +111,7 @@ export function SiteHeader() {
           ) : (
             <>
               <Link to="/auth"><Button size="sm" variant="ghost">Sign in</Button></Link>
-              <Link to="/auth"><Button size="sm" variant="hero">Get started</Button></Link>
+              <Link to="/auth"><Button size="sm" variant="hero" className="hidden sm:inline-flex">Get started</Button></Link>
             </>
           )}
         </div>
@@ -228,7 +228,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     (async () => {
       // Ensure a profile row exists — old accounts predate the signup trigger.
       const { data } = await db.from("profiles")
-        .select("id, deal_code_set_at").eq("id", user.id).maybeSingle();
+        .select("id, deal_code_set_at, verified").eq("id", user.id).maybeSingle();
       if (cancelled) return;
       let dealCodeSet = !!data?.deal_code_set_at;
       if (!data) {
@@ -244,6 +244,34 @@ export function RequireAuth({ children }: { children: ReactNode }) {
         if (!cancelled) navigate({ to: "/onboarding/deal-code", replace: true });
         return;
       }
+
+      // KYC gate: every account must be identity-verified (admin-approved)
+      // before it can use the app. Legacy admin-toggled accounts pass via
+      // profiles.verified.
+      const KYC_EXCLUDED = [
+        "/auth", "/kyc", "/onboarding", "/verified", "/token", "/legal", "/support",
+      ];
+      const isKycExcluded = KYC_EXCLUDED.some((p) => pathname === p || pathname.startsWith(p + "/"));
+      let identityOk = !!data?.verified;
+      if (!identityOk && !isKycExcluded) {
+        const { data: kyc, error: kycErr } = await db
+          .from("kyc_verifications")
+          .select("status")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (kycErr) {
+          // Migration v23 not applied yet — don't lock users out.
+          console.warn("kyc_verifications unavailable, skipping KYC gate:", kycErr.message);
+          identityOk = true;
+        } else {
+          identityOk = kyc?.status === "approved";
+        }
+      }
+      if (!identityOk && !isKycExcluded) {
+        if (!cancelled) navigate({ to: "/kyc", replace: true });
+        return;
+      }
+
       if (!cancelled) setProfileReady(true);
     })();
     return () => { cancelled = true; };
