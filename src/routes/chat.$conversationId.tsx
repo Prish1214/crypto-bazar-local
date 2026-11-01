@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { compressImage } from "@/lib/media-compress";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Send, Image as ImageIcon, MapPin, Lock, Loader2, Check, CheckCheck, Plus } from "lucide-react";
 import { RequireAuth } from "@/components/site-chrome";
@@ -127,9 +128,12 @@ function ChatThread() {
     if (!user) return;
     setShowActions(false);
     try {
-      const ext = file.name.split(".").pop() ?? "jpg";
-      const path = `${user.id}/${conversationId}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("chat-attachments").upload(path, file);
+      // Compress before storing — smaller uploads on mobile data.
+      const compressed = await compressImage(file, { maxDim: 1600, quality: 0.82 });
+      const path = `${user.id}/${conversationId}/${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage
+        .from("chat-attachments")
+        .upload(path, compressed, { contentType: compressed.type || "image/jpeg" });
       if (upErr) throw upErr;
       const { data } = await supabase.storage.from("chat-attachments").createSignedUrl(path, 60 * 60 * 24 * 30);
       await supabase.from("private_messages").insert({
