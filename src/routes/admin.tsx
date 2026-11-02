@@ -255,6 +255,7 @@ function Admin() {
         <StatCard icon={ListOrdered} label="Listings" value={stats.listings.toString()} />
         <StatCard icon={Handshake} label="Deals (active / total)" value={`${stats.activeDeals} / ${stats.deals}`} />
         <StatCard icon={AlertOctagon} label="Open disputes" value={stats.disputes.toString()} accent={stats.disputes > 0} />
+        <StatCard icon={IdCard} label="KYC pending" value={kycRows.filter((r) => r.status === "pending").length.toString()} accent={kycRows.some((r) => r.status === "pending")} />
         <StatCard icon={ReceiptText} label="Completed volume" value={fmtUSDT(stats.volume)} />
         <StatCard icon={WalletIcon} label="Escrow held" value={fmtUSDT(stats.escrowHeld)} />
         <StatCard icon={Crown} label="Fees collected" value={fmtUSDT(stats.fees)} />
