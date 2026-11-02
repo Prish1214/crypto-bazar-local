@@ -4,6 +4,7 @@ import {
   Loader2, Users, ListOrdered, Handshake, AlertOctagon, ShieldCheck, ShieldOff,
   Ban, CheckCircle2, Trash2, XCircle, Search, ReceiptText, Wallet as WalletIcon,
   Crown, Eye, TrendingUp, ArrowDownToLine, ArrowUpFromLine, LifeBuoy, Activity, Percent,
+  IdCard, ScanFace,
 } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
+import { fetchKycSignedUrl, type KycVerification } from "@/lib/kyc";
 import { db, fmtUSDT, type Dispute, type Profile, type Listing, type Deal, type Transaction, type Wallet } from "@/lib/db";
 import { toast } from "sonner";
 
@@ -39,6 +41,8 @@ function Admin() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [kycRows, setKycRows] = useState<KycVerification[]>([]);
+  const [reviewKyc, setReviewKyc] = useState<{ row: KycVerification; notes: string; idUrl: string | null; selfieUrl: string | null } | null>(null);
   const [search, setSearch] = useState("");
   const [adjust, setAdjust] = useState<{ user: Profile; amount: string; note: string } | null>(null);
   const [resolveDp, setResolveDp] = useState<{ dp: Dispute; notes: string } | null>(null);
