@@ -96,6 +96,7 @@ function Admin() {
     setDeals((dls ?? []) as Deal[]);
     setTxs((trx ?? []) as Transaction[]);
     setDisputes((dis ?? []) as Dispute[]);
+    setKycRows(((kycv ?? []) as unknown) as KycVerification[]);
     setStats({
       users: uCount ?? 0, listings: lCount ?? 0, deals: dCount ?? 0,
       activeDeals: aCount ?? 0, disputes: dpCount ?? 0,
