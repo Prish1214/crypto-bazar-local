@@ -262,8 +262,14 @@ function Admin() {
       </div>
 
       <Tabs defaultValue="analytics">
-        <TabsList className="mb-4 grid w-full grid-cols-3 md:grid-cols-6">
+        <TabsList className="mb-4 grid w-full grid-cols-3 md:grid-cols-7">
           <TabsTrigger value="analytics"><TrendingUp className="mr-1 h-3.5 w-3.5" />Analytics</TabsTrigger>
+          <TabsTrigger value="kyc">
+            <IdCard className="mr-1 h-3.5 w-3.5" />KYC
+            {kycRows.filter((r) => r.status === "pending").length > 0 && (
+              <Badge variant="destructive" className="ml-2">{kycRows.filter((r) => r.status === "pending").length}</Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="disputes">Disputes {stats.disputes > 0 && <Badge variant="destructive" className="ml-2">{stats.disputes}</Badge>}</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="listings">Listings</TabsTrigger>
