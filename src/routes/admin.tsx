@@ -603,6 +603,51 @@ function Admin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* KYC REVIEW DIALOG */}
+      <Dialog open={!!reviewKyc} onOpenChange={(o) => !o && setReviewKyc(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Identity review — {userById.get(reviewKyc?.row.user_id ?? "")?.full_name ?? "user"}</DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Check that the name on the ID matches the profile and that the selfie is the same
+              person. Approval adds the VERIFIED badge and unlocks the marketplace.
+            </p>
+          </DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-border bg-muted/30 p-3">
+              <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <IdCard className="h-3.5 w-3.5" /> ID document (Aadhaar)
+              </div>
+              {reviewKyc?.idUrl
+                ? <img src={reviewKyc.idUrl} alt="Submitted ID" className="w-full rounded-lg border border-border" />
+                : <div className="grid h-40 place-items-center text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /></div>}
+            </div>
+            <div className="rounded-xl border border-border bg-muted/30 p-3">
+              <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <ScanFace className="h-3.5 w-3.5" /> Selfie
+              </div>
+              {reviewKyc?.selfieUrl
+                ? <img src={reviewKyc.selfieUrl} alt="Submitted selfie" className="w-full rounded-lg border border-border" />
+                : <div className="grid h-40 place-items-center text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /></div>}
+            </div>
+          </div>
+          <Textarea
+            placeholder="Reviewer note (shown to the user when rejected)"
+            value={reviewKyc?.notes ?? ""}
+            onChange={(e) => reviewKyc && setReviewKyc({ ...reviewKyc, notes: e.target.value })}
+          />
+          <DialogFooter className="flex-wrap gap-2">
+            <Button variant="ghost" onClick={() => setReviewKyc(null)}>Close</Button>
+            <Button variant="outline" onClick={() => submitKycReview(false)}>
+              <XCircle className="h-3 w-3" /> Reject
+            </Button>
+            <Button variant="hero" onClick={() => submitKycReview(true)}>
+              <ShieldCheck className="h-3 w-3" /> Approve &amp; verify
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }
