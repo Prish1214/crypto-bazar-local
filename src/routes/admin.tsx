@@ -60,7 +60,7 @@ function Admin() {
     const [
       { data: usr }, { data: wal }, { data: roles },
       { data: lst }, { data: dls }, { data: trx }, { data: dis },
-      { count: uCount }, { count: lCount }, { count: dCount }, { count: aCount }, { count: dpCount },
+      { data: kycv }, { count: uCount }, { count: lCount }, { count: dCount }, { count: aCount }, { count: dpCount },
     ] = await Promise.all([
       db.from("profiles").select("*").order("created_at", { ascending: false }).limit(500),
       db.from("wallets").select("*"),
@@ -69,6 +69,7 @@ function Admin() {
       db.from("deals").select("*").order("created_at", { ascending: false }).limit(200),
       db.from("transactions").select("*").order("created_at", { ascending: false }).limit(200),
       db.from("disputes").select("*").order("created_at", { ascending: false }),
+      db.from("kyc_verifications" as any).select("*").order("updated_at" as any, { ascending: false }).limit(200),
       db.from("profiles").select("*", { count: "exact", head: true }),
       db.from("listings").select("*", { count: "exact", head: true }),
       db.from("deals").select("*", { count: "exact", head: true }),
