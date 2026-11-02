@@ -204,6 +204,32 @@ function Admin() {
     refresh();
   };
 
+  // ---------- KYC review ----------
+  const openKycReview = async (row: KycVerification) => {
+    const [idUrl, selfieUrl] = await Promise.all([
+      fetchKycSignedUrl(row.id_document_path),
+      fetchKycSignedUrl(row.selfie_path),
+    ]);
+    setReviewKyc({ row, notes: "", idUrl, selfieUrl });
+  };
+
+  const submitKycReview = async (approve: boolean) => {
+    if (!reviewKyc) return;
+    const { error } = await db.from("kyc_verifications").update({
+      status: approve ? "approved" : "rejected",
+      admin_notes: reviewKyc.notes || null,
+      reviewed_by: user!.id,
+      reviewed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as any).eq("id", reviewKyc.row.id);
+    if (error) return toast.error(error.message);
+    // Approval flips the user's VERIFIED badge (and rejection clears it).
+    await db.from("profiles").update({ verified: approve }).eq("id", reviewKyc.row.user_id);
+    toast.success(approve ? "KYC approved — user is now verified" : "KYC rejected");
+    setReviewKyc(null);
+    refresh();
+  };
+
   if (isAdmin === null) return <PageShell><div className="grid place-items-center rounded-2xl p-16"><Loader2 className="h-6 w-6 animate-spin" /></div></PageShell>;
 
   if (!isAdmin) return (
