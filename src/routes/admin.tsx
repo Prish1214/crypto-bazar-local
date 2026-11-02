@@ -365,6 +365,39 @@ function Admin() {
         </TabsContent>
 
 
+        {/* KYC REVIEW */}
+        <TabsContent value="kyc" className="space-y-2">
+          {kycRows.length === 0 && <Empty msg="No identity verification submissions yet" />}
+          {kycRows.map((k) => {
+            const u = userById.get(k.user_id);
+            const pending = k.status === "pending";
+            return (
+              <div key={k.id} className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      {u?.full_name ?? u?.username ?? k.user_id.slice(0, 8)}
+                      {u?.verified && <Badge className="h-5 px-1.5 text-[10px]" variant="secondary">VERIFIED</Badge>}
+                      <Badge variant={pending ? "default" : k.status === "approved" ? "secondary" : "destructive"}>
+                        {k.status.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground truncate">
+                      @{u?.username ?? "—"} · {u?.city ?? "—"} · submitted {new Date(k.created_at).toLocaleString()}
+                    </div>
+                    {k.admin_notes && <div className="mt-1 text-xs text-muted-foreground"><b>Note:</b> {k.admin_notes}</div>}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button size="sm" variant="hero" onClick={() => openKycReview(k)}>
+                      <ScanFace className="h-3 w-3" /> Review ID &amp; selfie
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </TabsContent>
+
         {/* DISPUTES */}
         <TabsContent value="disputes" className="space-y-2">
           {disputes.length === 0 && <Empty msg="No disputes" />}
