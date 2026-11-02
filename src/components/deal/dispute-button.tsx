@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { AlertOctagon, Loader2, Sparkles } from "lucide-react";
 import { db, uploadDealFile, sendSystemMessage } from "@/lib/db";
+import { compressImage } from "@/lib/media-compress";
 import { supabase } from "@/integrations/supabase/client";
 import { apiUrl } from "@/lib/api-base";
 import { toast } from "sonner";
@@ -61,7 +62,14 @@ export function DisputeButton({ dealId, userId, disabled }: Props) {
     try {
       let evidence_url: string | null = null;
       if (file) {
-        const r = await uploadDealFile(dealId, userId, file, file.name.split(".").pop() ?? "bin");
+        // Photos are compressed in the browser before they are stored.
+        let upload: Blob = file;
+        let ext = file.name.split(".").pop() ?? "bin";
+        if (file.type.startsWith("image/") && file.type !== "image/gif") {
+          upload = await compressImage(file, { maxDim: 1600, quality: 0.82 });
+          ext = "jpg";
+        }
+        const r = await uploadDealFile(dealId, userId, upload, ext);
         evidence_url = r.url;
       }
       const fullReason = [

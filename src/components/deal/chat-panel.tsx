@@ -3,6 +3,7 @@ import { Send, Mic, MapPin, Lock, Image as ImageIcon, StopCircle } from "lucide-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { db, uploadDealFile, type Message } from "@/lib/db";
+import { compressImage } from "@/lib/media-compress";
 import { sanitizeMessage } from "@/lib/chat-sanitize";
 import { encryptForDeal, decryptForDeal } from "@/lib/deal-crypto";
 import { toast } from "sonner";
@@ -53,8 +54,10 @@ export function ChatPanel({
 
   const sendImage = async (file: File) => {
     try {
-      const ext = file.name.split(".").pop() ?? "jpg";
-      const { url } = await uploadDealFile(dealId, userId, file, ext);
+      // Photos are compressed in the browser before they are stored.
+      const blob = await compressImage(file, { maxDim: 1600, quality: 0.82 });
+      const ext = blob.type === "image/jpeg" ? "jpg" : file.name.split(".").pop() ?? "jpg";
+      const { url } = await uploadDealFile(dealId, userId, blob, ext);
       await db.from("messages").insert({
         deal_id: dealId, sender_id: userId, content: file.name, kind: "image", attachment_url: url,
       } as any);

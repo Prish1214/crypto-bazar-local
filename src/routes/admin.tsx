@@ -4,6 +4,7 @@ import {
   Loader2, Users, ListOrdered, Handshake, AlertOctagon, ShieldCheck, ShieldOff,
   Ban, CheckCircle2, Trash2, XCircle, Search, ReceiptText, Wallet as WalletIcon,
   Crown, Eye, TrendingUp, ArrowDownToLine, ArrowUpFromLine, LifeBuoy, Activity, Percent,
+  IdCard, ScanFace,
 } from "lucide-react";
 import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
+import { fetchKycSignedUrl, type KycVerification } from "@/lib/kyc";
 import { db, fmtUSDT, type Dispute, type Profile, type Listing, type Deal, type Transaction, type Wallet } from "@/lib/db";
 import { toast } from "sonner";
 
@@ -39,6 +41,8 @@ function Admin() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [kycRows, setKycRows] = useState<KycVerification[]>([]);
+  const [reviewKyc, setReviewKyc] = useState<{ row: KycVerification; notes: string; idUrl: string | null; selfieUrl: string | null } | null>(null);
   const [search, setSearch] = useState("");
   const [adjust, setAdjust] = useState<{ user: Profile; amount: string; note: string } | null>(null);
   const [resolveDp, setResolveDp] = useState<{ dp: Dispute; notes: string } | null>(null);
@@ -56,7 +60,7 @@ function Admin() {
     const [
       { data: usr }, { data: wal }, { data: roles },
       { data: lst }, { data: dls }, { data: trx }, { data: dis },
-      { count: uCount }, { count: lCount }, { count: dCount }, { count: aCount }, { count: dpCount },
+      { data: kycv }, { count: uCount }, { count: lCount }, { count: dCount }, { count: aCount }, { count: dpCount },
     ] = await Promise.all([
       db.from("profiles").select("*").order("created_at", { ascending: false }).limit(500),
       db.from("wallets").select("*"),
@@ -65,6 +69,7 @@ function Admin() {
       db.from("deals").select("*").order("created_at", { ascending: false }).limit(200),
       db.from("transactions").select("*").order("created_at", { ascending: false }).limit(200),
       db.from("disputes").select("*").order("created_at", { ascending: false }),
+      db.from("kyc_verifications" as any).select("*").order("updated_at" as any, { ascending: false }).limit(200),
       db.from("profiles").select("*", { count: "exact", head: true }),
       db.from("listings").select("*", { count: "exact", head: true }),
       db.from("deals").select("*", { count: "exact", head: true }),
@@ -91,6 +96,7 @@ function Admin() {
     setDeals((dls ?? []) as Deal[]);
     setTxs((trx ?? []) as Transaction[]);
     setDisputes((dis ?? []) as Dispute[]);
+    setKycRows(((kycv ?? []) as unknown) as KycVerification[]);
     setStats({
       users: uCount ?? 0, listings: lCount ?? 0, deals: dCount ?? 0,
       activeDeals: aCount ?? 0, disputes: dpCount ?? 0,
@@ -198,6 +204,32 @@ function Admin() {
     refresh();
   };
 
+  // ---------- KYC review ----------
+  const openKycReview = async (row: KycVerification) => {
+    const [idUrl, selfieUrl] = await Promise.all([
+      fetchKycSignedUrl(row.id_document_path),
+      fetchKycSignedUrl(row.selfie_path),
+    ]);
+    setReviewKyc({ row, notes: "", idUrl, selfieUrl });
+  };
+
+  const submitKycReview = async (approve: boolean) => {
+    if (!reviewKyc) return;
+    const { error } = await db.from("kyc_verifications").update({
+      status: approve ? "approved" : "rejected",
+      admin_notes: reviewKyc.notes || null,
+      reviewed_by: user!.id,
+      reviewed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as any).eq("id", reviewKyc.row.id);
+    if (error) return toast.error(error.message);
+    // Approval flips the user's VERIFIED badge (and rejection clears it).
+    await db.from("profiles").update({ verified: approve }).eq("id", reviewKyc.row.user_id);
+    toast.success(approve ? "KYC approved — user is now verified" : "KYC rejected");
+    setReviewKyc(null);
+    refresh();
+  };
+
   if (isAdmin === null) return <PageShell><div className="grid place-items-center rounded-2xl p-16"><Loader2 className="h-6 w-6 animate-spin" /></div></PageShell>;
 
   if (!isAdmin) return (
@@ -223,6 +255,7 @@ function Admin() {
         <StatCard icon={ListOrdered} label="Listings" value={stats.listings.toString()} />
         <StatCard icon={Handshake} label="Deals (active / total)" value={`${stats.activeDeals} / ${stats.deals}`} />
         <StatCard icon={AlertOctagon} label="Open disputes" value={stats.disputes.toString()} accent={stats.disputes > 0} />
+        <StatCard icon={IdCard} label="KYC pending" value={kycRows.filter((r) => r.status === "pending").length.toString()} accent={kycRows.some((r) => r.status === "pending")} />
         <StatCard icon={ReceiptText} label="Completed volume" value={fmtUSDT(stats.volume)} />
         <StatCard icon={WalletIcon} label="Escrow held" value={fmtUSDT(stats.escrowHeld)} />
         <StatCard icon={Crown} label="Fees collected" value={fmtUSDT(stats.fees)} />
@@ -230,8 +263,14 @@ function Admin() {
       </div>
 
       <Tabs defaultValue="analytics">
-        <TabsList className="mb-4 grid w-full grid-cols-3 md:grid-cols-6">
+        <TabsList className="mb-4 grid w-full grid-cols-3 md:grid-cols-7">
           <TabsTrigger value="analytics"><TrendingUp className="mr-1 h-3.5 w-3.5" />Analytics</TabsTrigger>
+          <TabsTrigger value="kyc">
+            <IdCard className="mr-1 h-3.5 w-3.5" />KYC
+            {kycRows.filter((r) => r.status === "pending").length > 0 && (
+              <Badge variant="destructive" className="ml-2">{kycRows.filter((r) => r.status === "pending").length}</Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="disputes">Disputes {stats.disputes > 0 && <Badge variant="destructive" className="ml-2">{stats.disputes}</Badge>}</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="listings">Listings</TabsTrigger>
@@ -326,6 +365,39 @@ function Admin() {
           )}
         </TabsContent>
 
+
+        {/* KYC REVIEW */}
+        <TabsContent value="kyc" className="space-y-2">
+          {kycRows.length === 0 && <Empty msg="No identity verification submissions yet" />}
+          {kycRows.map((k) => {
+            const u = userById.get(k.user_id);
+            const pending = k.status === "pending";
+            return (
+              <div key={k.id} className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      {u?.full_name ?? u?.username ?? k.user_id.slice(0, 8)}
+                      {u?.verified && <Badge className="h-5 px-1.5 text-[10px]" variant="secondary">VERIFIED</Badge>}
+                      <Badge variant={pending ? "default" : k.status === "approved" ? "secondary" : "destructive"}>
+                        {k.status.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground truncate">
+                      @{u?.username ?? "—"} · {u?.city ?? "—"} · submitted {new Date(k.created_at).toLocaleString()}
+                    </div>
+                    {k.admin_notes && <div className="mt-1 text-xs text-muted-foreground"><b>Note:</b> {k.admin_notes}</div>}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button size="sm" variant="hero" onClick={() => openKycReview(k)}>
+                      <ScanFace className="h-3 w-3" /> Review ID &amp; selfie
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </TabsContent>
 
         {/* DISPUTES */}
         <TabsContent value="disputes" className="space-y-2">
@@ -529,6 +601,51 @@ function Admin() {
             <Button variant="glass" onClick={() => submitResolve("cancelled")}><XCircle className="h-3 w-3" /> Dismiss</Button>
             <Button variant="glass" onClick={() => submitResolve("resolved_seller")}>Refund seller</Button>
             <Button variant="hero" onClick={() => submitResolve("resolved_buyer")}><CheckCircle2 className="h-3 w-3" /> Release to buyer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* KYC REVIEW DIALOG */}
+      <Dialog open={!!reviewKyc} onOpenChange={(o) => !o && setReviewKyc(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Identity review — {userById.get(reviewKyc?.row.user_id ?? "")?.full_name ?? "user"}</DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Check that the name on the ID matches the profile and that the selfie is the same
+              person. Approval adds the VERIFIED badge and unlocks the marketplace.
+            </p>
+          </DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-border bg-muted/30 p-3">
+              <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <IdCard className="h-3.5 w-3.5" /> ID document (Aadhaar)
+              </div>
+              {reviewKyc?.idUrl
+                ? <img src={reviewKyc.idUrl} alt="Submitted ID" className="w-full rounded-lg border border-border" />
+                : <div className="grid h-40 place-items-center text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /></div>}
+            </div>
+            <div className="rounded-xl border border-border bg-muted/30 p-3">
+              <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <ScanFace className="h-3.5 w-3.5" /> Selfie
+              </div>
+              {reviewKyc?.selfieUrl
+                ? <img src={reviewKyc.selfieUrl} alt="Submitted selfie" className="w-full rounded-lg border border-border" />
+                : <div className="grid h-40 place-items-center text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /></div>}
+            </div>
+          </div>
+          <Textarea
+            placeholder="Reviewer note (shown to the user when rejected)"
+            value={reviewKyc?.notes ?? ""}
+            onChange={(e) => reviewKyc && setReviewKyc({ ...reviewKyc, notes: e.target.value })}
+          />
+          <DialogFooter className="flex-wrap gap-2">
+            <Button variant="ghost" onClick={() => setReviewKyc(null)}>Close</Button>
+            <Button variant="outline" onClick={() => submitKycReview(false)}>
+              <XCircle className="h-3 w-3" /> Reject
+            </Button>
+            <Button variant="hero" onClick={() => submitKycReview(true)}>
+              <ShieldCheck className="h-3 w-3" /> Approve &amp; verify
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

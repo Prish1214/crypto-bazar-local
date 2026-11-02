@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Search, MapPin, Star, ShieldCheck, ArrowDownUp, Loader2, Landmark, Wallet as WalletIcon } from "lucide-react";
-import { PageShell } from "@/components/site-chrome";
+import { PageShell, RequireAuth } from "@/components/site-chrome";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,8 @@ type SortKey = "price_asc" | "price_desc" | "trades" | "completion";
 
 export const Route = createFileRoute("/marketplace")({
   head: () => ({ meta: [{ title: "Marketplace — KryptoBazar" }] }),
-  component: Marketplace,
+  // Marketplace is identity-gated: unverified users are routed to /kyc.
+  component: () => <RequireAuth><Marketplace /></RequireAuth>,
 });
 
 function Marketplace() {
