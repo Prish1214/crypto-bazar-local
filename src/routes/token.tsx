@@ -40,7 +40,7 @@ export const Route = createFileRoute("/token")({
 });
 
 // Launch countdown target (UTC). Update this when the launch date is fixed.
-const TOKEN_LAUNCH_ISO = "2026-12-01T12:00:00Z";
+const TOKEN_LAUNCH_ISO = "2027-02-12T12:00:00Z";
 
 // Airdrop reward model (preliminary, shown transparently on the page).
 const BASE_POINTS_PER_1000_USDT = 100; // 100 KRYPTO points per 1,000 USDT verified volume
@@ -257,8 +257,8 @@ function TokenPage() {
 
   const roadmap = [
     { phase: "Now", title: "Waitlist open", desc: "Points accrue from verified trades. Community channels go live.", done: true },
-    { phase: "Q4 2026", title: "Snapshot", desc: "Eligibility check and final snapshot of points and wallets.", done: false },
-    { phase: "Launch", title: "Token generation", desc: "KRYPTO goes live; eligible members claim their allocation.", done: false },
+    { phase: "Feb 2027", title: "Launch", desc: "KRYPTO goes live on 12 Feb 2027; eligible members claim their allocation.", done: false },
+    { phase: "Snapshot", title: "Eligibility check", desc: "Final snapshot of points and wallets ahead of the 12 Feb 2027 launch.", done: false },
     { phase: "Post-launch", title: "Utility expands", desc: "Merchant boosts, fee-tier staking, and community governance.", done: false },
   ];
 
