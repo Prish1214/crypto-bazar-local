@@ -103,21 +103,30 @@ function Countdown() {
   );
 }
 
+// BEP20 (BSC) address: 0x followed by 40 hex characters.
+const WALLET_RE = /^0x[0-9a-fA-F]{40}$/;
+
 function WaitlistForm() {
-  const [email, setEmail] = useState("");
+  const [wallet, setWallet] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [message, setMessage] = useState("");
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (state === "loading") return;
+    const value = wallet.trim();
+    if (!WALLET_RE.test(value)) {
+      setState("error");
+      setMessage("Enter a valid BEP20 wallet address — it starts with 0x and has 42 characters.");
+      return;
+    }
     setState("loading");
     setMessage("");
     try {
       const res = await fetch(apiUrl("/api/token/waitlist"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ wallet: value }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -137,7 +146,7 @@ function WaitlistForm() {
     return (
       <div className="mx-auto flex max-w-md items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium text-primary">
         <CheckCircle2 className="h-4 w-4 shrink-0" />
-        {message}
+        <span className="min-w-0">{message}</span>
       </div>
     );
   }
@@ -145,13 +154,16 @@ function WaitlistForm() {
   return (
     <form onSubmit={submit} className="mx-auto flex max-w-md flex-col gap-2 sm:flex-row">
       <Input
-        type="email"
+        type="text"
         required
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="you@email.com"
-        className="h-11 flex-1 rounded-xl"
-        aria-label="Email address"
+        spellCheck={false}
+        autoCapitalize="off"
+        autoComplete="off"
+        value={wallet}
+        onChange={(e) => setWallet(e.target.value)}
+        placeholder="0x… your BEP20 wallet address"
+        className="h-11 flex-1 rounded-xl font-mono text-sm"
+        aria-label="BEP20 wallet address"
       />
       <Button type="submit" variant="hero" size="lg" className="rounded-xl" disabled={state === "loading"}>
         {state === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
@@ -250,9 +262,9 @@ function TrustCard({ icon: Icon, title, desc }: { icon: any; title: string; desc
 
 function TokenPage() {
   const steps = [
-    { icon: Bell, title: "Join the waitlist", desc: "Drop your email below. You'll get launch updates, the snapshot date, and your claim window — nothing else." },
+    { icon: Bell, title: "Join the waitlist", desc: "Add your BEP20 wallet address below to lock in your spot. You'll get the snapshot date and your claim window — nothing else." },
     { icon: Handshake, title: "Trade & earn points", desc: "Every completed, escrow-verified trade on KryptoBazar earns KRYPTO points. The 0% trade-fee era makes every deal count." },
-    { icon: Rocket, title: "Claim at launch", desc: "At token generation we snapshot eligible wallets. Claim your KRYPTO straight from your KryptoBazar wallet — no gas gymnastics." },
+    { icon: Rocket, title: "Claim at launch", desc: "At token generation we snapshot eligible wallets, and the KRYPTO you've earned is transferred to your registered BEP20 address — no gas gymnastics." },
   ];
 
   const roadmap = [
@@ -296,7 +308,7 @@ function TokenPage() {
         <div className="mt-9">
           <WaitlistForm />
           <p className="mt-3 text-[11px] text-muted-foreground">
-            No spam, ever. One email at snapshot, one at launch.
+            One wallet per account. At launch, the KRYPTO you've earned is transferred straight to this address.
           </p>
         </div>
       </section>
@@ -336,7 +348,7 @@ function TokenPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <TrustCard icon={ShieldCheck} title="Escrow-verified only" desc="Only completed, escrow-protected deals earn points. No fake volume, no wash trading." />
           <TrustCard icon={Users} title="Community first" desc="No insider presale allocations. The airdrop rewards active traders and early supporters." />
-          <TrustCard icon={Lock} title="Your keys, your claim" desc="Claim straight from your KryptoBazar wallet at launch. We never hold your tokens." />
+          <TrustCard icon={Lock} title="Your keys, your claim" desc="At launch, your earned KRYPTO is transferred directly to your BEP20 address. We never hold your tokens." />
           <TrustCard icon={Star} title="Transparent rules" desc="The full point formula and tiers are published on this page before the snapshot." />
         </div>
       </section>
