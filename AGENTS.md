@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep CDM map rendering isolated in a client-only Leaflet view; show machine pins only from a verified directory to avoid invented financial-service locations.

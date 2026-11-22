@@ -1,9 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { lazy, Suspense, useState } from "react";
 import {
-  Building2, Landmark, MapPin, Navigation, Ruler, ShieldCheck,
+  ArrowUpRight,
+  Landmark,
+  LocateFixed,
+  LoaderCircle,
+  MapPin,
+  ShieldCheck,
 } from "lucide-react";
 import { PageShell } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
+
+const LazyCdmMapCanvas = lazy(() =>
+  import("@/components/cdm-map-canvas").then((module) => ({
+    default: module.CdmMapCanvas,
+  })),
+);
+
+type UserLocation = { latitude: number; longitude: number };
 
 export const Route = createFileRoute("/cdm-map")({
   head: () => ({
@@ -12,13 +26,13 @@ export const Route = createFileRoute("/cdm-map")({
         title: "Find Nearby CDMs — KryptoBazar",
         name: "description",
         content:
-          "Verified cash deposit machines near you — bank name, address, distance and directions. KryptoBazar only lists machines verified by our team.",
+          "Explore your area on the KryptoBazar CDM map. Only verified cash deposit machine locations will be shown.",
       },
       { property: "og:title", content: "Find Nearby CDMs — KryptoBazar" },
       {
         property: "og:description",
         content:
-          "Verified cash deposit machines near you — bank name, address, distance and directions.",
+          "Explore your area on the KryptoBazar CDM map. Only verified cash deposit machine locations will be shown.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -28,72 +42,160 @@ export const Route = createFileRoute("/cdm-map")({
 });
 
 function CdmMapPage() {
+  const [location, setLocation] = useState<UserLocation | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState("");
+
+  const locateMe = () => {
+    setLocationError("");
+    if (!navigator.geolocation) {
+      setLocationError("Location access isn’t available in this browser.");
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLocation({ latitude: coords.latitude, longitude: coords.longitude });
+        setLocating(false);
+      },
+      (error) => {
+        setLocationError(
+          error.code === error.PERMISSION_DENIED
+            ? "Location access is off. Allow it in your browser settings to center the map near you."
+            : "We couldn’t determine your location. Please try again.",
+        );
+        setLocating(false);
+      },
+      { enableHighAccuracy: false, maximumAge: 300_000, timeout: 15_000 },
+    );
+  };
+
   return (
     <PageShell>
-      <div className="mx-auto max-w-2xl">
-        {/* Header */}
-        <div className="mb-4">
-          <h1 className="font-display text-xl font-bold tracking-tight md:text-2xl">
-            Find Nearby CDMs
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Verified cash deposit machines — for paying a seller without meeting in person.
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+          <div>
+            <div className="mb-1 flex items-center gap-2 text-xs font-medium text-primary">
+              <Landmark className="h-4 w-4" /> Cash deposit machines
+            </div>
+            <h1 className="font-display text-xl font-bold md:text-2xl">
+              Find Nearby CDMs
+            </h1>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Explore your area. Verified machines only.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={locateMe}
+            disabled={locating}
+            className="min-h-10 self-start sm:self-auto"
+          >
+            {locating ? (
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+            ) : (
+              <LocateFixed className="h-4 w-4" />
+            )}
+            {location ? "Update location" : "Use my location"}
+          </Button>
+        </div>
+
+        {locationError && (
+          <p
+            role="alert"
+            className="mb-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+          >
+            {locationError}
           </p>
-        </div>
+        )}
 
-        {/* How CDM payment works */}
-        <div className="mb-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Landmark className="h-4 w-4 text-primary" /> How CDM deposits work
+        {location ? (
+          <Suspense
+            fallback={
+              <div className="grid h-[360px] place-items-center rounded-xl border border-border bg-secondary text-sm text-muted-foreground md:h-[460px]">
+                Loading map…
+              </div>
+            }
+          >
+            <LazyCdmMapCanvas
+              latitude={location.latitude}
+              longitude={location.longitude}
+            />
+          </Suspense>
+        ) : (
+          <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-border bg-card px-5 py-8 text-center shadow-sm">
+            <div className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
+              <MapPin className="h-6 w-6" />
+            </div>
+            <h2 className="mt-3 font-display text-base font-semibold">
+              Start with your area
+            </h2>
+            <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
+              Share your location to open the map centered near you. Your
+              location is used only for this view.
+            </p>
+            <Button
+              type="button"
+              variant="hero"
+              size="sm"
+              onClick={locateMe}
+              disabled={locating}
+              className="mt-4 min-h-10"
+            >
+              {locating ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <LocateFixed className="h-4 w-4" />
+              )}
+              Use my location
+            </Button>
           </div>
-          <ol className="mt-2 space-y-1.5 text-xs text-muted-foreground">
-            <li>1. Start a deal with a seller whose ad shows <span className="font-medium text-primary">CDM deposit</span>.</li>
-            <li>2. In the Deal Room, copy the seller's bank details and deposit the exact INR amount at any CDM that accepts their bank.</li>
-            <li>3. Upload the deposit receipt in the Deal Room chat.</li>
-            <li>4. The seller verifies the actual bank credit, then escrow releases your USDT.</li>
-          </ol>
-        </div>
+        )}
 
-        {/* Directory state — verified data only, never fabricated */}
-        <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center">
-          <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-primary/10">
-            <ShieldCheck className="h-6 w-6 text-primary" />
+        <section className="mt-3 rounded-xl border border-warning/30 bg-warning/5 p-4">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+            <div>
+              <h2 className="text-sm font-semibold">No verified CDMs listed yet</h2>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                We don’t have a verified machine directory to show nearby
+                locations, bank names, distances, or directions. No locations
+                are estimated or added without verification, and CDM deals
+                remain unavailable until verified data is connected.
+              </p>
+            </div>
           </div>
-          <h2 className="mt-3 font-display text-base font-semibold">
-            No verified CDM directory is connected yet
+        </section>
+
+        <section className="mt-5 border-t border-border pt-4">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Landmark className="h-4 w-4 text-primary" /> How CDM payments work
           </h2>
-          <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
-            KryptoBazar only shows machines that have been verified by our team.
-            We never invent, auto-generate, or estimate machine locations — so
-            the live map stays offline until a verified directory is available.
+          <ol className="mt-2 grid gap-2 text-xs leading-relaxed text-muted-foreground sm:grid-cols-2">
+            <li>1. Choose an ad that supports CDM payment.</li>
+            <li>2. Deposit the exact INR amount into the seller’s bank.</li>
+            <li>3. Upload your deposit receipt in the Deal Room chat.</li>
+            <li>
+              4. The seller checks the actual bank credit before releasing USDT.
+            </li>
+          </ol>
+          <p className="mt-3 rounded-lg bg-secondary px-3 py-2 text-xs font-medium text-foreground">
+            A receipt alone does not prove payment. Never release escrow until
+            the bank credit is independently confirmed.
           </p>
-          <div className="mt-4">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Once verified, each machine will show
-            </div>
-            <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-              <Chip icon={Building2} label="Bank name" />
-              <Chip icon={MapPin} label="Address" />
-              <Chip icon={Ruler} label="Distance" />
-              <Chip icon={Navigation} label="Directions" />
-            </div>
-          </div>
-        </div>
+        </section>
 
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+        <div className="mt-4 flex justify-center">
           <Link to="/marketplace">
-            <Button variant="hero" size="sm">Browse CDM-enabled ads</Button>
+            <Button variant="outline" size="sm">
+              Back to marketplace <ArrowUpRight className="h-3.5 w-3.5" />
+            </Button>
           </Link>
         </div>
       </div>
     </PageShell>
-  );
-}
-
-function Chip({ icon: Icon, label }: { icon: typeof MapPin; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/50 px-3 py-1 text-[11px] font-medium text-muted-foreground">
-      <Icon className="h-3 w-3 text-primary" /> {label}
-    </span>
   );
 }
