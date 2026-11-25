@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { withCorsHandlers } from "@/lib/cors.server";
+import { isCdmReleaseReady } from "@/lib/cdm";
 import { userFromRequest, admin } from "@/lib/supabase.server";
 
 // Seller-only: verify Deal Code, then call complete_deal_release RPC.
@@ -23,10 +24,19 @@ export const Route = createFileRoute("/api/deals/release")({
 
         const sb = admin();
         const { data: deal, error: dErr } = await sb
-          .from("deals").select("id, seller_id, status").eq("id", dealId).maybeSingle();
+          .from("deals")
+          .select("id, seller_id, status, payment_method, cdm_receipt_url, cdm_receipt_uploaded_at, cdm_verified_at")
+          .eq("id", dealId)
+          .maybeSingle();
         if (dErr || !deal) return Response.json({ error: "Deal not found" }, { status: 404 });
         if (deal.seller_id !== auth.user.id) {
           return Response.json({ error: "Only the seller can release escrow" }, { status: 403 });
+        }
+        if (!isCdmReleaseReady(deal)) {
+          return Response.json(
+            { error: "CDM release requires a saved deposit receipt and your confirmation of the actual bank credit." },
+            { status: 409 },
+          );
         }
 
         // Make sure a Deal Code is actually set — otherwise verify_deal_code

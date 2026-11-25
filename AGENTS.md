@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Keep CDM map rendering isolated in a client-only Leaflet view; show machine pins only from a verified directory to avoid invented financial-service locations.
+- CDM escrow release must require a saved receipt and the seller's persisted bank-credit confirmation before the release RPC, because receipt images alone are not payment proof.
